@@ -10,9 +10,8 @@ import { useModalTransition } from "@/app/hooks/useModalTransition";
 
 /** Design width of all poster templates */
 const POSTER_W = 1080;
-/** Preview width inside the modal */
-const PREVIEW_W = 340;
-const SCALE = PREVIEW_W / POSTER_W;
+const PREVIEW_MAX_W = 600;
+const DESKTOP_SIDE_W = 168;
 
 const TEMPLATES: { id: PosterTemplate; label: string }[] = [
   { id: "minimal-white", label: "Notion风格" },
@@ -46,9 +45,12 @@ export function PosterPreviewModal({
   const exportRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false);
+  const [previewW, setPreviewW] = useState(520);
   const { handleClose, overlayStyle, panelStyle } = useModalTransition(onClose);
 
   const activeTemplate = TEMPLATES[activeIdx].id;
+  const scale = previewW / POSTER_W;
 
   const renderTemplate = (tmpl: PosterTemplate) => {
     switch (tmpl) {
@@ -67,10 +69,31 @@ export function PosterPreviewModal({
   /* ── Measure export node for preview height ── */
   const [previewH, setPreviewH] = useState(0);
   const measure = useCallback(() => {
-    if (exportRef.current) {
-      setPreviewH(exportRef.current.scrollHeight * SCALE);
-    }
+    if (!exportRef.current) return;
+
+    const fullHeight = exportRef.current.scrollHeight;
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const desktop = viewportW >= 1024;
+    const widthLimit = desktop
+      ? Math.max(460, Math.min(PREVIEW_MAX_W, viewportW - DESKTOP_SIDE_W - 220))
+      : Math.max(300, Math.min(520, viewportW - 40));
+    const heightLimit = desktop
+      ? Math.max(420, viewportH - 110)
+      : Math.max(280, viewportH - 220);
+    const nextScale = Math.min(widthLimit / POSTER_W, heightLimit / fullHeight);
+    const safeScale = Math.max(0.22, nextScale);
+
+    setIsDesktopLayout(desktop);
+    setPreviewW(Math.round(POSTER_W * safeScale));
+    setPreviewH(Math.round(fullHeight * safeScale));
   }, []);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
 
   useEffect(() => {
     measure();
@@ -137,50 +160,68 @@ export function PosterPreviewModal({
     }
   };
 
-  /* ── Carousel item style ── */
-  const THUMB_W = 160;
+  const THUMB_W = 132;
   const THUMB_SCALE = THUMB_W / POSTER_W;
 
-  const getCarouselStyle = (
-    idx: number
-  ): {
-    transform: string;
-    opacity: number;
-    zIndex: number;
-    pointerEvents: "auto" | "none";
-  } => {
-    const diff =
-      ((idx - activeIdx + TEMPLATES.length) % TEMPLATES.length + TEMPLATES.length) %
-      TEMPLATES.length;
-    // Normalize to -N/2 .. N/2
-    const offset =
-      diff > TEMPLATES.length / 2 ? diff - TEMPLATES.length : diff;
+  const secondaryButtonStyle: React.CSSProperties = {
+    padding: "10px 20px",
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.2)",
+    background: "rgba(255,255,255,0.08)",
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#ffffff",
+    cursor: "pointer",
+  };
 
-    if (offset === 0) {
-      return {
-        transform: "translateX(0) scale(1) rotateY(0deg)",
-        opacity: 1,
-        zIndex: 10,
-        pointerEvents: "auto",
-      };
-    }
-    const sign = offset > 0 ? 1 : -1;
-    const abs = Math.abs(offset);
-    if (abs === 1) {
-      return {
-        transform: `translateX(${sign * 200}px) scale(0.82) rotateY(${-sign * 12}deg)`,
-        opacity: 0.6,
-        zIndex: 5,
-        pointerEvents: "auto",
-      };
-    }
-    // Further items — hidden behind
-    return {
-      transform: `translateX(${sign * 320}px) scale(0.65) rotateY(${-sign * 20}deg)`,
-      opacity: 0.25,
-      zIndex: 1,
-      pointerEvents: "none",
-    };
+  const primaryButtonStyle: React.CSSProperties = {
+    padding: "10px 20px",
+    borderRadius: 12,
+    border: "none",
+    background: isSaving ? "#6b7280" : "#ffffff",
+    fontSize: 14,
+    fontWeight: 600,
+    color: isSaving ? "#ffffff" : "#111827",
+    cursor: isSaving ? "default" : "pointer",
+  };
+
+  const renderThumb = (tmpl: { id: PosterTemplate; label: string }, idx: number) => {
+    const isActive = idx === activeIdx;
+
+    return (
+      <button
+        key={tmpl.id}
+        onClick={() => setActiveIdx(idx)}
+        style={{
+          width: THUMB_W,
+          height: 74,
+          borderRadius: 10,
+          overflow: "hidden",
+          cursor: "pointer",
+          border: isActive
+            ? "2px solid rgba(255,255,255,0.68)"
+            : "1px solid rgba(255,255,255,0.14)",
+          boxShadow: isActive
+            ? "0 4px 18px rgba(0,0,0,0.28)"
+            : "0 2px 8px rgba(0,0,0,0.18)",
+          opacity: isActive ? 1 : 0.72,
+          background: bgForTemplate(tmpl.id),
+          transition: "opacity 180ms ease, transform 180ms ease, border-color 180ms ease",
+          transform: isActive ? "scale(1)" : "scale(0.98)",
+        }}
+      >
+        <div
+          style={{
+            transformOrigin: "top left",
+            transform: `scale(${THUMB_SCALE})`,
+            width: POSTER_W,
+            position: "relative",
+          }}
+        >
+          {renderTemplate(tmpl.id)}
+        </div>
+      </button>
+    );
   };
 
   return (
@@ -206,9 +247,9 @@ export function PosterPreviewModal({
           flexDirection: "column",
           alignItems: "center",
           maxHeight: "96vh",
-          gap: 20,
+          gap: 14,
           width: "100%",
-          maxWidth: 900,
+          maxWidth: isDesktopLayout ? previewW + DESKTOP_SIDE_W + 24 : previewW + 40,
           ...panelStyle,
         }}
       >
@@ -226,161 +267,162 @@ export function PosterPreviewModal({
           <div ref={exportRef}>{renderTemplate(activeTemplate)}</div>
         </div>
 
-        {/* ── Active template label ── */}
-        <p
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.85)",
-            letterSpacing: 2,
-            margin: 0,
-          }}
-        >
-          {TEMPLATES[activeIdx].label}
-        </p>
-
-        {/* ── Main preview (center) ── */}
-        <div
-          style={{
-            overflow: "auto",
-            maxHeight: "calc(96vh - 200px)",
-            borderRadius: 16,
-            boxShadow: "0 12px 48px rgba(0,0,0,0.35)",
-            background: bgForTemplate(activeTemplate),
-          }}
-        >
+        {isDesktopLayout ? (
           <div
             style={{
-              width: PREVIEW_W,
-              height: previewH || "auto",
-              overflow: "hidden",
-              position: "relative",
+              display: "grid",
+              gridTemplateColumns: `${previewW}px ${DESKTOP_SIDE_W}px`,
+              gap: 16,
+              alignItems: "start",
+              width: "100%",
             }}
           >
-            <div
-              style={{
-                transformOrigin: "top left",
-                transform: `scale(${SCALE})`,
-                width: POSTER_W,
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }}
-            >
-              {renderTemplate(activeTemplate)}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Carousel thumbnails ── */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "100%",
-            height: 100,
-            perspective: 800,
-            position: "relative",
-          }}
-        >
-          {TEMPLATES.map((tmpl, idx) => {
-            const cs = getCarouselStyle(idx);
-            return (
-              <div
-                key={tmpl.id}
-                onClick={() => setActiveIdx(idx)}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+              <p
                 style={{
-                  position: "absolute",
-                  width: THUMB_W,
-                  height: 90,
-                  borderRadius: 10,
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  transition: "all 350ms ease-in-out",
-                  transform: cs.transform,
-                  opacity: cs.opacity,
-                  zIndex: cs.zIndex,
-                  pointerEvents: cs.pointerEvents,
-                  boxShadow:
-                    cs.zIndex === 10
-                      ? "0 4px 20px rgba(0,0,0,0.4)"
-                      : "0 2px 8px rgba(0,0,0,0.2)",
-                  border:
-                    cs.zIndex === 10
-                      ? "2px solid rgba(255,255,255,0.6)"
-                      : "1px solid rgba(255,255,255,0.15)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "rgba(255,255,255,0.85)",
+                  letterSpacing: 2,
+                  margin: 0,
                 }}
               >
-                {/* Tiny poster thumbnail */}
+                {TEMPLATES[activeIdx].label}
+              </p>
+
+              <div
+                style={{
+                  overflow: "hidden",
+                  borderRadius: 16,
+                  boxShadow: "0 12px 48px rgba(0,0,0,0.35)",
+                  background: bgForTemplate(activeTemplate),
+                }}
+              >
+                <div
+                  style={{
+                    width: previewW,
+                    height: previewH || "auto",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    style={{
+                      transformOrigin: "top left",
+                      transform: `scale(${scale})`,
+                      width: POSTER_W,
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                    }}
+                  >
+                    {renderTemplate(activeTemplate)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                minHeight: previewH || undefined,
+                flexDirection: "column",
+                gap: 10,
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "grid", gap: 10, justifyItems: "center" }}>
+                {TEMPLATES.map(renderThumb)}
+              </div>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                <button onClick={handleClose} style={secondaryButtonStyle}>
+                  关闭
+                </button>
+                {onRegenerate && (
+                  <button onClick={onRegenerate} style={secondaryButtonStyle}>
+                    重新生成内容
+                  </button>
+                )}
+                <button onClick={handleSave} disabled={isSaving} style={primaryButtonStyle}>
+                  {isSaving ? "保存中…" : "保存海报"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "rgba(255,255,255,0.85)",
+                letterSpacing: 2,
+                margin: 0,
+              }}
+            >
+              {TEMPLATES[activeIdx].label}
+            </p>
+
+            <div
+              style={{
+                overflow: "hidden",
+                borderRadius: 16,
+                boxShadow: "0 12px 48px rgba(0,0,0,0.35)",
+                background: bgForTemplate(activeTemplate),
+              }}
+            >
+              <div
+                style={{
+                  width: previewW,
+                  height: previewH || "auto",
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+              >
                 <div
                   style={{
                     transformOrigin: "top left",
-                    transform: `scale(${THUMB_SCALE})`,
+                    transform: `scale(${scale})`,
                     width: POSTER_W,
                     position: "absolute",
                     top: 0,
                     left: 0,
                   }}
                 >
-                  {renderTemplate(tmpl.id)}
+                  {renderTemplate(activeTemplate)}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
 
-        {/* ── Action buttons ── */}
-        <div style={{ display: "flex", gap: 12 }}>
-          <button
-            onClick={handleClose}
-            style={{
-              padding: "10px 28px",
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.2)",
-              background: "rgba(255,255,255,0.08)",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#ffffff",
-              cursor: "pointer",
-            }}
-          >
-            关闭
-          </button>
-          {onRegenerate && (
-            <button
-              onClick={onRegenerate}
+            <div
               style={{
-                padding: "10px 28px",
-                borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.2)",
-                background: "rgba(255,255,255,0.08)",
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#ffffff",
-                cursor: "pointer",
+                display: "flex",
+                gap: 10,
+                width: "100%",
+                overflowX: "auto",
+                justifyContent: "center",
+                paddingBottom: 2,
               }}
             >
-              重新生成内容
-            </button>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            style={{
-              padding: "10px 28px",
-              borderRadius: 12,
-              border: "none",
-              background: isSaving ? "#6b7280" : "#ffffff",
-              fontSize: 14,
-              fontWeight: 600,
-              color: isSaving ? "#ffffff" : "#111827",
-              cursor: isSaving ? "default" : "pointer",
-            }}
-          >
-            {isSaving ? "保存中…" : "保存海报"}
-          </button>
-        </div>
+              {TEMPLATES.map(renderThumb)}
+            </div>
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+              <button onClick={handleClose} style={secondaryButtonStyle}>
+                关闭
+              </button>
+              {onRegenerate && (
+                <button onClick={onRegenerate} style={secondaryButtonStyle}>
+                  重新生成内容
+                </button>
+              )}
+              <button onClick={handleSave} disabled={isSaving} style={primaryButtonStyle}>
+                {isSaving ? "保存中…" : "保存海报"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

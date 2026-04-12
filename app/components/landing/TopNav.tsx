@@ -21,29 +21,27 @@ export function TopNav() {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-100"
-          : "bg-transparent"
+          ? "bg-[#faf9f8]/92 backdrop-blur-xl"
+          : "bg-[#faf9f8]/82 backdrop-blur-md"
       }`}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3 md:px-8">
-        {/* Logo */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/Richology%E5%95%86%E6%A0%87%E9%BB%91%E4%BD%93.png"
-          alt="Richology"
-          width={120}
-          height={14}
-          className="h-3.5 w-auto object-contain opacity-70 transition-opacity hover:opacity-100"
-        />
+      <div className="mx-auto flex max-w-[1540px] items-center justify-between px-6 py-4 md:px-10">
+        <div className="flex min-w-0 items-center gap-4">
+          <a
+            href="/"
+            className="font-editorial text-[1.7rem] font-semibold tracking-tight text-[var(--ink)]"
+          >
+            书跃 · BookLeap
+          </a>
+        </div>
 
-        {/* Nav links + CTA */}
-        <div className="flex items-center gap-6">
-          <div className="hidden items-center gap-6 md:flex">
+        <div className="flex items-center gap-5 md:gap-8">
+          <div className="hidden items-center gap-8 md:flex">
             {NAV_ITEMS.map((item) => (
               <a
                 key={item.anchor}
                 href={item.anchor}
-                className="text-[13px] font-medium text-gray-500 transition-colors hover:text-gray-900"
+                className="font-editorial text-[1.02rem] text-[var(--ink-soft)] transition-colors hover:text-[var(--accent)]"
                 onClick={(e) => {
                   e.preventDefault();
                   document
@@ -57,7 +55,7 @@ export function TopNav() {
           </div>
           <a
             href="/workspace"
-            className="rounded-lg bg-gray-900 px-4 py-1.5 text-[13px] font-medium text-white transition-all hover:bg-gray-800 active:scale-[0.97]"
+            className="rounded-md bg-[var(--ink)] px-4 py-2 text-[13px] font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.97]"
           >
             开始使用
           </a>
