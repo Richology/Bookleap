@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import { BookShareModal } from "../components/BookShareModal";
 import {
   ExportModal,
   type ExportParams,
@@ -15,10 +14,8 @@ import { PosterPreviewModal } from "../components/poster/PosterPreviewModal";
 import type { PosterContent } from "../components/poster/types";
 import { DecisionTrainingPanel } from "../components/DecisionTrainingPanel";
 import { UpgradeReadingModal } from "../components/UpgradeReadingModal";
-import { StarterModePanel } from "../components/StarterModePanel";
 import { Toast } from "../components/Toast";
 import { FabMenu, type FabMenuHandle } from "../components/FabMenu";
-import { FloatingBooks } from "../components/landing/FloatingBooks";
 import {
   buildDecisionBookId,
   getDecisionCacheKey,
@@ -89,18 +86,10 @@ type ImmersiveCardDef = {
   loadingText: string;
 };
 
-type ShareModalState = {
-  label: string;
-  content: string;
-  bookTitle: string;
-} | null;
-
-
 // ── Share card content helpers ─────────────────────────────────────────────────
 
 // ── Recent history (localStorage) ─────────────────────────────────────────────
 const HISTORY_KEY = "bookleap_recent_history";
-const HISTORY_MAX = 10;
 const HAS_UPLOADED_BOOK_KEY = "bookleap_has_uploaded_book";
 const LAST_ANALYZED_BOOK_TITLE_KEY = "bookleap_last_analyzed_book_title";
 const STARTER_MODE_SEEN_KEY = "bookleap_has_seen_starter_mode";
@@ -171,7 +160,7 @@ function loadHistory(): HistoryRecord[] {
 
 function saveHistory(records: HistoryRecord[]) {
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(records.slice(0, HISTORY_MAX)));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(records));
   } catch { /* quota exceeded – silently ignore */ }
 }
 
@@ -335,387 +324,6 @@ function clearBookDerivedCaches(bookTitle: string) {
   }
 }
 
-// ── Share card content helpers (continued) ────────────────────────────────────
-type ShareItem = { type: "heading" | "bullet" | "para"; text: string };
-
-function cleanInlineMd(s: string): string {
-  return s
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/`(.+?)`/g, "$1")
-    .replace(/\[(.+?)\]\(.+?\)/g, "$1")
-    .trim();
-}
-
-function parseShareItems(md: string): ShareItem[] {
-  const items: ShareItem[] = [];
-  for (const line of md.split("\n")) {
-    const t = line.trim();
-    if (!t || /^[-=*]{3,}$/.test(t)) continue;
-    const hMatch = t.match(/^#{1,6}\s+(.+)/);
-    if (hMatch) { items.push({ type: "heading", text: cleanInlineMd(hMatch[1]) }); continue; }
-    const bMatch = t.match(/^[-*+]\s+(.+)/);
-    if (bMatch) { items.push({ type: "bullet",  text: cleanInlineMd(bMatch[1])  }); continue; }
-    const nMatch = t.match(/^\d+\.\s+(.+)/);
-    if (nMatch) { items.push({ type: "bullet",  text: cleanInlineMd(nMatch[1])  }); continue; }
-    if (t.length > 4) items.push({ type: "para", text: cleanInlineMd(t) });
-  }
-  return items;
-}
-
-// ── Share Card Modal ──────────────────────────────────────────────────────────
-const CARD_W = 540;
-const CARD_FONT = "-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif";
-
-function ShareModal({
-  data,
-  onClose,
-}: {
-  data: NonNullable<ShareModalState>;
-  onClose: () => void;
-}) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  // Show ALL parsed items – no truncation
-  const items = parseShareItems(data.content);
-
-  const handleSave = async () => {
-    if (!cardRef.current) return;
-    setIsSaving(true);
-    try {
-      const html2canvas = (await import("html2canvas")).default;
-      // Let html2canvas measure the element's natural dimensions
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      const url = canvas.toDataURL("image/png");
-      const a = document.createElement("a");
-      a.href = url;
-      const safeName = `${data.bookTitle.slice(0, 16)}-${data.label}-书跃`.replace(/[/\\:*?"<>|]/g, "");
-      a.download = `${safeName}.png`;
-      a.click();
-    } catch (err) {
-      console.error("保存失败:", err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0,0,0,0.65)",
-        backdropFilter: "blur(6px)",
-        padding: "20px 16px",
-        fontFamily: CARD_FONT,
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      {/* Modal shell */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 596,
-          maxHeight: "92vh",
-          background: "#fff",
-          borderRadius: 24,
-          boxShadow: "0 32px 96px rgba(0,0,0,0.28)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Modal header bar */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "16px 24px",
-            borderBottom: "1px solid #f3f4f6",
-            flexShrink: 0,
-          }}
-        >
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 }}>
-            分享卡片预览
-          </p>
-          <button
-            onClick={onClose}
-            style={{
-              width: 28, height: 28, display: "flex",
-              alignItems: "center", justifyContent: "center",
-              borderRadius: "50%", border: "none",
-              background: "transparent", cursor: "pointer",
-              color: "#9ca3af", fontSize: 14,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Scrollable preview area */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            overflowX: "auto",
-            padding: "24px 28px",
-            background: "#f4f4f5",
-          }}
-        >
-          {/* ── Dedicated share card (the element captured by html2canvas) ── */}
-          <div
-            ref={cardRef}
-            style={{
-              width: CARD_W,
-              /* No fixed height – expands to fit full content */
-              background: "#ffffff",
-              borderRadius: 20,
-              boxShadow: "0 4px 32px rgba(0,0,0,0.10)",
-              fontFamily: CARD_FONT,
-              display: "flex",
-              flexDirection: "column",
-              margin: "0 auto",
-            }}
-          >
-            {/* ── Top: dark branded header ── */}
-            <div
-              style={{
-                background: "linear-gradient(150deg,#0f172a 0%,#1e293b 100%)",
-                padding: "28px 36px 26px",
-                borderRadius: "20px 20px 0 0",
-              }}
-            >
-              {/* Brand + slogan – single quiet line */}
-              <p
-                style={{
-                  color: "rgba(255,255,255,0.35)",
-                  fontSize: 10,
-                  letterSpacing: "0.1em",
-                  margin: "0 0 14px 0",
-                  lineHeight: 1,
-                }}
-              >
-                书跃 · BookLeap &nbsp;·&nbsp; 从好书中完成认知跃迁
-              </p>
-
-              {/* Book title – the most prominent element */}
-              <p
-                style={{
-                  color: "#ffffff",
-                  fontSize: 22,
-                  fontWeight: 700,
-                  lineHeight: 1.35,
-                  margin: "0 0 16px 0",
-                  letterSpacing: "0.01em",
-                  wordBreak: "break-all",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {data.bookTitle}
-              </p>
-
-              {/* Section label pill */}
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  background: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.18)",
-                  borderRadius: 20,
-                  padding: "4px 14px",
-                }}
-              >
-                <span
-                  style={{
-                    color: "rgba(255,255,255,0.88)",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {data.label}
-                </span>
-              </div>
-            </div>
-
-            {/* ── Middle: content – no overflow clipping, no fixed height ── */}
-            <div
-              style={{
-                padding: "28px 36px 24px",
-                background: "#ffffff",
-              }}
-            >
-              {items.length === 0 ? (
-                <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>
-                  暂无内容
-                </p>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  {items.map((item, i) => {
-                    if (item.type === "heading") {
-                      return (
-                        <p
-                          key={i}
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: "#111827",
-                            lineHeight: 1.55,
-                            margin: "0 0 10px 0",
-                            padding: 0,
-                          }}
-                        >
-                          {item.text}
-                        </p>
-                      );
-                    }
-                    if (item.type === "bullet") {
-                      return (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "flex-start",
-                            marginBottom: 11,
-                          }}
-                        >
-                          <span
-                            style={{
-                              color: "#cbd5e1",
-                              fontSize: 18,
-                              lineHeight: 1.45,
-                              flexShrink: 0,
-                              fontWeight: 300,
-                              marginTop: 0,
-                            }}
-                          >
-                            ·
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 13.5,
-                              color: "#374151",
-                              lineHeight: 1.72,
-                              wordBreak: "break-all",
-                            }}
-                          >
-                            {item.text}
-                          </span>
-                        </div>
-                      );
-                    }
-                    return (
-                      <p
-                        key={i}
-                        style={{
-                          fontSize: 13.5,
-                          color: "#374151",
-                          lineHeight: 1.78,
-                          margin: "0 0 11px 0",
-                          padding: 0,
-                          wordBreak: "break-all",
-                        }}
-                      >
-                        {item.text}
-                      </p>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* ── Bottom: footer with logo – sits right below content ── */}
-            <div
-              style={{
-                padding: "14px 36px 24px",
-                borderTop: "1px solid #f3f4f6",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                background: "#ffffff",
-                borderRadius: "0 0 20px 20px",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/Richology%E5%95%86%E6%A0%87%E9%BB%91%E4%BD%93.png"
-                alt="Richology"
-                style={{ height: 16, opacity: 0.28, objectFit: "contain" }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            gap: 12,
-            padding: "16px 24px",
-            borderTop: "1px solid #f3f4f6",
-            background: "#ffffff",
-          }}
-        >
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1,
-              borderRadius: 12,
-              border: "1px solid #e5e7eb",
-              background: "transparent",
-              padding: "10px 0",
-              fontSize: 14,
-              color: "#6b7280",
-              cursor: "pointer",
-              fontFamily: CARD_FONT,
-            }}
-          >
-            取消
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            style={{
-              flex: 1,
-              borderRadius: 12,
-              border: "none",
-              background: isSaving ? "#9ca3af" : "#111827",
-              padding: "10px 0",
-              fontSize: 14,
-              fontWeight: 600,
-              color: "#ffffff",
-              cursor: isSaving ? "default" : "pointer",
-              fontFamily: CARD_FONT,
-            }}
-          >
-            {isSaving ? "保存中…" : "保存图片"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /**
  * Extract the core book title from metadata that may contain
  * promotional text, recommendations, subtitles, etc.
@@ -777,9 +385,6 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"card" | "immersive">("immersive");
   const [immersiveIndex, setImmersiveIndex] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
-  const [shareModal, setShareModal] = useState<ShareModalState>(null);
-  const [bookRecommendation, setBookRecommendation] = useState("");
-  const [isBookShareModalOpen, setIsBookShareModalOpen] = useState(false);
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
   const [posterContent, setPosterContent] = useState<PosterContent | null>(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
@@ -805,12 +410,15 @@ export default function Home() {
   const [hasShownReturningUserToast, setHasShownReturningUserToast] = useState(false);
   const [showFabRedDot, setShowFabRedDot] = useState(false);
   const fabMenuRef = useRef<FabMenuHandle>(null);
+  const historyPanelRef = useRef<HTMLElement | null>(null);
   const lastUploadPromptBookIdRef = useRef<string | null>(null);
 
   const [addictionState, setAddictionStateLocal] = useState<AddictionState>(DEFAULT_ADDICTION_STATE);
   const cardSectionRef = useRef<HTMLDivElement>(null);
   const [recentHistory, setRecentHistory] = useState<HistoryRecord[]>([]);
   const [historyToast, setHistoryToast] = useState("");
+  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [draggedStarterBookId, setDraggedStarterBookId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -825,6 +433,18 @@ export default function Home() {
     isLoadingIdeaSourceTracing;
 
   const currentBookId = bookTitle ? buildDecisionBookId(bookTitle) : null;
+  const currentStarterBook = currentStarterBookId
+    ? starterBooksById[currentStarterBookId] ?? null
+    : null;
+  const currentBookCover = currentStarterBook?.coverImage ?? "";
+  const currentBookAuthor = currentStarterBook?.author ?? "";
+  const currentFileTypeLabel = selectedFile
+    ? selectedFile.name.toLowerCase().endsWith(".pdf")
+      ? "PDF"
+      : "EPUB"
+    : currentStarterBook
+    ? "EPUB"
+    : "";
   const decisionPowerBars = `${"█".repeat(Math.min(addictionState.decision_score, 5))}${"░".repeat(
     Math.max(0, 5 - Math.min(addictionState.decision_score, 5))
   )}`;
@@ -884,14 +504,14 @@ export default function Home() {
       actionExtraction,
       viewValidation: criticalExamination,
       ideaSourceTracing,
-      bookRecommendation,
+      bookRecommendation: "",
       posterContent: posterContent ?? null,
       isStarterBook: !!currentStarterBook,
       starterBookId: currentStarterBook?.id,
       author: currentStarterBook?.author,
     };
     const prev = loadHistory().filter((r) => r.id !== record.id);
-    const next = [record, ...prev].slice(0, HISTORY_MAX);
+    const next = [record, ...prev];
     saveHistory(next);
     setRecentHistory(next);
     if (!currentStarterBook) {
@@ -905,6 +525,10 @@ export default function Home() {
         message: "📚 你的分析记录已自动整理到「我的」",
         actionText: "去看看",
         onAction: () => {
+          setShowFullHistory(true);
+          setTimeout(() => {
+            historyPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 80);
           fabMenuRef.current?.open();
         },
         priority: TOAST_PRIORITY.INFO,
@@ -1055,26 +679,55 @@ export default function Home() {
 
   const [deleteUndoActions, setDeleteUndoActions] = useState<{ id: string; title: string } | null>(null);
 
+  const resetDragState = useCallback(() => {
+    dragCounter.current = 0;
+    setIsDragging(false);
+    setDraggedStarterBookId(null);
+  }, []);
+
   const toggleCard = (key: string) => {
     setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const navigateImmersive = (dir: "prev" | "next") => {
+  const navigateImmersive = (
+    dir: "prev" | "next",
+    options?: { scrollIntoView?: boolean }
+  ) => {
     const len = immersiveCardsLenRef.current;
     if (len === 0) return;
     setSlideDir(dir === "next" ? "left" : "right");
     setImmersiveIndex((prev) =>
       dir === "next" ? (prev + 1) % len : (prev - 1 + len) % len
     );
-    // 切换卡片后滚动到卡片位置，而不是页面顶部
-    immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (options?.scrollIntoView !== false) {
+      // 点击导航按钮时，保持阅读区回到卡片起始位置
+      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   useEffect(() => {
     if (viewMode !== "immersive") return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") navigateImmersive("prev");
-      if (e.key === "ArrowRight") navigateImmersive("next");
+      const target = e.target as HTMLElement | null;
+      const tagName = target?.tagName ?? "";
+      const isEditable =
+        !!target &&
+        (target.isContentEditable ||
+          tagName === "INPUT" ||
+          tagName === "TEXTAREA" ||
+          tagName === "SELECT");
+
+      if (isEditable) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        navigateImmersive("prev", { scrollIntoView: false });
+      }
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        navigateImmersive("next", { scrollIntoView: false });
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -1102,9 +755,6 @@ export default function Home() {
     setViewMode("immersive");
     setImmersiveIndex(0);
     setSlideDir(null);
-    setShareModal(null);
-    setBookRecommendation("");
-    setIsBookShareModalOpen(false);
     setIsPosterModalOpen(false);
     setPosterContent(null);
     setIsExportModalOpen(false);
@@ -1157,7 +807,6 @@ export default function Home() {
     setActionExtraction(record.actionExtraction);
     setCriticalExamination(record.viewValidation);
     setIdeaSourceTracing(record.ideaSourceTracing);
-    setBookRecommendation(record.bookRecommendation);
     setPosterContent(record.posterContent ?? null);
     setCurrentStarterBookId(record.isStarterBook ? record.starterBookId ?? null : null);
     setIsLiteMode(record.mode === "lite");
@@ -1217,8 +866,7 @@ export default function Home() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    dragCounter.current = 0;
-    setIsDragging(false);
+    resetDragState();
 
     // Check if this is a starter book drag
     const starterBookId = e.dataTransfer.getData("starter-book-id");
@@ -1228,6 +876,16 @@ export default function Home() {
     }
 
     processFile(e.dataTransfer.files?.[0]);
+  };
+
+  const handleStarterBookDragStart = (e: React.DragEvent<HTMLButtonElement>, starterBookId: string) => {
+    e.dataTransfer.setData("starter-book-id", starterBookId);
+    e.dataTransfer.effectAllowed = "move";
+    setDraggedStarterBookId(starterBookId);
+  };
+
+  const handleStarterBookDragEnd = () => {
+    resetDragState();
   };
 
   const fetchIdeaSourceTracing = async (
@@ -1473,7 +1131,7 @@ export default function Home() {
     // Reuse cached content
     if (posterContent) {
       setIsPosterModalOpen(true);
-      if (!isBeforeOnboardingStep(onboardingProgress, "exported")) {
+      if (isBeforeOnboardingStep(onboardingProgress, "completed")) {
         advanceOnboardingProgress("completed");
       }
       return;
@@ -1494,7 +1152,7 @@ export default function Home() {
       if (data.success && data.content) {
         setPosterContent(data.content);
         setIsPosterModalOpen(true);
-        if (!isBeforeOnboardingStep(onboardingProgress, "exported")) {
+        if (isBeforeOnboardingStep(onboardingProgress, "completed")) {
           advanceOnboardingProgress("completed");
         }
         // Persist poster content into history
@@ -1622,7 +1280,7 @@ export default function Home() {
       author: starterBook.author,
     };
     const prev = loadHistory().filter((r) => r.id !== record.id);
-    const next = [record, ...prev].slice(0, HISTORY_MAX);
+    const next = [record, ...prev];
     saveHistory(next);
     setRecentHistory(next);
   }, [resetAllState]);
@@ -1715,6 +1373,7 @@ export default function Home() {
     const starterBook = starterBooksById[starterBookId];
     if (!starterBook || isStarterLoading) return;
 
+    resetDragState();
     markStarterModeSeen();
     setSelectedStarterBookIdState(starterBookId);
     setSelectedStarterBookId(starterBookId);
@@ -1756,6 +1415,7 @@ export default function Home() {
         });
       }, 600);
     } finally {
+      resetDragState();
       setIsStarterLoading(false);
     }
   };
@@ -2012,17 +1672,21 @@ export default function Home() {
   ) => {
     if (!isLoadingCard && !content) return null;
     const isExpanded = expandedCards[key] ?? false;
+    const isMapCard = key === "viewMap";
 
     const cardClassName = (() => {
       const base =
-        "shrink-0 w-[82vw] md:w-72 rounded-2xl bg-white border p-5 flex flex-col gap-3 snap-center transition-all duration-200";
+        "group w-full rounded-[22px] p-6 flex min-h-[260px] flex-col gap-4 transition-all duration-200";
+      const restingTone = isMapCard
+        ? "archive-callout"
+        : "bg-[var(--paper)]";
       if (isLoadingCard)
-        return `${base} border-gray-100 shadow-card cursor-default`;
+        return `${base} ${restingTone} cursor-default`;
       if (isExpanded)
-        return `${base} border-gray-200 shadow-card-hover scale-[1.012] cursor-pointer`;
+        return `${base} ${restingTone} scale-[1.003] cursor-pointer`;
       if (sectionHasExpanded)
-        return `${base} border-gray-100 shadow-card opacity-40 cursor-pointer`;
-      return `${base} border-gray-100 shadow-card cursor-pointer hover:shadow-card-hover hover:border-gray-200 active:scale-[0.99]`;
+        return `${base} ${restingTone} opacity-38 cursor-pointer`;
+      return `${base} ${restingTone} cursor-pointer hover:bg-[var(--surface-high)] active:scale-[0.99]`;
     })();
 
     return (
@@ -2034,23 +1698,28 @@ export default function Home() {
         className={cardClassName}
       >
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 select-none">
+          <p className={`archive-kicker select-none ${isMapCard ? "text-[var(--accent)]" : ""}`}>
             {label}
           </p>
+          {!isLoadingCard && (
+            <span className="text-lg text-[var(--ink-faint)] transition-colors group-hover:text-[var(--accent)]">
+              ↗
+            </span>
+          )}
         </div>
 
         {isLoadingCard ? (
           <div className="space-y-2.5 pt-1">
-            <div className="h-2 bg-gray-100 rounded-full animate-pulse w-3/4" />
-            <div className="h-2 bg-gray-100 rounded-full animate-pulse w-full" />
-            <div className="h-2 bg-gray-100 rounded-full animate-pulse w-5/6" />
-            <div className="h-2 bg-gray-100 rounded-full animate-pulse w-2/3" />
-            <p className="text-[10px] text-gray-400 pt-0.5">{loadingText}</p>
+            <div className="h-2 w-3/4 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+            <div className="h-2 w-full animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+            <div className="h-2 w-5/6 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+            <div className="h-2 w-2/3 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+            <p className="pt-0.5 text-[10px] text-[var(--ink-faint)]">{loadingText}</p>
           </div>
         ) : (
           <>
             <div
-              className={`relative overflow-hidden ${isExpanded ? "" : "max-h-24"}`}
+              className={`relative flex-1 overflow-hidden ${isExpanded ? "" : "max-h-28"}`}
             >
               <div className="md-prose">
                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
@@ -2058,10 +1727,16 @@ export default function Home() {
                 </ReactMarkdown>
               </div>
               {!isExpanded && (
-                <div className="absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                <div
+                  className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 ${
+                    isMapCard
+                      ? "bg-[linear-gradient(180deg,rgba(211,231,219,0)_0%,rgba(211,231,219,0.88)_100%)]"
+                      : "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.94)_100%)]"
+                  }`}
+                />
               )}
             </div>
-            <p className="text-[10px] text-gray-400 text-right select-none">
+            <p className="mt-auto text-right text-[10px] text-[var(--ink-faint)] select-none">
               {isExpanded ? "收起 ↑" : "展开阅读 ↓"}
             </p>
           </>
@@ -2280,708 +1955,1058 @@ export default function Home() {
   const isOnboardingCompleted = onboardingProgress === "completed";
   const trainingUnlocked = isOnboardingCompleted || !isBeforeOnboardingStep(onboardingProgress, "viewed_cards") || fallbackUnlocks.training;
   const exportUnlocked = isOnboardingCompleted || !isBeforeOnboardingStep(onboardingProgress, "trained") || fallbackUnlocks.export;
-  const posterUnlocked = isOnboardingCompleted || !isBeforeOnboardingStep(onboardingProgress, "exported");
-  const historyVisible = isOnboardingCompleted || onboardingProgress !== "none";
+  const historyVisible =
+    recentHistory.length > 0 || isOnboardingCompleted || onboardingProgress !== "none";
+  const analysisSteps: { key: string; label: string; loading: boolean; done: boolean }[] = [
+    { key: "bookSummary", label: "全书摘要", loading: isLoadingBookSummary, done: !!bookSummary },
+    { key: "readingGuide", label: "阅读指南", loading: isLoadingReadingGuide, done: !!readingGuide },
+    { key: "viewMap", label: "观点地图", loading: isLoadingViewMap, done: !!viewMap },
+    { key: "actionExtraction", label: "行动提炼", loading: isLoadingActionExtraction, done: !!actionExtraction },
+    { key: "criticalExamination", label: "观点校验", loading: isLoadingViewValidation, done: !!criticalExamination },
+    { key: "ideaSourceTracing", label: "思想溯源", loading: isLoadingIdeaSourceTracing, done: !!ideaSourceTracing },
+  ];
+  const visibleAnalysisSteps =
+    isLiteMode && !isLiteUnlocked ? analysisSteps.slice(0, 2) : analysisSteps;
+  const completedAnalysisSteps = visibleAnalysisSteps.filter((step) => step.done).length;
+  const hasAnalysisProgress = visibleAnalysisSteps.some((step) => step.loading || step.done);
+  const availableStarterBooks = starterBooks.filter((book) => !experiencedStarterIds.includes(book.id));
+  const visibleHistoryRecords = showFullHistory ? recentHistory : recentHistory.slice(0, 4);
+  const activeCardKey =
+    viewMode === "immersive" && !isDecisionPanelOpen ? currentImmersiveCard?.key ?? null : null;
+  const availableAnalysisStepKeys = new Set(immersiveCardList.map((card) => card.key));
+  const isAnalysisRailInteractive =
+    !!bookTitle && !isAnalyzing && !isDecisionPanelOpen && immersiveCardList.length > 0;
+  const canShowViewModeToggle = !!bookTitle && immersiveCardList.length > 0;
+  const decisionCardsReady = hasCompleteDecisionCards(getDecisionCardsInput());
+  const trainingActionLabel =
+    addictionState.decision_training_progress > 0 ? "回顾题目" : "试一道题";
+  const canExportBook = exportUnlocked && (!isLiteMode || isLiteUnlocked);
+  const isAnalysisComplete =
+    !!bookTitle &&
+    !isAnalyzing &&
+    visibleAnalysisSteps.length > 0 &&
+    completedAnalysisSteps === visibleAnalysisSteps.length;
+  const canShareBook = isAnalysisComplete || !!posterContent;
+  const isTrainingActionDisabled =
+    isDecisionLoading || isAnalyzing || !trainingUnlocked || !decisionCardsReady;
+  const isExportActionDisabled = exportStatus === "exporting" || !canExportBook;
+  const isShareActionDisabled = isGeneratingPoster || !canShareBook;
+
+  const openCardFromRail = (cardKey: string) => {
+    const nextIndex = immersiveCardList.findIndex((card) => card.key === cardKey);
+    if (nextIndex === -1) return;
+
+    setIsDecisionPanelOpen(false);
+    setViewMode("immersive");
+    setImmersiveIndex(nextIndex);
+    setSlideDir(null);
+
+    setTimeout(() => {
+      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  };
+
+  const workspacePanelClass =
+    "rounded-[28px] bg-[var(--paper)]";
+  const workspaceRailPanelClass =
+    "rounded-[24px] bg-[var(--surface-low)]";
+  const workspaceSegmentClass =
+    "rounded-[12px] bg-[var(--surface-low)] p-1 shadow-[inset_0_0_0_1px_rgba(47,51,51,0.04)]";
+  const workspaceActionPrimaryClass =
+    "rounded-[8px] bg-[var(--ink)] px-3.5 py-1.5 text-xs font-medium text-[#faf7f6] transition-all hover:opacity-92";
+  const workspaceActionSecondaryClass =
+    "rounded-[8px] px-3.5 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-[var(--paper)] hover:text-[var(--ink)]";
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Workspace header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-100">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3 md:px-8">
-          <a href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/Richology%E5%95%86%E6%A0%87%E9%BB%91%E4%BD%93.png"
-              alt="Richology"
-              className="h-5 w-auto object-contain"
-            />
-          </a>
-          <a
-            href="/"
-            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-500 transition-all hover:border-gray-300 hover:text-gray-900 active:scale-[0.97]"
-          >
-            返回首页
-          </a>
-        </div>
-      </nav>
-      <main className="min-h-screen bg-[#f7f7f8]">
-        {/* ── Hero gradient background ── */}
-        <div className={`relative overflow-hidden bg-gradient-to-br from-amber-50 via-sky-50 to-violet-50 px-5 pt-20 md:px-8 md:pt-24 ${showStarterBooks && !isStarterLoading ? "pb-52 md:pb-56" : "pb-10"}`}>
-          {/* Decorative blobs */}
-          <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl" />
-          <div className="pointer-events-none absolute -top-12 right-0 h-64 w-64 rounded-full bg-sky-200/30 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-violet-200/20 blur-3xl" />
-
-          {/* Floating book names + draggable starter books */}
-          {showStarterBooks && !isStarterLoading && (
-            <FloatingBooks
-              starterBooks={starterBooks.map((b) => ({ id: b.id, title: b.title, coverImage: b.coverImage }))}
-              experiencedIds={experiencedStarterIds}
-              onStarterBookDrop={(bookId) => void handleSelectStarterBook(bookId)}
-            />
-          )}
-
-        <div className="mx-auto max-w-4xl">
-
-          {/* ── Header ── */}
-          <header className="relative z-10 mb-12 text-center">
-            <div className="inline-flex items-center gap-1.5 mb-5 px-3 py-1 rounded-full bg-white/70 backdrop-blur-sm border border-white/60 text-[11px] text-gray-500 font-medium tracking-wide shadow-sm">
-              <span className="text-gray-400">✦</span> AI 驱动的结构化书籍分析平台
+      <nav className="fixed inset-x-0 top-0 z-50 bg-[var(--surface)]/92 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-[1680px] grid-cols-[minmax(0,1fr)_auto] items-center gap-5 px-4 py-4 md:px-6">
+          <div className="flex min-w-0 items-center pr-2">
+            <div className="min-w-0 max-w-[min(48vw,760px)] flex-1">
+              <p className="font-editorial truncate text-[1.6rem] font-semibold tracking-tight text-[var(--ink)]">
+                书跃 · BookLeap
+              </p>
             </div>
-            <h1 className="text-[2.25rem] font-bold tracking-tight text-gray-950 mb-3 leading-tight">
-              书跃 · BookLeap
-            </h1>
-            <p className="text-[1rem] text-gray-500 mb-2 tracking-wide">
-              从好书中完成认知跃迁
-            </p>
-            <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
-              上传电子书，获取结构化的知识卡片，提升学习的效率和质量
-            </p>
-          </header>
+          </div>
 
-          {/* ── Upload section ── */}
-          <section className="relative z-10 bg-white/80 backdrop-blur-xl rounded-2xl border border-white/60 shadow-card p-7 mb-10">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.epub,application/pdf"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-
-            {/* Starter book loading overlay */}
-            {isStarterLoading && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-white/95 backdrop-blur-sm">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 shadow-sm">
-                  <span className="relative flex h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-400 opacity-70" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-gray-700" />
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-950">正在为你准备这本书</h3>
-                <p className="mt-2 text-sm text-gray-500 transition-opacity duration-300">{starterLoadingStep}</p>
+          <div className="flex shrink-0 items-center justify-end gap-2.5">
+            {canShowViewModeToggle && (
+              <div className={`hidden items-center gap-0.5 md:flex ${workspaceSegmentClass}`}>
+                <button
+                  onClick={() => setViewMode("card")}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    viewMode === "card"
+                      ? workspaceActionPrimaryClass
+                      : workspaceActionSecondaryClass
+                  }`}
+                >
+                  卡片模式
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode("immersive");
+                    setImmersiveIndex(0);
+                    setSlideDir(null);
+                  }}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    viewMode === "immersive"
+                      ? workspaceActionPrimaryClass
+                      : workspaceActionSecondaryClass
+                  }`}
+                >
+                  沉浸阅读
+                </button>
               </div>
             )}
 
-            {/* Drop zone */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`mb-5 rounded-xl border-2 border-dashed px-6 py-9 text-center cursor-pointer transition-all duration-200 select-none ${
-                isDragging
-                  ? "border-gray-400 bg-gray-50 scale-[1.01]"
-                  : selectedFile
-                  ? "border-gray-200 bg-gray-50 hover:border-gray-300"
-                  : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/60"
-              }`}
+            {bookTitle && (
+              <div className={`hidden items-center gap-0.5 xl:flex ${workspaceSegmentClass}`}>
+                <button
+                  onClick={() => void handleOpenDecisionTraining()}
+                  disabled={isTrainingActionDisabled}
+                  title={decisionCardsReady ? undefined : "完成全部分析卡片后可开始决策训练"}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    isDecisionLoading
+                      ? workspaceActionPrimaryClass
+                      : isTrainingActionDisabled
+                      ? "cursor-not-allowed text-[var(--ink-faint)] opacity-45"
+                      : workspaceActionPrimaryClass
+                  }`}
+                >
+                  {isDecisionLoading ? decisionLoadingStep || "生成中…" : trainingActionLabel}
+                </button>
+                <button
+                  onClick={() => {
+                    setExportStatus("idle");
+                    setIsExportModalOpen(true);
+                  }}
+                  disabled={isExportActionDisabled}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    exportStatus === "exporting"
+                      ? workspaceActionPrimaryClass
+                      : isExportActionDisabled
+                      ? "cursor-not-allowed text-[var(--ink-faint)] opacity-45"
+                      : workspaceActionSecondaryClass
+                  }`}
+                >
+                  {exportStatus === "exporting" ? "导出中…" : "把这本书带走"}
+                </button>
+                <button
+                  onClick={handleGeneratePoster}
+                  disabled={isShareActionDisabled}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                    isGeneratingPoster
+                      ? workspaceActionPrimaryClass
+                      : isShareActionDisabled
+                      ? "cursor-not-allowed text-[var(--ink-faint)] opacity-45"
+                      : workspaceActionSecondaryClass
+                  }`}
+                >
+                  {isGeneratingPoster ? "生成中…" : "分享出去"}
+                </button>
+              </div>
+            )}
+
+            <Link
+              href="/"
+              className="rounded-[8px] border border-[var(--ghost-border)] bg-transparent px-3 py-1.5 text-[13px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[var(--surface-low)] hover:text-[var(--ink)] active:scale-[0.97]"
             >
-              {isDragging ? (
-                <>
-                  <p className="text-xl mb-2 opacity-60">📂</p>
-                  <p className="text-sm font-medium text-gray-600">松开即可开始分析</p>
-                </>
-              ) : selectedFile ? (
-                <>
-                  <p className="text-xl mb-2 opacity-60">📄</p>
-                  <p className="text-sm font-semibold text-gray-800 break-all">
-                    {selectedFile.name}
+              返回首页
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <main className="archive-atmosphere-soft relative min-h-screen overflow-x-clip pt-24">
+        <div className="pointer-events-none absolute left-[-120px] top-16 h-[320px] w-[320px] rounded-full bg-[rgba(81,99,90,0.08)] blur-3xl" />
+        <div className="pointer-events-none absolute right-[-160px] top-[280px] h-[420px] w-[420px] rounded-full bg-[rgba(119,124,123,0.09)] blur-3xl" />
+        <div className="mx-auto max-w-[1680px] px-4 pb-12 md:px-6">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+            <aside
+              className={`space-y-4 ${
+                bookTitle ? "order-3 xl:order-none" : ""
+              } xl:sticky xl:top-20 xl:max-h-[calc(100vh-5.5rem)] xl:self-start xl:overflow-y-auto xl:rounded-[30px] xl:bg-[var(--surface-low)] xl:p-4`}
+            >
+              <section className="relative overflow-hidden rounded-[26px] bg-[var(--paper)] p-5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.epub,application/pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {isStarterLoading && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-[26px] bg-[var(--paper)]/96 backdrop-blur-sm">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[12px] bg-[var(--surface-low)]">
+                      <span className="relative flex h-3 w-3">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-70" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-[var(--ink)]" />
+                      </span>
+                    </div>
+                    <h3 className="font-editorial text-2xl font-semibold text-[var(--ink)]">正在为你准备这本书</h3>
+                    <p className="mt-2 text-sm text-[var(--ink-soft)] transition-opacity duration-300">{starterLoadingStep}</p>
+                  </div>
+                )}
+
+                <div className="mb-5 rounded-[22px] bg-[var(--surface-low)] p-2.5">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`relative overflow-hidden rounded-[18px] border border-dashed px-5 py-8 text-center transition-all duration-200 select-none ${
+                      isDragging
+                        ? "border-[rgba(81,99,90,0.58)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(81,99,90,0.12)] scale-[1.01]"
+                        : selectedFile
+                        ? "cursor-pointer border-[rgba(47,51,51,0.12)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(47,51,51,0.02)] hover:border-[rgba(81,99,90,0.3)]"
+                        : "cursor-pointer border-[rgba(47,51,51,0.1)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(47,51,51,0.02)] hover:border-[rgba(81,99,90,0.35)]"
+                    }`}
+                  >
+                    <div
+                      className={`pointer-events-none absolute inset-3 rounded-[14px] transition-all duration-200 ${
+                        isDragging
+                          ? "bg-[rgba(211,231,219,0.26)]"
+                          : "bg-[rgba(243,244,243,0.46)]"
+                      }`}
+                    />
+                    <div className="pointer-events-none absolute inset-x-6 top-5 flex items-center justify-between">
+                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.16)]" />
+                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.16)]" />
+                    </div>
+                    <div className="pointer-events-none absolute inset-x-6 bottom-5 flex items-center justify-between">
+                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.12)]" />
+                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.12)]" />
+                    </div>
+
+                    <div className="relative">
+                      {isDragging ? (
+                        <>
+                          <p className="mb-2 text-xl opacity-60">📂</p>
+                          <p className="text-sm font-medium text-[var(--ink-soft)]">松开即可开始分析</p>
+                        </>
+                      ) : selectedFile ? (
+                        <>
+                          <p className="mb-2 text-xl opacity-60">📄</p>
+                          <p className="break-all text-sm font-semibold text-[var(--ink)]">
+                            {selectedFile.name}
+                          </p>
+                          <p className="mt-1.5 text-xs text-[var(--ink-faint)]">点击重新选择或拖入新文件</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="mb-2 text-xl opacity-50">📥</p>
+                          <p className="mb-1 text-sm font-medium text-[var(--ink-soft)]">
+                            那本你买了但一直没读完的书，传上来
+                          </p>
+                          <p className="text-xs text-[var(--ink-faint)]">30 秒后你就能用起来 · 支持 EPUB / PDF</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-5 space-y-1.5">
+                  <p className="flex items-start gap-1.5 text-xs text-[var(--ink-faint)]">
+                    <span className="mt-px shrink-0">✦</span>
+                    推荐 EPUB 格式，解析更完整，可获得全部六项结构化分析
                   </p>
-                  <p className="text-xs text-gray-400 mt-1.5">
-                    点击重新选择或拖入新文件
+                  <p className="flex items-start gap-1.5 text-xs text-[var(--ink-faint)]">
+                    <span className="mt-px shrink-0">✦</span>
+                    PDF 也支持，但较大文件可能影响解析效果
                   </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-xl mb-2 opacity-50">📥</p>
-                  <p className="text-sm font-medium text-gray-600 mb-1">
-                    那本你买了但一直没读完的书，传上来
-                  </p>
-                  <p className="text-xs text-gray-400">30 秒后你就能用起来 · 支持 EPUB / PDF</p>
-                </>
+                </div>
+
+                <button
+                  onClick={handleAnalyze}
+                  disabled={isLoading}
+                  className="w-full rounded-[10px] bg-[var(--ink)] py-3 text-sm font-medium tracking-wide text-[#faf7f6] transition-all duration-150 hover:opacity-92 disabled:opacity-50"
+                >
+                  {isLoading ? "解析中…" : "开始分析"}
+                </button>
+              </section>
+
+              {showStarterBooks && availableStarterBooks.length > 0 && (
+                <section
+                  className={`rounded-[26px] bg-[var(--paper)] p-5 ${
+                    bookTitle ? "hidden xl:block" : ""
+                  }`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-center">
+                      <span className="rounded-[14px] bg-[rgba(81,99,90,0.1)] px-3 py-2 text-center text-[11px] font-medium text-[var(--accent)]">
+                        🎁 送你 3 本好书 · 拖到上方开始体验
+                      </span>
+                    </div>
+                    {availableStarterBooks.map((book) => (
+                      <button
+                        key={book.id}
+                        draggable
+                        onClick={() => void handleSelectStarterBook(book.id)}
+                        onDragStart={(e) => handleStarterBookDragStart(e, book.id)}
+                        onDragEnd={handleStarterBookDragEnd}
+                        className={`group flex w-full items-center gap-3 rounded-[16px] bg-[var(--surface-low)] p-3 text-left transition-all hover:bg-[var(--surface)] ${
+                          draggedStarterBookId === book.id ? "scale-[0.98] opacity-40" : ""
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={book.coverImage}
+                          alt={book.title}
+                          className="h-16 w-12 rounded-[10px] object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-[var(--ink)]">{book.title}</p>
+                        </div>
+                        <span className="text-sm opacity-60">🎁</span>
+                      </button>
+                    ))}
+                  </div>
+                </section>
               )}
-            </div>
 
-            {/* Hints */}
-            <div className="mb-5 space-y-1.5">
-              <p className="text-xs text-gray-400 flex items-start gap-1.5">
-                <span className="shrink-0 mt-px">✦</span>
-                推荐 EPUB 格式，解析更完整，可获得全部六项结构化分析
-              </p>
-              <p className="text-xs text-gray-400 flex items-start gap-1.5">
-                <span className="shrink-0 mt-px">✦</span>
-                PDF 也支持，但较大文件可能影响解析效果
-              </p>
-            </div>
+              {historyVisible && recentHistory.length > 0 && (
+                <section
+                  ref={historyPanelRef}
+                  className="rounded-[26px] bg-[var(--paper)] p-5"
+                  style={{ scrollMarginTop: "84px" }}
+                >
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="archive-kicker select-none">
+                      最近分析
+                    </p>
+                  </div>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={isLoading}
-              className="w-full bg-gray-950 text-white py-3 rounded-xl hover:bg-gray-800 transition-all duration-150 disabled:opacity-50 font-medium text-sm tracking-wide"
-            >
-              {isLoading ? "解析中…" : "开始分析"}
-            </button>
-          </section>
-
-        </div>{/* end max-w-4xl inside hero */}
-        </div>{/* end hero gradient */}
-
-        {/* ── Content area (light gray bg) ── */}
-        <div className="px-5 py-10 md:px-8">
-        <div className="mx-auto max-w-4xl">
-
-          {/* ── Status banner + progress tracker (independent of upload panel) ── */}
-          {message && !(bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle) && (() => {
-            const isError =
-              message.includes("失败") ||
-              message.includes("仅支持") ||
-              message.includes("请先选择");
-            const isSuccess = message === "分析完成" && !isAnalyzing;
-
-            const bannerClass = isError
-              ? "bg-red-50/80 border-red-200/60 text-red-600"
-              : isSuccess
-              ? "bg-emerald-50/80 border-emerald-200/60 text-emerald-700"
-              : isAnalyzing
-              ? "bg-gray-50 border-gray-200 text-gray-700"
-              : "bg-gray-50 border-gray-100 text-gray-500";
-
-            /* ── 6-step progress definitions (real generation order) ── */
-            const steps: { label: string; loading: boolean; done: boolean }[] = [
-              { label: "全书摘要", loading: isLoadingBookSummary,        done: !!bookSummary },
-              { label: "阅读指南", loading: isLoadingReadingGuide,       done: !!readingGuide },
-              { label: "观点地图", loading: isLoadingViewMap,            done: !!viewMap },
-              { label: "行动提炼", loading: isLoadingActionExtraction,   done: !!actionExtraction },
-              { label: "观点校验", loading: isLoadingViewValidation,     done: !!criticalExamination },
-              { label: "思想溯源", loading: isLoadingIdeaSourceTracing,  done: !!ideaSourceTracing },
-            ];
-            const showTracker =
-              !isError && steps.some((s) => s.loading || s.done);
-            /* In lite mode (not unlocked), only show the first 2 steps */
-            const visibleSteps =
-              isLiteMode && !isLiteUnlocked ? steps.slice(0, 2) : steps;
-
-            return (
-              <div
-                className={`mb-6 rounded-xl px-4 py-3 text-sm border transition-all duration-300 ${bannerClass}`}
-              >
-                {/* Status text row */}
-                <span className="flex items-center gap-2.5">
-                  {isAnalyzing && (
-                    <span className="relative flex h-2 w-2 shrink-0">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-gray-400 animate-status-pulse" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500" />
-                    </span>
+                  {historyToast && (
+                    <div className="mb-3 rounded-[12px] bg-[var(--accent-soft)] px-3 py-2 text-xs text-[var(--accent)] transition-all">
+                      {historyToast}
+                    </div>
                   )}
-                  {isSuccess && (
-                    <span className="flex items-center justify-center h-4 w-4 rounded-full bg-emerald-100 shrink-0">
-                      <svg className="h-2.5 w-2.5 text-emerald-600" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2.5 6.5L5 9l4.5-6" />
-                      </svg>
-                    </span>
-                  )}
-                  {isError && (
-                    <span className="flex items-center justify-center h-4 w-4 rounded-full bg-red-100 shrink-0">
-                      <svg className="h-2.5 w-2.5 text-red-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="6" cy="6" r="4.5" />
-                        <path d="M6 4v2.5" />
-                        <circle cx="6" cy="8.5" r="0.5" fill="currentColor" stroke="none" />
-                      </svg>
-                    </span>
-                  )}
-                  <span className="font-medium">{message}</span>
-                </span>
 
-                {/* 6-step progress tracker */}
-                {showTracker && (
-                  <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-gray-100/80 overflow-x-auto">
-                    {visibleSteps.map((step, i) => {
-                      const state: "done" | "active" | "pending" = step.done
-                        ? "done"
-                        : step.loading
-                        ? "active"
-                        : "pending";
-
-                      const pillClass =
-                        state === "done"
-                          ? "bg-emerald-50 border-emerald-200/70 text-emerald-700"
-                          : state === "active"
-                          ? "bg-gray-900 border-gray-900 text-white"
-                          : "bg-white border-gray-200 text-gray-400";
-
+                  <div className="space-y-2">
+                    {visibleHistoryRecords.map((record) => {
+                      const isPending = pendingDeleteId === record.id;
                       return (
-                        <span
-                          key={i}
-                          className={`inline-flex items-center gap-1 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-none transition-all duration-300 select-none ${pillClass}`}
+                        <div
+                          key={record.id}
+                          onClick={() => {
+                            if (!isPending) {
+                              restoreFromHistory(record);
+                              setTimeout(() => {
+                                immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                              }, 100);
+                            }
+                          }}
+                          className={`group flex items-center justify-between gap-3 rounded-[16px] bg-[var(--surface-low)] px-3 py-3 transition-all duration-200 ${
+                            isPending
+                              ? "pointer-events-none scale-[0.98] opacity-40 select-none"
+                              : "cursor-pointer hover:bg-[var(--surface)] active:scale-[0.995]"
+                          }`}
                         >
-                          {state === "done" && (
-                            <svg className="h-2.5 w-2.5 text-emerald-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M2.5 6.5L5 9l4.5-6" />
-                            </svg>
-                          )}
-                          {state === "active" && (
-                            <span className="relative flex h-1.5 w-1.5 shrink-0">
-                              <span className="absolute inline-flex h-full w-full rounded-full bg-white/60 animate-status-pulse" />
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="shrink-0 text-base opacity-50">
+                              {record.fileType === "pdf" ? "📄" : "📘"}
                             </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-[var(--ink)]">{record.title}</p>
+                              <p className="mt-0.5 text-[10px] text-[var(--ink-faint)]">
+                                {record.fileType.toUpperCase()}
+                                {record.mode === "lite" ? " · 简化版" : ""}
+                                <span className="mx-1.5">·</span>
+                                {new Date(record.createdAt).toLocaleDateString("zh-CN", {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          {!isPending && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteHistoryRecord(record.id);
+                              }}
+                              className="shrink-0 p-1 text-xs text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:text-[var(--ink)]"
+                              title="删除记录"
+                            >
+                              ✕
+                            </button>
                           )}
-                          {step.label}
-                        </span>
+                        </div>
                       );
                     })}
                   </div>
-                )}
-              </div>
-            );
-          })()}
 
-          {/* ── Recent history ── */}
-          {historyVisible && recentHistory.length > 0 && (
-            <section className="mb-10">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 select-none">
-                  最近分析
-                </p>
-              </div>
-              {historyToast && (
-                <div className="mb-2 rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2 text-xs text-amber-700 transition-all">
-                  {historyToast}
-                </div>
-              )}
-              <div className="space-y-2">
-                {recentHistory.slice(0, 2).map((record) => {
-                  const isPending = pendingDeleteId === record.id;
-                  return (
-                    <div
-                      key={record.id}
-                      onClick={() => {
-                        if (!isPending) {
-                          restoreFromHistory(record);
-                          setTimeout(() => {
-                            immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                          }, 100);
-                        }
-                      }}
-                      className={`group flex items-center justify-between gap-3 rounded-xl bg-white border border-gray-100 shadow-card px-4 py-3 transition-all duration-200 ${
-                        isPending
-                          ? "opacity-40 scale-[0.98] pointer-events-none select-none"
-                          : "cursor-pointer hover:shadow-card-hover hover:border-gray-200 active:scale-[0.995]"
-                      }`}
+                  {!showFullHistory && recentHistory.length > 4 && (
+                    <button
+                      onClick={() => setShowFullHistory(true)}
+                      className="mt-3 text-xs font-medium text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-base opacity-50 shrink-0">
-                          {record.fileType === "pdf" ? "📄" : "📘"}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">
-                            {record.title}
-                          </p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">
-                            {record.fileType.toUpperCase()}
-                            {record.mode === "lite" ? " · 简化版" : ""}
-                            <span className="mx-1.5">·</span>
-                            {new Date(record.createdAt).toLocaleDateString("zh-CN", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
+                      查看更多 →
+                    </button>
+                  )}
+
+                  <p className="mt-3 text-[10px] text-[var(--ink-faint)]/70 select-none">
+                    最近记录仅保存在当前浏览器，清理缓存后可能丢失。
+                  </p>
+                </section>
+              )}
+
+              {!recentHistory.length && (
+                <section className="rounded-[26px] bg-[var(--paper)] p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <p className="archive-kicker select-none">
+                      最近分析
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={`history-placeholder-${index}`}
+                        className="h-[54px] rounded-[16px] bg-[var(--surface-low)]"
+                      />
+                    ))}
+                  </div>
+
+                  <p className="mt-3 text-[10px] text-[var(--ink-faint)]/70 select-none">
+                    最近记录仅保存在当前浏览器，清理缓存后可能丢失。
+                  </p>
+                </section>
+              )}
+
+            </aside>
+
+            <section className={`min-w-0 space-y-5 ${bookTitle ? "order-1 xl:order-none" : ""}`}>
+              {message && !(bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle) && (() => {
+                const isError =
+                  message.includes("失败") ||
+                  message.includes("仅支持") ||
+                  message.includes("请先选择");
+                const isSuccess = message === "分析完成" && !isAnalyzing;
+
+                const bannerClass = isError
+                  ? "bg-red-50/80 border-red-200/60 text-red-600"
+                  : isSuccess
+                  ? "bg-emerald-50/80 border-emerald-200/60 text-emerald-700"
+                  : isAnalyzing
+                  ? "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-soft)]"
+                  : "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-faint)]";
+
+                return (
+                  <div
+                    className={`rounded-lg border px-4 py-4 text-sm shadow-[var(--shadow-paper)] transition-all duration-300 md:px-5 ${bannerClass}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="flex items-center gap-2.5">
+                        {isAnalyzing && (
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-gray-400 animate-status-pulse" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--ink-soft)]" />
+                          </span>
+                        )}
+                        {isSuccess && (
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                            <svg className="h-2.5 w-2.5 text-emerald-600" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2.5 6.5L5 9l4.5-6" />
+                            </svg>
+                          </span>
+                        )}
+                        {isError && (
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-100">
+                            <svg className="h-2.5 w-2.5 text-red-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="6" cy="6" r="4.5" />
+                              <path d="M6 4v2.5" />
+                              <circle cx="6" cy="8.5" r="0.5" fill="currentColor" stroke="none" />
+                            </svg>
+                          </span>
+                        )}
+                        <span className="font-medium">{message}</span>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {!bookTitle && (
+                <section className={`${workspacePanelClass} overflow-hidden p-4 md:p-6`}>
+                  <div className="grid min-h-[560px] gap-8 rounded-[24px] bg-[var(--surface-low)] px-6 py-8 md:grid-cols-[minmax(0,1fr)_280px] md:px-8 md:py-10">
+                    <div className="flex flex-col justify-center">
+                    <div className="mb-5 inline-flex w-fit items-center gap-1.5 rounded-sm bg-[var(--paper)] px-3 py-1 text-[11px] text-[var(--ink-faint)]">
+                      <span className="text-[var(--ink-faint)]">✦</span> AI 驱动的结构化书籍分析平台
+                    </div>
+                    <h2 className="font-editorial text-[2.75rem] font-semibold tracking-[-0.04em] text-[var(--ink)]">
+                      书跃 · BookLeap
+                    </h2>
+                    <p className="mt-3 text-base text-[var(--ink-soft)]">从好书中完成认知跃迁</p>
+                  </div>
+
+                    <div className="archive-sheet hidden items-center justify-center rounded-[24px] p-8 md:flex">
+                      <div className="w-full max-w-[210px] rounded-[20px] bg-[var(--paper-muted)] p-5">
+                        <div className="h-[2px] w-12 bg-[var(--accent)]" />
+                        <div className="mt-6 space-y-3">
+                          <div className="h-3 w-[76%] rounded-full bg-[rgba(47,51,51,0.08)]" />
+                          <div className="h-3 w-full rounded-full bg-[rgba(47,51,51,0.08)]" />
+                          <div className="h-3 w-[68%] rounded-full bg-[rgba(47,51,51,0.08)]" />
+                        </div>
+                        <div className="mt-10 grid gap-3">
+                          <div className="h-16 rounded-[16px] bg-[var(--paper)]" />
+                          <div className="h-16 rounded-[16px] bg-[var(--surface-high)]" />
+                          <div className="h-16 rounded-[16px] bg-[var(--paper)]" />
                         </div>
                       </div>
-                      {!isPending && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteHistoryRecord(record.id);
-                          }}
-                          className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-gray-500 transition-all text-xs p-1"
-                          title="删除记录"
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {bookTitle && (
+                <section
+                  ref={immersiveContainerRef}
+                  className={`${workspacePanelClass} overflow-hidden p-5 md:p-8`}
+                  style={{ scrollMarginTop: "84px" }}
+                >
+                  <div className="mb-8 grid gap-6 md:grid-cols-[132px_minmax(0,1fr)] md:items-end">
+                    <div className="hidden md:block">
+                      <div className="archive-stack">
+                        <div className="overflow-hidden rounded-[22px] bg-[var(--surface-low)]">
+                          {currentBookCover ? (
+                            <>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={currentBookCover}
+                                alt={bookTitle}
+                                className="aspect-[3/4] w-full object-cover"
+                              />
+                            </>
+                          ) : (
+                            <div className="flex aspect-[3/4] flex-col justify-between p-5">
+                              <div className="archive-kicker">Book</div>
+                              <div className="font-editorial text-2xl font-semibold leading-tight text-[var(--ink)]">
+                                {bookTitle}
+                              </div>
+                              <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                                {currentFileTypeLabel || "BOOK"}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                        {message && (
+                          <span className="rounded-sm bg-[var(--surface-low)] px-2 py-1">
+                            {message}
+                          </span>
+                        )}
+                        {currentFileTypeLabel && <span>{currentFileTypeLabel}</span>}
+                      </div>
+                      <h2 className="font-editorial mt-4 max-w-full break-words text-left text-[2.8rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)]">
+                        {bookTitle}
+                      </h2>
+                      {currentBookAuthor && (
+                        <p className="font-editorial mt-3 text-[1.45rem] italic text-[var(--ink-soft)]">
+                          {currentBookAuthor}
+                        </p>
+                      )}
+
+                      {immersiveCardList.length > 0 && (
+                        <div
+                          ref={cardSectionRef}
+                          className={`mt-5 flex items-center gap-0.5 md:hidden ${workspaceSegmentClass}`}
+                          style={{ scrollMarginTop: "84px" }}
                         >
-                          ✕
-                        </button>
+                          <button
+                            onClick={() => setViewMode("card")}
+                            className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                              viewMode === "card"
+                                ? workspaceActionPrimaryClass
+                                : workspaceActionSecondaryClass
+                            }`}
+                          >
+                            卡片模式
+                          </button>
+                          <button
+                            onClick={() => {
+                              setViewMode("immersive");
+                              setImmersiveIndex(0);
+                              setSlideDir(null);
+                            }}
+                            className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                              viewMode === "immersive"
+                                ? workspaceActionPrimaryClass
+                                : workspaceActionSecondaryClass
+                            }`}
+                          >
+                            沉浸阅读
+                          </button>
+                        </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-              {recentHistory.length > 2 && (
-                <button
-                  onClick={() => fabMenuRef.current?.open()}
-                  className="mt-3 text-xs font-medium text-gray-400 transition-colors hover:text-gray-600"
-                >
-                  查看更多 →
-                </button>
-              )}
-              <p className="text-[10px] text-gray-300 mt-3 select-none">
-                最近记录仅保存在当前浏览器，清理缓存后可能丢失。
-              </p>
-            </section>
-          )}
+                  </div>
 
-          {/* ── Results ── */}
-          {bookTitle && (
-            <>
-              {/* Title bar */}
-              <div ref={immersiveContainerRef} className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4" style={{ scrollMarginTop: "70px" }}>
-                <h2 className="max-w-full text-left text-lg font-semibold leading-snug text-gray-900 md:truncate">
-                  {bookTitle}
-                </h2>
-                <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0 md:justify-end">
-                  {trainingUnlocked && bookTitle && !isAnalyzing && (() => {
-                    const cardsReady = hasCompleteDecisionCards(getDecisionCardsInput());
-                    return (
+                  {isDecisionPanelOpen && decisionScenarios.length > 0 && (
+                    <DecisionTrainingPanel
+                      scenarios={decisionScenarios}
+                      onUpgradeClick={() => setIsUpgradeModalOpen(true)}
+                      onBackToCards={() => {
+                        setIsDecisionPanelOpen(false);
+                        immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }}
+                      onAnswerComplete={(option: DecisionOptionKey, progress: number) => {
+                        if (!currentBookId) return;
+
+                        const nextState = updateCurrentBookAddictionState((prev) => ({
+                          ...prev,
+                          decision_training_progress: progress,
+                          decision_history: [...prev.decision_history, option],
+                          decision_score: prev.decision_score + 1,
+                        }));
+
+                        if (progress === 1) {
+                          enqueueGuidanceToast({
+                            id: `addiction-first-answer-${currentBookId}`,
+                            message: "你刚才的选择，其实很有代表性",
+                            priority: TOAST_PRIORITY.GUIDANCE,
+                            durationMs: 5000,
+                          });
+                        }
+
+                        if (progress === 2) {
+                          enqueueGuidanceToast({
+                            id: `addiction-tension-${currentBookId}`,
+                            message: "再做1题，你会看到你的决策模式",
+                            priority: TOAST_PRIORITY.GUIDANCE,
+                            durationMs: 10000,
+                            showCloseButton: true,
+                            dismissible: true,
+                          });
+                        }
+
+                        if (progress >= 3) {
+                          const patternMessage = inferDecisionPattern(nextState.decision_history);
+                          if (patternMessage) {
+                            enqueueGuidanceToast({
+                              id: `addiction-pattern-${currentBookId}`,
+                              message: `${patternMessage}\n\n右上角的「决策力」记录你做过多少次真实场景练习，做得越多，决策力越高。`,
+                              priority: TOAST_PRIORITY.COGNITIVE,
+                              durationMs: 0,
+                              isPersistent: true,
+                              showCloseButton: true,
+                              dismissible: true,
+                            });
+                          }
+                        }
+                      }}
+                      onComplete={() => {
+                        if (!isBeforeOnboardingStep(onboardingProgress, "trained")) return;
+                        enqueueGuidanceToast({
+                          id: "onboarding-trained",
+                          message: "把这本书带走",
+                          actionText: "导出",
+                          onAction: () => {
+                            setExportStatus("idle");
+                            setIsExportModalOpen(true);
+                          },
+                          priority: TOAST_PRIORITY.INFO,
+                          durationMs: 10000,
+                        });
+                        advanceOnboardingProgress("trained");
+                      }}
+                    />
+                  )}
+
+                  {!isDecisionPanelOpen &&
+                    viewMode === "immersive" &&
+                    immersiveCardList.length > 0 &&
+                    currentImmersiveCard && (
+                      <div
+                        className="mx-auto max-w-4xl"
+                        onTouchStart={handleImmersiveTouchStart}
+                        onTouchEnd={handleImmersiveTouchEnd}
+                      >
+                        <div className="mb-5 flex items-center justify-center">
+                          <div className="flex items-center gap-2 rounded-[10px] bg-[var(--surface-low)] px-4 py-1.5">
+                            <span className="text-[11px] font-semibold text-[var(--ink)] tabular-nums">
+                              {safeImmersiveIndex + 1}
+                            </span>
+                            <span className="text-[11px] text-[var(--ink-faint)]/45">/</span>
+                            <span className="text-[11px] text-[var(--ink-faint)] tabular-nums">
+                              {immersiveCardList.length}
+                            </span>
+                            <span className="ml-0.5 text-[11px] text-[var(--ink-faint)]">
+                              {currentImmersiveCard.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          key={safeImmersiveIndex}
+                          className={`rounded-[24px] bg-[var(--paper)] p-8 md:p-10 ${
+                            slideDir === "left"
+                              ? "animate-slide-from-right"
+                              : slideDir === "right"
+                              ? "animate-slide-from-left"
+                              : ""
+                          }`}
+                        >
+                          <div className="mb-6 flex items-center justify-between">
+                            <p className="archive-kicker">
+                              {currentImmersiveCard.label}
+                            </p>
+                          </div>
+
+                          {currentImmersiveCard.isLoading ? (
+                            <div className="space-y-3">
+                              <div className="h-2 w-3/4 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+                              <div className="h-2 w-full animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+                              <div className="h-2 w-5/6 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+                              <div className="h-2 w-2/3 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
+                              <p className="pt-1 text-xs text-[var(--ink-faint)]">
+                                {currentImmersiveCard.loadingText}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="md-prose max-w-none">
+                              <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                                {currentImmersiveCard.content}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+
+                        <p className="mt-3 hidden select-none text-center text-[10px] text-[var(--ink-faint)]/70 md:block">
+                          使用键盘 ← → 方向键切换
+                        </p>
+
+                        <div className="mt-5 hidden items-center justify-between gap-4 md:flex">
+                          <button
+                            onClick={() => navigateImmersive("prev")}
+                            className="flex items-center gap-1.5 rounded-[10px] bg-[var(--surface-low)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:text-[var(--ink)] active:scale-[0.97] select-none"
+                          >
+                            ← 上一篇
+                          </button>
+
+                          <div className="flex items-center gap-1.5">
+                            {immersiveCardList.map((_, i) => (
+                              <button
+                                key={i}
+                                onClick={() => {
+                                  setSlideDir(i > safeImmersiveIndex ? "left" : "right");
+                                  setImmersiveIndex(i);
+                                  immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }}
+                                className={`h-1.5 rounded-full transition-all duration-200 ${
+                                  i === safeImmersiveIndex
+                                    ? "w-4 bg-[var(--ink)]"
+                                    : "w-1.5 bg-[rgba(119,124,123,0.24)] hover:bg-[rgba(119,124,123,0.45)]"
+                                }`}
+                              />
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() => navigateImmersive("next")}
+                            className="flex items-center gap-1.5 rounded-[10px] bg-[var(--surface-low)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:text-[var(--ink)] active:scale-[0.97] select-none"
+                          >
+                            下一篇 →
+                          </button>
+                        </div>
+
+                        <div className="h-16 md:hidden" />
+                        <div
+                          className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--ghost-border)] bg-[var(--surface)]/92 px-4 py-3 backdrop-blur-md md:hidden"
+                          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+                        >
+                          <div className="mx-auto flex max-w-xl items-center justify-between">
+                            <button
+                              onClick={() => navigateImmersive("prev")}
+                              className="flex items-center gap-1.5 rounded-[10px] bg-[var(--paper)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
+                            >
+                              ← 上一篇
+                            </button>
+
+                            <div className="flex items-center gap-1.5">
+                              {immersiveCardList.map((_, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    setSlideDir(i > safeImmersiveIndex ? "left" : "right");
+                                    setImmersiveIndex(i);
+                                    immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                  }}
+                                  className={`h-1.5 rounded-full transition-all duration-200 ${
+                                    i === safeImmersiveIndex
+                                      ? "w-4 bg-[var(--ink)]"
+                                      : "w-1.5 bg-[rgba(119,124,123,0.24)] hover:bg-[rgba(119,124,123,0.45)]"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+
+                            <button
+                              onClick={() => navigateImmersive("next")}
+                              className="flex items-center gap-1.5 rounded-[10px] bg-[var(--paper)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
+                            >
+                              下一篇 →
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  {!isDecisionPanelOpen && viewMode === "card" && (
+                    <div className="space-y-10">
+                      {beforeReadingCards.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4">
+                            <p className="archive-kicker">
+                              阅读前
+                            </p>
+                            <div className="h-px flex-1 bg-[rgba(119,124,123,0.16)]" />
+                          </div>
+                          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                            {beforeReadingCards}
+                          </div>
+                        </div>
+                      )}
+
+                      {(!isLiteMode || isLiteUnlocked) && afterReadingCards.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4">
+                            <p className="archive-kicker">
+                              阅读后
+                            </p>
+                            <div className="h-px flex-1 bg-[rgba(119,124,123,0.16)]" />
+                          </div>
+                          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                            {afterReadingCards}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+            </section>
+
+            <aside
+              className={`space-y-4 ${
+                bookTitle ? "order-2 xl:order-none" : ""
+              } xl:sticky xl:top-20 xl:max-h-[calc(100vh-5.5rem)] xl:self-start xl:overflow-y-auto xl:rounded-[30px] xl:bg-[var(--surface-low)] xl:p-4`}
+            >
+              {bookTitle ? (
+                <>
+                  <section className={`p-5 xl:hidden ${workspaceRailPanelClass}`}>
+                    <div className="space-y-2">
                       <button
-                        onClick={handleOpenDecisionTraining}
-                        disabled={isDecisionLoading || !cardsReady}
-                        title={cardsReady ? undefined : "完成全部分析卡片后可开始决策训练"}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-950 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+                        onClick={() => void handleOpenDecisionTraining()}
+                        disabled={isTrainingActionDisabled}
+                        title={decisionCardsReady ? undefined : "完成全部分析卡片后可开始决策训练"}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-[var(--ink)] px-4 py-3 text-sm font-medium text-[#faf7f6] transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {isDecisionLoading ? (
                           <>
                             <span className="relative flex h-1.5 w-1.5 shrink-0">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-300 opacity-75" />
-                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#faf7f6]/50 opacity-75" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#faf7f6]" />
                             </span>
                             {decisionLoadingStep || "生成中…"}
                           </>
                         ) : (
-                          addictionState.decision_training_progress > 0 ? "回顾题目" : "试一道题"
+                          trainingActionLabel
                         )}
                       </button>
-                    );
-                  })()}
-                  {exportUnlocked && (!isLiteMode || isLiteUnlocked) && (
-                    <button
-                      onClick={() => { setExportStatus("idle"); setIsExportModalOpen(true); }}
-                      disabled={exportStatus === "exporting"}
-                      className="flex min-w-[120px] flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 disabled:opacity-50 sm:flex-none"
-                    >
-                      {exportStatus === "exporting" ? "导出中…" : "把这本书带走"}
-                    </button>
-                  )}
-                  {posterUnlocked && bookSummary && (
-                    <button
-                      onClick={handleGeneratePoster}
-                      disabled={isGeneratingPoster}
-                      className="flex min-w-[120px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-600 shadow-sm transition hover:bg-gray-50 disabled:opacity-50 sm:flex-none"
-                    >
-                      {isGeneratingPoster ? (
-                        <>
-                          <span className="relative flex h-1.5 w-1.5 shrink-0">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-400 opacity-75" />
-                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gray-500" />
-                          </span>
-                          生成中…
-                        </>
-                      ) : (
-                        "分享出去"
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              {/* View mode toggle */}
-              {immersiveCardList.length > 0 && (
-                <div ref={cardSectionRef} className="mb-8 flex items-center justify-between gap-4" style={{ scrollMarginTop: "70px" }}>
-                  <div className="flex items-center gap-0.5 rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
-                    <button
-                      onClick={() => setViewMode("card")}
-                      className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
-                        viewMode === "card"
-                          ? "bg-gray-950 text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-800"
-                      }`}
-                    >
-                      卡片模式
-                    </button>
-                    <button
-                      onClick={() => {
-                        setViewMode("immersive");
-                        setImmersiveIndex(0);
-                        setSlideDir(null);
-                      }}
-                      className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
-                        viewMode === "immersive"
-                          ? "bg-gray-950 text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-800"
-                      }`}
-                    >
-                      沉浸阅读
-                    </button>
-                  </div>
-                  {currentBookId && (
-                    <div className="shrink-0 text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                        决策力
-                      </p>
-                      <p className="mt-1 text-sm font-medium text-gray-700">
-                        {decisionPowerBars}
-                      </p>
+                      <button
+                        onClick={() => {
+                          setExportStatus("idle");
+                          setIsExportModalOpen(true);
+                        }}
+                        disabled={isExportActionDisabled}
+                        className="flex w-full items-center justify-center rounded-[10px] bg-[var(--paper)] px-4 py-3 text-sm font-medium text-[var(--ink-soft)] transition hover:bg-[var(--surface)] disabled:opacity-50"
+                      >
+                        {exportStatus === "exporting" ? "导出中…" : "把这本书带走"}
+                      </button>
+
+                      <button
+                        onClick={handleGeneratePoster}
+                        disabled={isShareActionDisabled}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-[10px] bg-[var(--paper)] px-4 py-3 text-sm font-medium text-[var(--ink-soft)] transition hover:bg-[var(--surface)] disabled:opacity-50"
+                      >
+                        {isGeneratingPoster ? (
+                          <>
+                            <span className="relative flex h-1.5 w-1.5 shrink-0">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+                            </span>
+                            生成中…
+                          </>
+                        ) : (
+                          "分享出去"
+                        )}
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
+                  </section>
 
-              {/* Lite mode info banner */}
-              {isLiteMode && !isLiteUnlocked && (
-                <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-4">
-                  <span className="mt-0.5 text-amber-400 text-sm shrink-0">ℹ</span>
-                  <p className="text-sm leading-6 text-amber-800">
-                    <strong>PDF 简化分析模式</strong>
-                    ：当前仅提供基础摘要与阅读引导。为了获得效果更佳的深度结构化分析，建议您优先选择并重新上传 EPUB 格式的文件。
-                  </p>
-                </div>
-              )}
-
-              {decisionError && (
-                <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50 px-5 py-4">
-                  <p className="text-sm leading-6 text-amber-800">{decisionError}</p>
-                </div>
-              )}
-
-              {isDecisionPanelOpen && decisionScenarios.length > 0 && (
-                <DecisionTrainingPanel
-                  scenarios={decisionScenarios}
-                  onUpgradeClick={() => setIsUpgradeModalOpen(true)}
-                  onBackToCards={() => {
-                    setIsDecisionPanelOpen(false);
-                    immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  onAnswerComplete={(option: DecisionOptionKey, progress: number) => {
-                    if (!currentBookId) return;
-
-                    const nextState = updateCurrentBookAddictionState((prev) => ({
-                      ...prev,
-                      decision_training_progress: progress,
-                      decision_history: [...prev.decision_history, option],
-                      decision_score: prev.decision_score + 1,
-                    }));
-
-                    if (progress === 1) {
-                      enqueueGuidanceToast({
-                        id: `addiction-first-answer-${currentBookId}`,
-                        message: "你刚才的选择，其实很有代表性",
-                        priority: TOAST_PRIORITY.GUIDANCE,
-                        durationMs: 5000,
-                      });
-                    }
-
-                    if (progress === 2) {
-                      enqueueGuidanceToast({
-                        id: `addiction-tension-${currentBookId}`,
-                        message: "再做1题，你会看到你的决策模式",
-                        priority: TOAST_PRIORITY.GUIDANCE,
-                        durationMs: 10000,
-                        showCloseButton: true,
-                        dismissible: true,
-                      });
-                    }
-
-                    if (progress >= 3) {
-                      const patternMessage = inferDecisionPattern(nextState.decision_history);
-                      if (patternMessage) {
-                        enqueueGuidanceToast({
-                          id: `addiction-pattern-${currentBookId}`,
-                          message: `${patternMessage}\n\n右上角的「决策力」记录你做过多少次真实场景练习，做得越多，决策力越高。`,
-                          priority: TOAST_PRIORITY.COGNITIVE,
-                          durationMs: 0,
-                          isPersistent: true,
-                          showCloseButton: true,
-                          dismissible: true,
-                        });
-                      }
-                    }
-                  }}
-                  onComplete={() => {
-                    if (!isBeforeOnboardingStep(onboardingProgress, "trained")) return;
-                    enqueueGuidanceToast({
-                      id: "onboarding-trained",
-                      message: "把这本书带走",
-                      actionText: "导出",
-                      onAction: () => {
-                        setExportStatus("idle");
-                        setIsExportModalOpen(true);
-                      },
-                      priority: TOAST_PRIORITY.INFO,
-                      durationMs: 10000,
-                    });
-                    advanceOnboardingProgress("trained");
-                  }}
-                />
-              )}
-
-              {/* ── Immersive mode ── */}
-              {!isDecisionPanelOpen &&
-                viewMode === "immersive" &&
-                immersiveCardList.length > 0 &&
-                currentImmersiveCard && (
-                  <div
-                    className="mx-auto max-w-xl mb-10"
-                    onTouchStart={handleImmersiveTouchStart}
-                    onTouchEnd={handleImmersiveTouchEnd}
-                  >
-                    {/* Progress pill */}
-                    <div className="flex items-center justify-center mb-5">
-                      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm">
-                        <span className="text-[11px] font-semibold text-gray-800 tabular-nums">
-                          {safeImmersiveIndex + 1}
-                        </span>
-                        <span className="text-[11px] text-gray-300">/</span>
-                        <span className="text-[11px] text-gray-400 tabular-nums">
-                          {immersiveCardList.length}
-                        </span>
-                        <span className="text-[11px] text-gray-400 ml-0.5">
-                          {currentImmersiveCard.label}
+                  {hasAnalysisProgress && (
+                    <section className={`p-5 ${workspaceRailPanelClass}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate text-sm font-medium text-[var(--ink)]">{message || bookTitle}</p>
+                        <span className="rounded-sm bg-[var(--paper)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-faint)]">
+                          {completedAnalysisSteps}/{visibleAnalysisSteps.length}
                         </span>
                       </div>
-                    </div>
+                      <div className="mt-4 space-y-2.5">
+                        {visibleAnalysisSteps.map((step) => {
+                          const state: "done" | "active" | "pending" = step.done
+                            ? "done"
+                            : step.loading
+                            ? "active"
+                            : "pending";
+                          const isCurrent = activeCardKey === step.key;
+                          const isClickable =
+                            state === "done" &&
+                            isAnalysisRailInteractive &&
+                            availableAnalysisStepKeys.has(step.key);
 
-                    {/* Card */}
-                    <div
-                      key={safeImmersiveIndex}
-                      className={`rounded-2xl bg-white border border-gray-100 shadow-card p-8 md:p-10 ${
-                        slideDir === "left"
-                          ? "animate-slide-from-right"
-                          : slideDir === "right"
-                          ? "animate-slide-from-left"
-                          : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-6">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                          {currentImmersiveCard.label}
-                        </p>
-                      </div>
+                          const className = `flex w-full items-center justify-between rounded-[16px] px-3 py-2.5 text-sm transition-all ${
+                            isCurrent
+                              ? "bg-[var(--ink)] text-[#faf7f6]"
+                              : state === "done"
+                              ? isClickable
+                                ? "bg-[var(--paper)] text-[var(--accent)] hover:bg-[var(--surface)]"
+                                : "bg-[var(--paper)] text-[var(--accent)]"
+                              : state === "active"
+                              ? "bg-[var(--ink)] text-[#faf7f6]"
+                              : "bg-[rgba(119,124,123,0.08)] text-[var(--ink-faint)]"
+                          }`;
 
-                      {currentImmersiveCard.isLoading ? (
-                        <div className="space-y-3">
-                          <div className="h-2 bg-gray-100 rounded-full animate-pulse w-3/4" />
-                          <div className="h-2 bg-gray-100 rounded-full animate-pulse w-full" />
-                          <div className="h-2 bg-gray-100 rounded-full animate-pulse w-5/6" />
-                          <div className="h-2 bg-gray-100 rounded-full animate-pulse w-2/3" />
-                          <p className="text-xs text-gray-400 pt-1">
-                            {currentImmersiveCard.loadingText}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="md-prose">
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkBreaks]}
-                          >
-                            {currentImmersiveCard.content}
-                          </ReactMarkdown>
-                        </div>
-                      )}
-                    </div>
+                          const content = (
+                            <>
+                              <span>{step.label}</span>
+                              <span className="shrink-0">
+                                {isCurrent ? (
+                                  <span className="text-xs text-white/70">→</span>
+                                ) : state === "done" ? (
+                                  <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M2.5 6.5L5 9l4.5-6" />
+                                  </svg>
+                                ) : state === "active" ? (
+                                  <span className="relative flex h-2 w-2">
+                                    <span className="absolute inline-flex h-full w-full animate-status-pulse rounded-full bg-white/50" />
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex h-2 w-2 rounded-full bg-[rgba(119,124,123,0.35)]" />
+                                )}
+                              </span>
+                            </>
+                          );
 
-                    {/* Keyboard hint */}
-                    <p className="text-center text-[10px] text-gray-300 mt-3 select-none hidden md:block">
-                      使用键盘 ← → 方向键切换
-                    </p>
-
-                    {/* Spacer for fixed bottom nav */}
-                    <div className="h-16" />
-
-                    {/* Fixed bottom navigation */}
-                    <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-t border-gray-100 px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-                      <div className="mx-auto max-w-xl flex items-center justify-between">
-                        <button
-                          onClick={() => navigateImmersive("prev")}
-                          className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.97] select-none"
-                        >
-                          ← 上一篇
-                        </button>
-
-                        {/* Dot indicators */}
-                        <div className="flex items-center gap-1.5">
-                          {immersiveCardList.map((_, i) => (
+                          return isClickable ? (
                             <button
-                              key={i}
-                              onClick={() => {
-                                setSlideDir(
-                                  i > safeImmersiveIndex ? "left" : "right"
-                                );
-                                setImmersiveIndex(i);
-                                immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                              }}
-                              className={`h-1.5 rounded-full transition-all duration-200 ${
-                                i === safeImmersiveIndex
-                                  ? "w-4 bg-gray-800"
-                                  : "w-1.5 bg-gray-300 hover:bg-gray-400"
-                              }`}
-                            />
-                          ))}
-                        </div>
-
-                        <button
-                          onClick={() => navigateImmersive("next")}
-                          className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-[0.97] select-none"
-                        >
-                          下一篇 →
-                        </button>
+                              key={step.key}
+                              onClick={() => openCardFromRail(step.key)}
+                              className={className}
+                            >
+                              {content}
+                            </button>
+                          ) : (
+                            <div key={step.key} className={className}>
+                              {content}
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-              {/* ── Card mode ── */}
-              {!isDecisionPanelOpen && viewMode === "card" && (
-                <>
-                  {beforeReadingCards.length > 0 && (
-                    <div className="mb-10">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 mb-4">
-                        阅读前
-                      </p>
-                      <div className="flex items-start overflow-x-auto gap-3 pb-4 -mx-5 px-5 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none">
-                        {beforeReadingCards}
-                      </div>
-                    </div>
+                    </section>
                   )}
 
-                  {(!isLiteMode || isLiteUnlocked) &&
-                    afterReadingCards.length > 0 && (
-                      <div className="mb-10">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 mb-4">
-                          阅读后
+                  <section className={`p-5 ${workspaceRailPanelClass}`}>
+                    <p className="archive-kicker">
+                      决策力
+                    </p>
+                    <p className="font-editorial mt-2 text-[1.75rem] font-semibold text-[var(--ink)]">
+                      {decisionPowerBars}
+                    </p>
+                  </section>
+
+                  {isLiteMode && !isLiteUnlocked && (
+                    <section className="rounded-[24px] bg-[var(--accent-soft)] px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 shrink-0 text-sm text-[var(--accent)]">ℹ</span>
+                        <p className="text-sm leading-6 text-[var(--accent)]">
+                          <strong>PDF 简化分析模式</strong>
+                          ：当前仅提供基础摘要与阅读引导。为了获得效果更佳的深度结构化分析，建议您优先选择并重新上传 EPUB 格式的文件。
                         </p>
-                        <div className="flex items-start overflow-x-auto gap-3 pb-4 -mx-5 px-5 md:mx-0 md:px-0 snap-x snap-mandatory md:snap-none">
-                          {afterReadingCards}
-                        </div>
                       </div>
-                    )}
+                    </section>
+                  )}
+
+                  {decisionError && (
+                    <section className="rounded-[24px] bg-[var(--accent-soft)] px-5 py-4">
+                      <p className="text-sm leading-6 text-[var(--accent)]">{decisionError}</p>
+                    </section>
+                  )}
+                </>
+              ) : (
+                <>
+                  <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
+                    <div className="space-y-2">
+                      <button
+                        disabled
+                        className="flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-[10px] bg-[var(--ink)] px-4 py-3 text-sm font-medium text-[#faf7f6] opacity-35"
+                      >
+                        试一道题
+                      </button>
+                      <button
+                        disabled
+                        className="flex w-full cursor-not-allowed items-center justify-center rounded-[10px] bg-[var(--paper)] px-4 py-3 text-sm font-medium text-[var(--ink-soft)] opacity-45"
+                      >
+                        把这本书带走
+                      </button>
+                      <button
+                        disabled
+                        className="flex w-full cursor-not-allowed items-center justify-center rounded-[10px] bg-[var(--paper)] px-4 py-3 text-sm font-medium text-[var(--ink-soft)] opacity-45"
+                      >
+                        分享出去
+                      </button>
+                    </div>
+                  </section>
+
+                  <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
+                    <div className="space-y-2.5">
+                      {analysisSteps.map((step) => (
+                        <div
+                          key={`analysis-placeholder-${step.key}`}
+                          className="flex items-center justify-between rounded-[16px] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink-faint)]"
+                        >
+                          <span>{step.label}</span>
+                          <span className="inline-flex h-2 w-2 rounded-full bg-[rgba(119,124,123,0.35)]" />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
+                    <p className="archive-kicker">
+                      决策力
+                    </p>
+                    <p className="font-editorial mt-2 text-[1.75rem] font-semibold text-[var(--ink)]">
+                      {decisionPowerBars}
+                    </p>
+                  </section>
                 </>
               )}
-            </>
-          )}
-
-          {/* Footer 已移到页面最底部 */}
-        </div>{/* end max-w-4xl content */}
-        </div>{/* end content area */}
-
-        {/* ── Footer ── */}
-        <footer className="py-8 pb-20 flex flex-col items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/Richology%E5%95%86%E6%A0%87%E9%BB%91%E4%BD%93.png"
-            alt="Richology"
-            width={256}
-            height={28}
-            className="h-7 w-auto object-contain"
-          />
-          <a
-            href="https://richology.cn"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[12px] text-gray-800 hover:text-gray-950 transition-colors select-none"
-          >
-            由 安瑟A11BERICH 构建 · 了解作者 →
-          </a>
-        </footer>
+            </aside>
+          </div>
+        </div>
       </main>
       
       <UpgradeReadingModal 
@@ -3004,11 +3029,11 @@ export default function Home() {
               <p className="text-lg font-semibold text-gray-900 mb-1">
                 支付解锁完整版分析
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[var(--ink-soft)]">
                 请使用微信扫码支付 ¥9.9
               </p>
             </div>
-            <div className="rounded-xl border border-gray-100 p-3 bg-gray-50">
+            <div className="rounded-lg border border-[var(--ghost-border)] p-3 bg-[var(--surface-low)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/wechat-pay-qrcode.jpg"
@@ -3016,19 +3041,19 @@ export default function Home() {
                 className="w-44 h-44 object-contain"
               />
             </div>
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-[var(--ink-faint)] text-center">
               支付完成后，点击下方按钮继续
             </p>
             <div className="w-full flex flex-col gap-2">
               <button
                 onClick={handleUnlock}
-                className="w-full rounded-xl bg-gray-950 py-3 text-sm font-medium text-white hover:bg-gray-800 transition active:scale-[0.98]"
+                className="w-full rounded-lg bg-[var(--ink)] py-3 text-sm font-medium text-[#faf7f6] hover:opacity-92 transition active:scale-[0.98]"
               >
                 我已支付，继续解锁
               </button>
               <button
                 onClick={() => setIsPaywallModalOpen(false)}
-                className="w-full rounded-xl py-2.5 text-sm text-gray-500 hover:text-gray-700 transition"
+                className="w-full rounded-lg py-2.5 text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
               >
                 暂不解锁
               </button>
@@ -3038,10 +3063,6 @@ export default function Home() {
       )}
 
       {/* ── Per-card share modal ── */}
-      {shareModal && (
-        <ShareModal data={shareModal} onClose={() => setShareModal(null)} />
-      )}
-
       {/* ── Export format modal ── */}
       {isExportModalOpen && (() => {
         const _sectionDefs: ExportSection[] = [
@@ -3073,19 +3094,6 @@ export default function Home() {
           />
         );
       })()}
-
-      {/* ── Book-level share modal ── */}
-      {isBookShareModalOpen && bookRecommendation && (
-        <BookShareModal
-          bookTitle={
-            bookTitle ||
-            selectedFile?.name.replace(/\.(epub|pdf)$/i, "") ||
-            "未知书名"
-          }
-          recommendation={bookRecommendation}
-          onClose={() => setIsBookShareModalOpen(false)}
-        />
-      )}
 
       {/* ── Poster preview modal ── */}
       {isPosterModalOpen && posterContent && (
@@ -3169,47 +3177,49 @@ export default function Home() {
 
       {/* ── Background analysis progress indicator ── */}
       {bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 rounded-xl bg-gray-950/90 backdrop-blur-sm px-4 py-2.5 shadow-lg text-white text-xs">
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 rounded-lg bg-[var(--ink)]/92 backdrop-blur-sm px-4 py-2.5 shadow-[var(--shadow-paper-strong)] text-[#faf7f6] text-xs">
           <span className="relative flex h-2 w-2 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
           </span>
           <span className="max-w-[180px] truncate">《{bgAnalysisStatus.title}》{bgAnalysisStatus.step}</span>
-          <span className="text-gray-400">{bgAnalysisStatus.stepsCompleted}/{bgAnalysisStatus.totalSteps}</span>
+          <span className="text-white/60">{bgAnalysisStatus.stepsCompleted}/{bgAnalysisStatus.totalSteps}</span>
         </div>
       )}
 
-      <FabMenu
-        ref={fabMenuRef}
-        historyItems={recentHistory}
-        showRedDot={showFabRedDot}
-        currentBookTitle={bookTitle}
-        pendingDeleteId={pendingDeleteId}
-        onOpen={() => {
-          if (showFabRedDot) {
-            markFabHistorySeen();
-            setShowFabRedDot(false);
-          }
-        }}
-        onRestoreHistory={(id) => {
-          const record = recentHistory.find((r) => r.id === id);
-          if (record) {
-            restoreFromHistory(record);
-            setHistoryToast(`已切换到《${record.title}》`);
-            setTimeout(() => setHistoryToast(""), 2500);
-            setTimeout(() => {
-              immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 100);
-          }
-        }}
-        onDeleteHistory={deleteHistoryRecord}
-        onOpenStarterBooks={handleShowStarterModeFromToast}
-        hasCurrentBook={!!bookTitle}
-        trainingUnlocked={trainingUnlocked}
-        exportUnlocked={exportUnlocked}
-        onOpenTraining={() => void handleOpenDecisionTraining()}
-        onOpenExport={() => { setExportStatus("idle"); setIsExportModalOpen(true); }}
-      />
+      <div className="md:hidden">
+        <FabMenu
+          ref={fabMenuRef}
+          historyItems={recentHistory}
+          showRedDot={showFabRedDot}
+          currentBookTitle={bookTitle}
+          pendingDeleteId={pendingDeleteId}
+          onOpen={() => {
+            if (showFabRedDot) {
+              markFabHistorySeen();
+              setShowFabRedDot(false);
+            }
+          }}
+          onRestoreHistory={(id) => {
+            const record = recentHistory.find((r) => r.id === id);
+            if (record) {
+              restoreFromHistory(record);
+              setHistoryToast(`已切换到《${record.title}》`);
+              setTimeout(() => setHistoryToast(""), 2500);
+              setTimeout(() => {
+                immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 100);
+            }
+          }}
+          onDeleteHistory={deleteHistoryRecord}
+          onOpenStarterBooks={handleShowStarterModeFromToast}
+          hasCurrentBook={!!bookTitle}
+          trainingUnlocked={trainingUnlocked}
+          exportUnlocked={exportUnlocked}
+          onOpenTraining={() => void handleOpenDecisionTraining()}
+          onOpenExport={() => { setExportStatus("idle"); setIsExportModalOpen(true); }}
+        />
+      </div>
     </>
   );
 }

@@ -1,113 +1,260 @@
 "use client";
 
-import { TopNav } from "./components/landing/TopNav";
-import { FloatingBooks } from "./components/landing/FloatingBooks";
 import { BookComparison } from "./components/landing/BookComparison";
-import { Testimonials } from "./components/landing/Testimonials";
-import { NeedAHand } from "./components/landing/NeedAHand";
 import { FAQ } from "./components/landing/FAQ";
+import { NeedAHand } from "./components/landing/NeedAHand";
+import { Testimonials } from "./components/landing/Testimonials";
+import { TopNav } from "./components/landing/TopNav";
+
+const ANALYSIS_FACETS = [
+  {
+    title: "全书摘要",
+    detail: "先抓住整本书到底在讲什么，而不是陷在零散细节里。",
+  },
+  {
+    title: "阅读指南",
+    detail: "告诉你先看哪里、重点看什么，让后续阅读更高效。",
+  },
+  {
+    title: "观点地图",
+    detail: "把一本书的逻辑骨架摊开，看清它的结构和主线。",
+  },
+  {
+    title: "行动提炼",
+    detail: "把书中的判断压缩成可以立刻执行的动作。",
+  },
+  {
+    title: "观点校验",
+    detail: "不是照单全收，而是帮你判断哪些观点适合你现在。",
+  },
+  {
+    title: "思想溯源",
+    detail: "看到一本书背后的来源、脉络和更深的认知框架。",
+  },
+];
 
 export default function LandingPage() {
   return (
     <>
       <TopNav />
 
-      {/* ── Hero ── */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-amber-50 via-sky-50 to-violet-50 px-5">
-        {/* Decorative blobs */}
-        <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-amber-200/30 blur-3xl" />
-        <div className="pointer-events-none absolute -top-12 right-0 h-64 w-64 rounded-full bg-sky-200/30 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-violet-200/20 blur-3xl" />
+      <main className="archive-atmosphere relative overflow-hidden text-[var(--ink)]">
+        <div className="pointer-events-none absolute -left-40 top-24 h-[360px] w-[360px] rounded-full bg-[rgba(81,99,90,0.08)] blur-3xl" />
+        <div className="pointer-events-none absolute right-[-160px] top-[220px] h-[440px] w-[440px] rounded-full bg-[rgba(119,124,123,0.1)] blur-3xl" />
+        <section className="px-6 pb-16 pt-28 md:px-10 md:pb-24 md:pt-32">
+          <div className="mx-auto grid max-w-[1540px] gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(460px,0.95fr)] lg:items-center">
+            <div className="max-w-[760px]">
+              <h1 className="font-editorial text-[3.55rem] leading-[0.92] tracking-[-0.055em] text-[var(--ink)] sm:text-[4.5rem] lg:text-[6.7rem]">
+                重新定义
+                <span className="mt-3 block text-[0.62em] font-normal italic tracking-[-0.035em] text-[var(--ink)]">
+                  你的阅读方式
+                </span>
+              </h1>
+              <p className="mt-8 max-w-[620px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.05rem]">
+                从好书中完成认知跃迁。上传一本电子书，30 秒获取 6 张结构化知识卡片，并继续在 workspace
+                里阅读、训练、导出、分享。
+              </p>
+              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <a
+                  href="/workspace"
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--ink)] px-6 py-3.5 text-sm font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.98]"
+                >
+                  进入工作台
+                  <span aria-hidden>↗</span>
+                </a>
+                <a
+                  href="#comparison"
+                  className="inline-flex items-center justify-center gap-2 border-b border-[var(--ghost-border)] px-1 py-3 text-sm font-medium text-[var(--ink)] transition-all hover:border-[rgba(81,99,90,0.35)]"
+                >
+                  看看它如何工作
+                </a>
+              </div>
 
-        {/* Floating book names (decoration only, no gift books) */}
-        <FloatingBooks starterBooks={[]} experiencedIds={[]} onStarterBookDrop={() => {}} />
+              <div className="mt-14 max-w-[660px] border-t border-[var(--ghost-border)] pt-6">
+                <div className="rounded-[20px] bg-[var(--surface-low)] px-4 py-2.5 shadow-[var(--shadow-paper)]">
+                  <div className="grid gap-0 sm:grid-cols-3">
+                    {["无需注册", "本地存储", "30 秒出结果"].map((item, index) => (
+                      <div
+                        key={item}
+                        className={`flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium text-[var(--ink)] ${
+                          index > 0 ? "border-t border-[var(--ghost-border)] sm:border-l sm:border-t-0" : ""
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* Center content — left/right layout */}
-        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-10 px-5 md:flex-row md:items-center md:justify-between md:gap-16 md:px-8">
-          {/* Left: product name */}
-          <div className="text-center md:text-left">
-            <h1 className="text-5xl font-extrabold tracking-tight text-gray-950 sm:text-6xl md:text-7xl">
-              书跃
-            </h1>
-            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/70 backdrop-blur-sm px-3 py-1 text-xs text-gray-400 shadow-sm">
-              <span>✦</span> AI 驱动的结构化书籍分析
+            <div className="archive-stack rounded-[30px] bg-[var(--surface-low)] p-4 md:p-8 lg:pl-10">
+              <div className="grid gap-4 rounded-[26px] bg-[var(--paper-muted)] p-4 md:grid-cols-[minmax(0,1fr)_220px] md:p-7">
+                <div className="archive-sheet flex min-h-[420px] flex-col rounded-[22px] p-6 md:p-8">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="archive-kicker">Curated Reading Object</p>
+                    <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                      EPUB / PDF
+                    </span>
+                  </div>
+                  <div className="mt-10 space-y-4">
+                    <div className="h-[2px] w-14 bg-[var(--accent)]" />
+                    <div className="h-3 w-[72%] rounded-full bg-[rgba(47,51,51,0.08)]" />
+                    <div className="h-3 w-[88%] rounded-full bg-[rgba(47,51,51,0.08)]" />
+                    <div className="h-3 w-[64%] rounded-full bg-[rgba(47,51,51,0.08)]" />
+                  </div>
+                  <div className="mt-auto grid gap-3 pt-10 sm:grid-cols-3">
+                    {ANALYSIS_FACETS.slice(0, 3).map((item, index) => (
+                      <div
+                        key={item.title}
+                        className={`rounded-[18px] p-4 ${
+                          index === 0 ? "archive-callout" : "bg-[var(--surface-low)]"
+                        }`}
+                      >
+                        <p className="archive-kicker">0{index + 1}</p>
+                        <p className="mt-3 text-sm font-medium text-[var(--ink)]">{item.title}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <div className="px-2 pt-2">
+                    <p className="archive-kicker">Analysis Register</p>
+                  </div>
+                  {ANALYSIS_FACETS.map((item, index) => (
+                    <div
+                      key={item.title}
+                      className={`flex items-center justify-between rounded-[16px] px-4 py-3.5 ${
+                        index === 2
+                          ? "archive-callout text-[var(--ink)]"
+                          : "bg-[var(--paper)] text-[var(--ink-soft)]"
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{item.title}</span>
+                      <span className="text-[11px] uppercase tracking-[0.14em] opacity-60">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          {/* Right: slogan + CTA */}
-          <div className="text-center md:text-left">
-            <p className="text-xl font-medium text-gray-700 sm:text-2xl md:text-3xl">
-              从好书中，完成认知跃迁
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-gray-400 sm:text-base">
-              上传一本电子书，30 秒获取 6 张结构化知识卡片
-            </p>
-            <div className="mt-8">
-              <a
-                href="/workspace"
-                className="group inline-flex items-center gap-2.5 rounded-2xl bg-gray-950 px-8 py-4 text-base font-semibold text-white shadow-xl transition-all hover:bg-gray-800 hover:shadow-2xl active:scale-[0.97] sm:text-lg"
-              >
-                开始使用
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </a>
+        <section className="px-6 py-8 md:px-10 md:py-12">
+          <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--surface-low)] px-6 py-8 md:px-10 md:py-12">
+            <div className="mb-10 max-w-[760px]">
+              <h2 className="font-editorial text-[2.3rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[3rem]">
+                不重复制，是重建这本书的结构
+              </h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {ANALYSIS_FACETS.map((item, index) => (
+                <article
+                  key={item.title}
+                  className={`rounded-[22px] px-5 py-6 ${
+                    index === 2 ? "archive-callout" : "bg-[var(--paper)]"
+                  }`}
+                >
+                  <div className="mb-6 flex items-center justify-between gap-3">
+                    <span className="rounded-sm bg-[rgba(81,99,90,0.1)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                      {item.title}
+                    </span>
+                    <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-7 text-[var(--ink-soft)]">{item.detail}</p>
+                  <div className="mt-8 h-px w-12 bg-[rgba(81,99,90,0.22)]" />
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Product showcase ── */}
-      <div className="bg-[#f7f7f8]">
         <BookComparison />
+
+        <section className="px-6 py-8 md:px-10 md:py-12">
+          <div className="mx-auto grid max-w-[1540px] gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)]">
+            <div className="rounded-[30px] bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:px-8 md:py-10">
+              <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.04em] text-white">
+                不是摘要器，
+                <br />
+                是你的阅读工作台
+              </h2>
+              <p className="mt-6 max-w-[460px] text-sm leading-7 text-white/70">
+                上传、解析、阅读、训练、导出、分享，被重新组织成一套连续工作流，而不是彼此孤立的功能点。
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
+                <p className="archive-kicker">Main Surface</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
+                  以阅读区为中心，六项分析结果成为真正的主工作面，而不是被一堆功能卡片挤压。
+                </p>
+              </div>
+              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
+                <p className="archive-kicker">Side Context</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
+                  侧栏负责上传、状态、历史和动作，不抢主线，只提供清晰的次级上下文。
+                </p>
+              </div>
+              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
+                <p className="archive-kicker">Action Loop</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
+                  读完分析后继续训练、导出、分享，让“读过”真正进入可复用状态。
+                </p>
+              </div>
+              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
+                <p className="archive-kicker">Quiet Interface</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
+                  用纸面层次、排版和留白定义秩序，不依赖泛滥卡片、渐变或花哨装饰。
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <Testimonials />
         <FAQ />
-      </div>
 
-      {/* ── Bottom CTA ── */}
-      <section className="bg-gradient-to-br from-gray-900 to-gray-800 py-16 md:py-20">
-        <div className="mx-auto max-w-2xl px-5 text-center md:px-8">
-          <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-            重新定义你的阅读方式
-          </h2>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-400">
-            <span>无需注册，开箱即用</span>
-            <span className="hidden md:inline">·</span>
-            <span>内容不留存，完全私有</span>
-            <span className="hidden md:inline">·</span>
-            <span>30 秒出结果</span>
+        <section className="px-6 pb-20 pt-8 md:px-10 md:pb-24 md:pt-12">
+          <div className="mx-auto grid max-w-[1440px] gap-8 rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
+            <div>
+              <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[3rem]">
+                把下一本书，整理进你的工作台
+              </h2>
+              <p className="mt-4 max-w-[560px] text-sm leading-7 text-white/70 md:text-base">
+                不用再等到“完整读完”才开始吸收。先让一本书变得清晰，再决定你要如何继续使用它。
+              </p>
+            </div>
+            <a
+              href="/workspace"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-white/92 active:scale-[0.98]"
+            >
+              立即开始
+              <span aria-hidden>↗</span>
+            </a>
           </div>
-          <a
-            href="/workspace"
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-medium text-gray-900 shadow-lg transition-all hover:bg-gray-50 hover:shadow-xl active:scale-[0.98]"
-          >
-            立即免费开始
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </a>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Footer ── */}
-      <footer className="bg-[#f7f7f8] py-8 flex flex-col items-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/Richology%E5%95%86%E6%A0%87%E9%BB%91%E4%BD%93.png"
-          alt="Richology"
-          width={256}
-          height={28}
-          className="h-7 w-auto object-contain"
-        />
-        <a
-          href="https://richology.cn"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[12px] text-gray-800 hover:text-gray-950 transition-colors select-none"
-        >
-          由 安瑟A11BERICH 构建 · 了解作者 →
-        </a>
-      </footer>
+        <footer className="px-6 pb-8 md:px-10">
+          <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-4 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center">
+            <p>书跃 · BookLeap</p>
+            <a
+              href="https://richology.cn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-[var(--ink)]"
+            >
+              由 安瑟A11BERICH 构建 · 了解作者 →
+            </a>
+          </div>
+        </footer>
+      </main>
 
       <NeedAHand />
     </>

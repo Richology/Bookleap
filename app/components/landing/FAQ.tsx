@@ -21,10 +21,11 @@ export function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="py-16 md:py-24">
-      <div className="mx-auto max-w-2xl px-5 md:px-8">
-        <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-950 md:text-3xl">
+    <section id="faq" className="px-6 py-14 md:px-10 md:py-20">
+      <div className="mx-auto grid max-w-[1540px] gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="max-w-[320px] xl:pt-3">
+          <p className="archive-kicker">Common Questions</p>
+          <h2 className="font-editorial mt-4 text-[2.2rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[2.9rem]">
             常见问题
           </h2>
         </div>
@@ -35,13 +36,13 @@ export function FAQ() {
             return (
               <div
                 key={i}
-                className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-card"
+                className="overflow-hidden rounded-[22px] bg-[var(--paper)]"
               >
                 <button
                   onClick={() => setOpenIndex(isOpen ? null : i)}
-                  className="flex w-full items-center justify-between px-6 py-4 text-left"
+                  className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left md:px-7"
                 >
-                  <span className="pr-4 text-sm font-medium text-gray-900">
+                  <span className="pr-4 text-base font-medium text-[var(--ink)] md:text-[1.05rem]">
                     {item.q}
                   </span>
                   <svg
@@ -53,7 +54,7 @@ export function FAQ() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className={`shrink-0 text-gray-400 transition-transform duration-200 ${
+                    className={`shrink-0 text-[var(--ink-faint)] transition-transform duration-200 ${
                       isOpen ? "rotate-180" : ""
                     }`}
                   >
@@ -66,7 +67,7 @@ export function FAQ() {
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <p className="px-6 pb-5 text-sm leading-6 text-gray-500">
+                    <p className="px-6 pb-6 text-sm leading-7 text-[var(--ink-soft)] md:px-7">
                       {item.a}
                     </p>
                   </div>

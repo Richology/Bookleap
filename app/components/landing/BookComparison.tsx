@@ -158,36 +158,24 @@ export function BookComparison() {
   const rightOpacity = 0.4 + ((95 - sliderPos) / 90) * 0.6;
 
   return (
-    <section id="comparison" ref={sectionRef} className="py-16 md:py-24">
-      <div className="mx-auto max-w-5xl px-5 md:px-8">
-        {/* Section header */}
-        <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-950 md:text-3xl">
-            一本书，6 张卡片，30 秒
-          </h2>
-          <p className="mt-3 text-sm text-gray-500">
-            拖动滑块，看看《{BOOK_TITLE}》如何从几万字变成结构化知识
-          </p>
-        </div>
-
-        {/* Comparison container */}
+    <section id="comparison" ref={sectionRef} className="px-6 py-14 md:px-10 md:py-20">
+      <div className="mx-auto grid max-w-[1540px] gap-12 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-center">
         <div
           ref={containerRef}
-          className="relative mx-auto max-w-3xl select-none overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card"
+          className="archive-stack archive-paper relative select-none overflow-hidden rounded-[30px]"
           style={{ touchAction: "none" }}
         >
           <div className="relative flex" style={{ minHeight: 480 }}>
-            {/* ── Left: raw book text ── */}
             <div
               className="absolute inset-0 overflow-hidden"
               style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
             >
-              <div className="h-full bg-gray-50 p-5 md:p-6">
+              <div className="h-full bg-[var(--surface-low)] p-5 md:p-8">
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded-md bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <span className="rounded-md bg-[rgba(119,124,123,0.08)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ink-faint)]">
                     原书
                   </span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-[var(--ink-faint)]">
                     《{BOOK_TITLE}》· {BOOK_AUTHOR} · 约 48,000 字
                   </span>
                 </div>
@@ -197,7 +185,7 @@ export function BookComparison() {
                     fontSize: `${leftFontSize}px`,
                     lineHeight: `${leftFontSize + 4}px`,
                     opacity: leftOpacity,
-                    color: "#9ca3af",
+                    color: "var(--ink-faint)",
                   }}
                 >
                   {DENSE_TEXT.map((t, i) => (
@@ -210,17 +198,16 @@ export function BookComparison() {
               </div>
             </div>
 
-            {/* ── Right: structured cards ── */}
             <div
               className="absolute inset-0 overflow-hidden"
               style={{ clipPath: `inset(0 0 0 ${sliderPos}%)` }}
             >
-              <div className="flex h-full flex-col justify-center bg-gradient-to-br from-amber-50/80 via-sky-50/80 to-violet-50/80 p-5 md:p-6">
+              <div className="flex h-full flex-col justify-center bg-[var(--paper)] p-5 md:p-8">
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded-md bg-gray-900 px-2 py-0.5 text-[10px] font-semibold text-white uppercase tracking-wider">
+                  <span className="rounded-md bg-[var(--ink)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#faf7f6]">
                     书跃
                   </span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-[var(--ink-faint)]">
                     6 张结构化知识卡片 · 30 秒生成
                   </span>
                 </div>
@@ -231,15 +218,15 @@ export function BookComparison() {
                   {CARDS.map((card) => (
                     <div
                       key={card.title}
-                      className="rounded-xl border border-white/60 bg-white/70 backdrop-blur-sm p-3.5 shadow-sm"
+                      className="rounded-lg bg-[var(--surface-low)]/92 p-3.5 shadow-[var(--shadow-paper)]"
                     >
                       <div className="mb-1.5 flex items-center gap-1.5">
-                        <span className="text-base">{card.icon}</span>
-                        <span className="text-sm font-semibold text-gray-900">
+                        <span className="text-base opacity-70">{card.icon}</span>
+                        <span className="font-editorial text-base font-semibold text-[var(--ink)]">
                           {card.title}
                         </span>
                       </div>
-                      <p className="text-[11px] leading-4 text-gray-500">
+                      <p className="text-[11px] leading-5 text-[var(--ink-soft)]">
                         {card.desc}
                       </p>
                     </div>
@@ -248,20 +235,19 @@ export function BookComparison() {
               </div>
             </div>
 
-            {/* ── Slider handle ── */}
             <div
               className="absolute top-0 bottom-0 z-10 flex w-10 -translate-x-1/2 cursor-col-resize items-center justify-center"
               style={{ left: `${sliderPos}%` }}
               onPointerDown={() => { isDragging.current = true; }}
             >
-              <div className="h-full w-px bg-gray-300/80" />
-              <div className="absolute flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white shadow-lg">
+              <div className="h-full w-px bg-[rgba(81,99,90,0.35)]" />
+              <div className="absolute flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--paper)] shadow-[var(--shadow-paper-strong)]">
                 <svg
                   width="16"
                   height="16"
                   viewBox="0 0 16 16"
                   fill="none"
-                  className="text-gray-400"
+                  className="text-[var(--ink-faint)]"
                 >
                   <path
                     d="M5 3L2 8L5 13M11 3L14 8L11 13"
@@ -276,12 +262,34 @@ export function BookComparison() {
           </div>
         </div>
 
-        {/* Drag hint */}
-        {showHint && (
-          <p className="mt-4 text-center text-xs text-gray-400 animate-pulse">
-            ← 左右拖动滑块试试 →
+        <div className="max-w-[360px]">
+          <p className="archive-kicker">Before / After</p>
+          <h2 className="font-editorial mt-4 text-[2.45rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)] md:text-[3.05rem]">
+            一本书，6 张卡片，30 秒
+          </h2>
+          <p className="mt-5 text-sm leading-7 text-[var(--ink-soft)] md:text-base">
+            拖动滑块，看看《{BOOK_TITLE}》如何从几万字变成结构化知识
           </p>
-        )}
+          <div className="mt-8 space-y-3">
+            <div className="rounded-[18px] bg-[var(--paper)] px-4 py-4">
+              <p className="archive-kicker">Condense</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--ink-soft)]">
+                从密集原文中抽出真正值得反复调用的判断。
+              </p>
+            </div>
+            <div className="rounded-[18px] bg-[var(--surface-low)] px-4 py-4">
+              <p className="archive-kicker">Navigate</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--ink-soft)]">
+                先建立结构，再决定哪些部分值得你深读和训练。
+              </p>
+            </div>
+          </div>
+          {showHint && (
+            <p className="mt-5 text-xs text-[var(--ink-faint)] animate-pulse">
+              ← 左右拖动滑块试试 →
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );
