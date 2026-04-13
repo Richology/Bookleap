@@ -60,7 +60,6 @@ const TESTIMONIALS = [
 ];
 
 export function Testimonials() {
-  const [showAll, setShowAll] = useState(false);
   const [isRailPaused, setIsRailPaused] = useState(false);
   const railViewportRef = useRef<HTMLDivElement>(null);
   const [featured, ...notes] = TESTIMONIALS;
@@ -107,13 +106,6 @@ export function Testimonials() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAll((prev) => !prev)}
-            className="w-fit rounded-sm border border-white/10 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-white/72 transition-colors hover:border-white/22 hover:text-white"
-          >
-            {showAll ? "收起全部" : "查看全部"}
-          </button>
         </div>
 
         <div className="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -212,40 +204,6 @@ export function Testimonials() {
         </div>
       </div>
 
-      {showAll && (
-        <div className="mx-auto mt-5 max-w-[1540px] rounded-[28px] bg-[var(--surface-low)] px-5 py-5 md:px-6 md:py-6">
-          <div className="mb-5 flex items-center justify-between gap-4">
-            <p className="archive-kicker">All Testimonials</p>
-            <button
-              type="button"
-              onClick={() => setShowAll(false)}
-              className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
-            >
-              收起
-            </button>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {TESTIMONIALS.map((t) => (
-              <article
-                key={`all-${t.name}`}
-                className="rounded-[22px] bg-[var(--paper)] px-5 py-5"
-              >
-                <p className="text-[13px] leading-7 text-[var(--ink-soft)]">{t.quote}</p>
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-[var(--surface-low)] text-xs font-semibold text-[var(--ink-soft)]">
-                    {t.name[0]}
-                  </div>
-                  <div>
-                    <p className="font-editorial text-lg font-semibold text-[var(--ink)]">{t.name}</p>
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">{t.title}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      )}
     </section>
   );
 }
