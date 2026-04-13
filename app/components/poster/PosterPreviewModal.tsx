@@ -37,10 +37,12 @@ export function PosterPreviewModal({
   data,
   onClose,
   onRegenerate,
+  onSaveSuccess,
 }: {
   data: PosterData;
   onClose: () => void;
   onRegenerate?: () => void;
+  onSaveSuccess?: () => void;
 }) {
   const exportRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -153,6 +155,7 @@ export function PosterPreviewModal({
       a.href = url;
       a.download = `${data.bookTitle || "BookLeap"}-海报.png`;
       a.click();
+      onSaveSuccess?.();
     } catch (err) {
       console.error("海报导出失败:", err);
     } finally {

@@ -10,6 +10,7 @@ import {
   type ExportParams,
   type ExportSection,
 } from "../components/ExportModal";
+import { GrowthLedgerPanel } from "../components/GrowthLedgerPanel";
 import { PosterPreviewModal } from "../components/poster/PosterPreviewModal";
 import type { PosterContent } from "../components/poster/types";
 import { DecisionTrainingPanel } from "../components/DecisionTrainingPanel";
@@ -44,6 +45,12 @@ import {
   setAddictionState,
   type AddictionState,
 } from "@/lib/addictionSystem";
+import {
+  awardGrowth,
+  getEmptyGrowthLedger,
+  loadGrowthLedger,
+  type GrowthLedger,
+} from "@/lib/growthLedger";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
   type GuidanceToast,
@@ -414,6 +421,7 @@ export default function Home() {
   const lastUploadPromptBookIdRef = useRef<string | null>(null);
 
   const [addictionState, setAddictionStateLocal] = useState<AddictionState>(DEFAULT_ADDICTION_STATE);
+  const [growthLedger, setGrowthLedger] = useState<GrowthLedger>(() => getEmptyGrowthLedger());
   const cardSectionRef = useRef<HTMLDivElement>(null);
   const [recentHistory, setRecentHistory] = useState<HistoryRecord[]>([]);
   const [historyToast, setHistoryToast] = useState("");
@@ -445,13 +453,16 @@ export default function Home() {
     : currentStarterBook
     ? "EPUB"
     : "";
-  const decisionPowerBars = `${"█".repeat(Math.min(addictionState.decision_score, 5))}${"░".repeat(
-    Math.max(0, 5 - Math.min(addictionState.decision_score, 5))
-  )}`;
+  const currentBookDisplayTitle =
+    bookTitle ||
+    selectedFile?.name.replace(/\.(epub|pdf)$/i, "") ||
+    currentStarterBook?.title ||
+    "未知书名";
 
   // Load history + onboarding progress on mount
   useEffect(() => {
     const history = loadHistory();
+    const ledger = loadGrowthLedger();
     const onboardingStep = getOnboardingStep();
     const starterSeen = hasSeenStarterMode();
     const starterBookId = getSelectedStarterBookId();
@@ -460,6 +471,7 @@ export default function Home() {
     const returningUserToastSeenThisSession = hasSeenReturningUserToastThisSession();
 
     setRecentHistory(history);
+    setGrowthLedger(ledger);
     setOnboardingProgressState(onboardingStep);
     setSelectedStarterBookIdState(starterBookId);
     setExperiencedStarterIds(getExperiencedStarterBooks());
@@ -514,6 +526,20 @@ export default function Home() {
     const next = [record, ...prev];
     saveHistory(next);
     setRecentHistory(next);
+    const thinkingGrowth = awardGrowth("thinking", {
+      bookId: buildDecisionBookId(record.title),
+      bookTitle: record.title,
+      action: "分析完成",
+    });
+    if (thinkingGrowth.changed) {
+      setGrowthLedger(thinkingGrowth.ledger);
+      enqueueGuidanceToast({
+        id: `growth-thinking-${buildDecisionBookId(record.title)}`,
+        message: `思考力 +1\n来自《${record.title}》的分析完成`,
+        priority: TOAST_PRIORITY.INFO,
+        durationMs: 4500,
+      });
+    }
     if (!currentStarterBook) {
       markUploadedBook(record.title);
     }
@@ -1283,6 +1309,20 @@ export default function Home() {
     const next = [record, ...prev];
     saveHistory(next);
     setRecentHistory(next);
+    const thinkingGrowth = awardGrowth("thinking", {
+      bookId: buildDecisionBookId(record.title),
+      bookTitle: record.title,
+      action: "分析完成",
+    });
+    if (thinkingGrowth.changed) {
+      setGrowthLedger(thinkingGrowth.ledger);
+      enqueueGuidanceToast({
+        id: `growth-thinking-${buildDecisionBookId(record.title)}`,
+        message: `思考力 +1\n来自《${record.title}》的分析完成`,
+        priority: TOAST_PRIORITY.INFO,
+        durationMs: 4500,
+      });
+    }
   }, [resetAllState]);
 
   const handleDismissStarterMode = () => {
@@ -2594,7 +2634,7 @@ export default function Home() {
                           if (patternMessage) {
                             enqueueGuidanceToast({
                               id: `addiction-pattern-${currentBookId}`,
-                              message: `${patternMessage}\n\n右上角的「决策力」记录你做过多少次真实场景练习，做得越多，决策力越高。`,
+                              message: `${patternMessage}\n\n右侧的「能力账本」会记录你完成的真实练习，做得越多，能力增长越清晰。`,
                               priority: TOAST_PRIORITY.COGNITIVE,
                               durationMs: 0,
                               isPersistent: true,
@@ -2605,19 +2645,36 @@ export default function Home() {
                         }
                       }}
                       onComplete={() => {
-                        if (!isBeforeOnboardingStep(onboardingProgress, "trained")) return;
-                        enqueueGuidanceToast({
-                          id: "onboarding-trained",
-                          message: "把这本书带走",
-                          actionText: "导出",
-                          onAction: () => {
-                            setExportStatus("idle");
-                            setIsExportModalOpen(true);
-                          },
-                          priority: TOAST_PRIORITY.INFO,
-                          durationMs: 10000,
-                        });
-                        advanceOnboardingProgress("trained");
+                        if (currentBookId) {
+                          const decisionGrowth = awardGrowth("decision", {
+                            bookId: currentBookId,
+                            bookTitle: currentBookDisplayTitle,
+                            action: "训练完成",
+                          });
+                          if (decisionGrowth.changed) {
+                            setGrowthLedger(decisionGrowth.ledger);
+                            enqueueGuidanceToast({
+                              id: `growth-decision-${currentBookId}`,
+                              message: `决策力 +1\n来自《${currentBookDisplayTitle}》的 3 题训练完成`,
+                              priority: TOAST_PRIORITY.INFO,
+                              durationMs: 4500,
+                            });
+                          }
+                        }
+                        if (isBeforeOnboardingStep(onboardingProgress, "trained")) {
+                          enqueueGuidanceToast({
+                            id: "onboarding-trained",
+                            message: "把这本书带走",
+                            actionText: "导出",
+                            onAction: () => {
+                              setExportStatus("idle");
+                              setIsExportModalOpen(true);
+                            },
+                            priority: TOAST_PRIORITY.INFO,
+                            durationMs: 10000,
+                          });
+                          advanceOnboardingProgress("trained");
+                        }
                       }}
                     />
                   )}
@@ -2928,14 +2985,7 @@ export default function Home() {
                     </section>
                   )}
 
-                  <section className={`p-5 ${workspaceRailPanelClass}`}>
-                    <p className="archive-kicker">
-                      决策力
-                    </p>
-                    <p className="font-editorial mt-2 text-[1.75rem] font-semibold text-[var(--ink)]">
-                      {decisionPowerBars}
-                    </p>
-                  </section>
+                  <GrowthLedgerPanel ledger={growthLedger} />
 
                   {isLiteMode && !isLiteUnlocked && (
                     <section className="rounded-[24px] bg-[var(--accent-soft)] px-5 py-4">
@@ -2994,14 +3044,7 @@ export default function Home() {
                     </div>
                   </section>
 
-                  <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
-                    <p className="archive-kicker">
-                      决策力
-                    </p>
-                    <p className="font-editorial mt-2 text-[1.75rem] font-semibold text-[var(--ink)]">
-                      {decisionPowerBars}
-                    </p>
-                  </section>
+                  <GrowthLedgerPanel ledger={growthLedger} />
                 </>
               )}
             </aside>
@@ -3099,13 +3142,27 @@ export default function Home() {
       {isPosterModalOpen && posterContent && (
         <PosterPreviewModal
           data={{
-            bookTitle:
-              bookTitle ||
-              selectedFile?.name.replace(/\.(epub|pdf)$/i, "") ||
-              "未知书名",
+            bookTitle: currentBookDisplayTitle,
             content: posterContent,
           }}
           onClose={() => setIsPosterModalOpen(false)}
+          onSaveSuccess={() => {
+            if (!currentBookId) return;
+            const expressionGrowth = awardGrowth("expression", {
+              bookId: currentBookId,
+              bookTitle: currentBookDisplayTitle,
+              action: "海报导出",
+            });
+            if (expressionGrowth.changed) {
+              setGrowthLedger(expressionGrowth.ledger);
+              enqueueGuidanceToast({
+                id: `growth-expression-${currentBookId}`,
+                message: `表达力 +1\n来自《${currentBookDisplayTitle}》的海报导出`,
+                priority: TOAST_PRIORITY.INFO,
+                durationMs: 4500,
+              });
+            }
+          }}
           onRegenerate={async () => {
             setIsPosterModalOpen(false);
             setPosterContent(null);
