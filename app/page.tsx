@@ -262,9 +262,9 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-[1540px] gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)]">
             <div className="rounded-[30px] bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:px-8 md:py-10">
               <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.04em] text-white">
-                不是摘要器，
+                不是拆书工具，
                 <br />
-                是你的阅读工作台
+                是你的认知升级工作台
               </h2>
               <p className="mt-6 max-w-[460px] text-sm leading-7 text-white/70">
                 上传、解析、阅读、训练、导出、分享，被重新组织成一套连续工作流，而不是彼此孤立的功能点。
@@ -321,15 +321,16 @@ export default function LandingPage() {
 
         <ScrollSection>
           <footer className="px-6 pb-8 md:px-10">
-            <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-4 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center">
+            <div className="mx-auto flex max-w-[1440px] flex-col items-start gap-2 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center md:gap-4">
               <p>书跃 · BookLeap</p>
+              <span className="hidden md:inline">·</span>
               <a
                 href="https://richology.cn"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-[var(--ink)]"
+                className="cursor-pointer rounded-md border border-transparent px-1.5 py-0.5 text-[var(--ink-soft)] underline decoration-[var(--ghost-border)] decoration-1 underline-offset-4 transition-colors hover:border-[var(--ghost-border)] hover:bg-[var(--surface-low)] hover:text-[var(--ink)] hover:decoration-[var(--accent)]"
               >
-                由 安瑟A11BERICH 构建 · 了解作者 →
+                由 安瑟A11BERICH构建 · 了解开发者
               </a>
             </div>
           </footer>
