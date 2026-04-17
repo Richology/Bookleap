@@ -44,6 +44,23 @@ const WORKBENCH_CARDS = [
 ];
 
 export default function LandingPage() {
+  const [heroCardsRevealed, setHeroCardsRevealed] = useState(0);
+  const [heroTextPhase, setHeroTextPhase] = useState(0);
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const CARD_START = 400;
+    const CARD_GAP = 120;
+    for (let i = 1; i <= ANALYSIS_FACETS.length; i++) {
+      timers.push(setTimeout(() => setHeroCardsRevealed(i), CARD_START + (i - 1) * CARD_GAP));
+    }
+    const textBase = CARD_START + ANALYSIS_FACETS.length * CARD_GAP + 200;
+    timers.push(setTimeout(() => setHeroTextPhase(1), textBase));
+    timers.push(setTimeout(() => setHeroTextPhase(2), textBase + 300));
+    timers.push(setTimeout(() => setHeroTextPhase(3), textBase + 600));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
   const facetsRef = useRef<HTMLDivElement>(null);
   const [facetsVisible, setFacetsVisible] = useState(false);
   const facetsTriggered = useRef(false);
@@ -99,11 +116,25 @@ export default function LandingPage() {
                   一次清醒的决策
                 </span>
               </h1>
-              <p className="mt-8 max-w-[620px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.05rem]">
-                上传一本电子书，30 秒获取 6 张结构化知识卡片，并继续在 workspace
-                里阅读、训练、导出、分享。
+              <p
+                className="mt-8 max-w-[620px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.05rem]"
+                style={{
+                  opacity: heroTextPhase >= 1 ? 1 : 0,
+                  transform: heroTextPhase >= 1 ? "none" : "translateY(16px)",
+                  filter: heroTextPhase >= 1 ? "blur(0)" : "blur(6px)",
+                  transition: "opacity 0.7s ease, transform 0.7s ease, filter 0.7s ease",
+                }}
+              >
+                上传一本电子书，30 秒获取 6 张结构化知识卡片。卡片阅读、模拟训练、精华导出、海报分享即可完成一次跃迁
               </p>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div
+                className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center"
+                style={{
+                  opacity: heroTextPhase >= 2 ? 1 : 0,
+                  transform: heroTextPhase >= 2 ? "none" : "translateY(18px) scale(0.95)",
+                  transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1)",
+                }}
+              >
                 <a
                   href="/workspace"
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--ink)] px-6 py-3.5 text-sm font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.98]"
@@ -113,7 +144,14 @@ export default function LandingPage() {
                 </a>
               </div>
 
-              <div className="mt-14 max-w-[660px] border-t border-[var(--ghost-border)] pt-6">
+              <div
+                className="mt-14 max-w-[660px] border-t border-[var(--ghost-border)] pt-6"
+                style={{
+                  opacity: heroTextPhase >= 3 ? 1 : 0,
+                  transform: heroTextPhase >= 3 ? "none" : "translateY(12px)",
+                  transition: "opacity 0.6s ease, transform 0.6s ease",
+                }}
+              >
                 <div className="rounded-[20px] bg-[var(--surface-low)] px-4 py-2.5 shadow-[var(--shadow-paper)]">
                   <div className="grid gap-0 sm:grid-cols-3">
                     {["无需注册", "本地存储", "30 秒出结果"].map((item, index) => (
@@ -167,11 +205,15 @@ export default function LandingPage() {
                   {ANALYSIS_FACETS.map((item, index) => (
                     <div
                       key={item.title}
-                      className={`flex items-center justify-between rounded-[16px] px-4 py-3.5 ${
+                      className={`flex items-center justify-between rounded-[16px] px-4 py-3.5 transition-all duration-500 ${
                         index === 2
                           ? "archive-callout text-[var(--ink)]"
                           : "bg-[var(--paper)] text-[var(--ink-soft)]"
                       }`}
+                      style={{
+                        opacity: index < heroCardsRevealed ? 1 : 0,
+                        transform: index < heroCardsRevealed ? "none" : "translateY(12px)",
+                      }}
                     >
                       <span className="text-sm font-medium">{item.title}</span>
                       <span className="text-[11px] uppercase tracking-[0.14em] opacity-60">
