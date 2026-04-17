@@ -338,18 +338,17 @@ function clearBookDerivedCaches(bookTitle: string) {
  */
 function cleanBookTitle(raw: string): string {
   if (!raw) return raw;
-  // 1. Cut at first Chinese/English parenthesis, colon, long dash, or pipe
-  let title = raw.split(/[（(：:—|｜]/)[0].trim();
-  // 2. If still too long (>20 chars), try cutting at common separators
+  let title = raw
+    .split(/[（(【\[：:—–\-|｜·•。]/)[0]
+    .trim();
   if (title.length > 20) {
     const shorter = title.split(/[,，;；\s]{2,}/)[0].trim();
     if (shorter.length >= 2) title = shorter;
   }
-  // 3. Final safety: cap at 30 chars
-  if (title.length > 30) {
-    title = title.slice(0, 30);
+  if (title.length > 20) {
+    title = title.slice(0, 20);
   }
-  return title || raw;
+  return title || raw.slice(0, 20);
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -426,6 +425,8 @@ export default function Home() {
   const [recentHistory, setRecentHistory] = useState<HistoryRecord[]>([]);
   const [historyToast, setHistoryToast] = useState("");
   const [showFullHistory, setShowFullHistory] = useState(false);
+  const [isHistoryDropdownOpen, setIsHistoryDropdownOpen] = useState(false);
+  const historyDropdownRef = useRef<HTMLDivElement>(null);
   const [draggedStarterBookId, setDraggedStarterBookId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pendingDeleteTimerRef = useRef<number | null>(null);
@@ -454,21 +455,64 @@ export default function Home() {
       return;
     }
     let cancelled = false;
-    (async () => {
+
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+    const isTitleMatch = (returned: string, query: string) => {
+      const a = normalize(returned);
+      const b = normalize(query);
+      return a.includes(b) || b.includes(a);
+    };
+
+    const tryGoogleBooks = async (): Promise<string | null> => {
       try {
         const res = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1`
+          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookTitle)}&maxResults=3`
         );
-        if (!res.ok) return;
+        if (!res.ok) return null;
         const data = await res.json();
-        const thumb = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
-        if (thumb && !cancelled) {
-          setFetchedCover(thumb.replace("http://", "https://"));
+        const items = data.items ?? [];
+        for (const item of items) {
+          const info = item.volumeInfo;
+          if (!info?.imageLinks?.thumbnail) continue;
+          if (isTitleMatch(info.title ?? "", bookTitle)) {
+            return info.imageLinks.thumbnail.replace("http://", "https://");
+          }
         }
-      } catch {
-        // silently ignore
-      }
+        if (items[0]?.volumeInfo?.imageLinks?.thumbnail) {
+          return items[0].volumeInfo.imageLinks.thumbnail.replace("http://", "https://");
+        }
+      } catch { /* ignore */ }
+      return null;
+    };
+
+    const tryOpenLibrary = async (): Promise<string | null> => {
+      try {
+        const res = await fetch(
+          `https://openlibrary.org/search.json?title=${encodeURIComponent(bookTitle)}&limit=3&fields=title,cover_i`
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        const docs = data.docs ?? [];
+        for (const doc of docs) {
+          if (!doc.cover_i) continue;
+          if (isTitleMatch(doc.title ?? "", bookTitle)) {
+            return `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+          }
+        }
+        if (docs[0]?.cover_i) {
+          return `https://covers.openlibrary.org/b/id/${docs[0].cover_i}-L.jpg`;
+        }
+      } catch { /* ignore */ }
+      return null;
+    };
+
+    (async () => {
+      const cover = (await tryGoogleBooks()) ?? (await tryOpenLibrary());
+      if (cover && !cancelled) setFetchedCover(cover);
     })();
+
     return () => { cancelled = true; };
   }, [bookTitle, starterCover]);
 
@@ -2084,6 +2128,17 @@ export default function Home() {
   const workspaceActionSecondaryClass =
     "rounded-[8px] px-3.5 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-[var(--paper)] hover:text-[var(--ink)]";
 
+  useEffect(() => {
+    if (!isHistoryDropdownOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (historyDropdownRef.current && !historyDropdownRef.current.contains(e.target as Node)) {
+        setIsHistoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [isHistoryDropdownOpen]);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
@@ -2175,12 +2230,91 @@ export default function Home() {
               </div>
             )}
 
-            <Link
-              href="/"
-              className="rounded-[8px] border border-[var(--ghost-border)] bg-transparent px-3 py-1.5 text-[13px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[var(--surface-low)] hover:text-[var(--ink)] active:scale-[0.97]"
-            >
-              返回首页
-            </Link>
+            <div className={`flex items-center gap-0.5 ${workspaceSegmentClass}`}>
+              {recentHistory.length > 0 && (
+                <div ref={historyDropdownRef} className="relative">
+                  <button
+                    onClick={() => setIsHistoryDropdownOpen((v) => !v)}
+                    className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${
+                      isHistoryDropdownOpen
+                        ? workspaceActionPrimaryClass
+                        : workspaceActionSecondaryClass
+                    }`}
+                  >
+                    历史分析
+                  </button>
+                  {isHistoryDropdownOpen && (
+                    <div className="absolute right-0 top-full z-50 mt-2 w-[320px] rounded-[18px] bg-[var(--paper)] p-3 shadow-xl ring-1 ring-black/5">
+                      <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+                        最近分析
+                      </p>
+                      <div className="no-scrollbar max-h-[360px] space-y-1.5 overflow-y-auto">
+                        {recentHistory.map((record) => {
+                          const isPending = pendingDeleteId === record.id;
+                          return (
+                            <div
+                              key={record.id}
+                              onClick={() => {
+                                if (!isPending) {
+                                  restoreFromHistory(record);
+                                  setIsHistoryDropdownOpen(false);
+                                  setTimeout(() => {
+                                    immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                  }, 100);
+                                }
+                              }}
+                              className={`group flex items-center justify-between gap-2 rounded-[12px] px-3 py-2.5 transition-all ${
+                                isPending
+                                  ? "pointer-events-none opacity-40"
+                                  : "cursor-pointer hover:bg-[var(--surface-low)] active:scale-[0.99]"
+                              }`}
+                            >
+                              <div className="flex min-w-0 items-center gap-2.5">
+                                <span className="shrink-0 text-sm opacity-50">
+                                  {record.fileType === "pdf" ? "📄" : "📘"}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-[var(--ink)]">{record.title}</p>
+                                  <p className="mt-0.5 text-[10px] text-[var(--ink-faint)]">
+                                    {record.fileType.toUpperCase()}
+                                    {record.mode === "lite" ? " · 简化版" : ""}
+                                    <span className="mx-1">·</span>
+                                    {new Date(record.createdAt).toLocaleDateString("zh-CN", {
+                                      month: "short",
+                                      day: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              {!isPending && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteHistoryRecord(record.id);
+                                  }}
+                                  className="shrink-0 p-1 text-[10px] text-[var(--ink-faint)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--ink)]"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Link
+                href="/"
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all ${workspaceActionSecondaryClass}`}
+              >
+                返回首页
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
@@ -2334,115 +2468,93 @@ export default function Home() {
                 </section>
               )}
 
-              {historyVisible && recentHistory.length > 0 && (
-                <section
-                  ref={historyPanelRef}
-                  className="rounded-[26px] bg-[var(--paper)] p-5"
-                  style={{ scrollMarginTop: "84px" }}
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <p className="archive-kicker select-none">
-                      最近分析
-                    </p>
+              {/* Analysis steps rail — moved here from right sidebar */}
+              {bookTitle && hasAnalysisProgress && (
+                <section className={`p-5 ${workspaceRailPanelClass}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-medium text-[var(--ink)]">{message || bookTitle}</p>
+                    <span className="rounded-sm bg-[var(--paper)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-faint)]">
+                      {completedAnalysisSteps}/{visibleAnalysisSteps.length}
+                    </span>
                   </div>
+                  <div className="mt-4 space-y-2.5">
+                    {visibleAnalysisSteps.map((step) => {
+                      const state: "done" | "active" | "pending" = step.done
+                        ? "done"
+                        : step.loading
+                        ? "active"
+                        : "pending";
+                      const isCurrent = activeCardKey === step.key;
+                      const isClickable =
+                        state === "done" &&
+                        isAnalysisRailInteractive &&
+                        availableAnalysisStepKeys.has(step.key);
 
-                  {historyToast && (
-                    <div className="mb-3 rounded-[12px] bg-[var(--accent-soft)] px-3 py-2 text-xs text-[var(--accent)] transition-all">
-                      {historyToast}
-                    </div>
-                  )}
+                      const className = `flex w-full items-center justify-between rounded-[16px] px-3 py-2.5 text-sm transition-all ${
+                        isCurrent
+                          ? "bg-[var(--ink)] text-[#faf7f6]"
+                          : state === "done"
+                          ? isClickable
+                            ? "bg-[var(--paper)] text-[var(--accent)] hover:bg-[var(--surface)]"
+                            : "bg-[var(--paper)] text-[var(--accent)]"
+                          : state === "active"
+                          ? "bg-[var(--ink)] text-[#faf7f6]"
+                          : "bg-[rgba(119,124,123,0.08)] text-[var(--ink-faint)]"
+                      }`;
 
-                  <div className="space-y-2">
-                    {visibleHistoryRecords.map((record) => {
-                      const isPending = pendingDeleteId === record.id;
-                      return (
-                        <div
-                          key={record.id}
-                          onClick={() => {
-                            if (!isPending) {
-                              restoreFromHistory(record);
-                              setTimeout(() => {
-                                immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                              }, 100);
-                            }
-                          }}
-                          className={`group flex items-center justify-between gap-3 rounded-[16px] bg-[var(--surface-low)] px-3 py-3 transition-all duration-200 ${
-                            isPending
-                              ? "pointer-events-none scale-[0.98] opacity-40 select-none"
-                              : "cursor-pointer hover:bg-[var(--surface)] active:scale-[0.995]"
-                          }`}
+                      const content = (
+                        <>
+                          <span>{step.label}</span>
+                          <span className="shrink-0">
+                            {isCurrent ? (
+                              <span className="text-xs text-white/70">→</span>
+                            ) : state === "done" ? (
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M2.5 6.5L5 9l4.5-6" />
+                              </svg>
+                            ) : state === "active" ? (
+                              <span className="relative flex h-2 w-2">
+                                <span className="absolute inline-flex h-full w-full animate-status-pulse rounded-full bg-white/50" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+                              </span>
+                            ) : (
+                              <span className="inline-flex h-2 w-2 rounded-full bg-[rgba(119,124,123,0.35)]" />
+                            )}
+                          </span>
+                        </>
+                      );
+
+                      return isClickable ? (
+                        <button
+                          key={step.key}
+                          onClick={() => openCardFromRail(step.key)}
+                          className={className}
                         >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span className="shrink-0 text-base opacity-50">
-                              {record.fileType === "pdf" ? "📄" : "📘"}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-[var(--ink)]">{record.title}</p>
-                              <p className="mt-0.5 text-[10px] text-[var(--ink-faint)]">
-                                {record.fileType.toUpperCase()}
-                                {record.mode === "lite" ? " · 简化版" : ""}
-                                <span className="mx-1.5">·</span>
-                                {new Date(record.createdAt).toLocaleDateString("zh-CN", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                          {!isPending && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteHistoryRecord(record.id);
-                              }}
-                              className="shrink-0 p-1 text-xs text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:text-[var(--ink)]"
-                              title="删除记录"
-                            >
-                              ✕
-                            </button>
-                          )}
+                          {content}
+                        </button>
+                      ) : (
+                        <div key={step.key} className={className}>
+                          {content}
                         </div>
                       );
                     })}
                   </div>
-
-                  {!showFullHistory && recentHistory.length > 4 && (
-                    <button
-                      onClick={() => setShowFullHistory(true)}
-                      className="mt-3 text-xs font-medium text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]"
-                    >
-                      查看更多 →
-                    </button>
-                  )}
-
-                  <p className="mt-3 text-[10px] text-[var(--ink-faint)]/70 select-none">
-                    最近记录仅保存在当前浏览器，清理缓存后可能丢失。
-                  </p>
                 </section>
               )}
 
-              {!recentHistory.length && (
-                <section className="rounded-[26px] bg-[var(--paper)] p-5">
-                  <div className="mb-4 flex items-center justify-between">
-                    <p className="archive-kicker select-none">
-                      最近分析
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, index) => (
+              {!bookTitle && (
+                <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
+                  <div className="space-y-2.5">
+                    {analysisSteps.map((step) => (
                       <div
-                        key={`history-placeholder-${index}`}
-                        className="h-[54px] rounded-[16px] bg-[var(--surface-low)]"
-                      />
+                        key={`analysis-placeholder-left-${step.key}`}
+                        className="flex items-center justify-between rounded-[16px] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink-faint)]"
+                      >
+                        <span>{step.label}</span>
+                        <span className="inline-flex h-2 w-2 rounded-full bg-[rgba(119,124,123,0.35)]" />
+                      </div>
                     ))}
                   </div>
-
-                  <p className="mt-3 text-[10px] text-[var(--ink-faint)]/70 select-none">
-                    最近记录仅保存在当前浏览器，清理缓存后可能丢失。
-                  </p>
                 </section>
               )}
 
@@ -2549,9 +2661,9 @@ export default function Home() {
                               />
                             </>
                           ) : (
-                            <div className="flex aspect-[3/4] flex-col justify-between p-5">
+                            <div className="flex aspect-[3/4] flex-col justify-between overflow-hidden p-5">
                               <div className="archive-kicker">Book</div>
-                              <div className="font-editorial text-2xl font-semibold leading-tight text-[var(--ink)]">
+                              <div className="line-clamp-4 font-editorial text-lg font-semibold leading-tight text-[var(--ink)]">
                                 {bookTitle}
                               </div>
                               <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -2572,7 +2684,7 @@ export default function Home() {
                         )}
                         {currentFileTypeLabel && <span>{currentFileTypeLabel}</span>}
                       </div>
-                      <h2 className="font-editorial mt-4 max-w-full break-words text-left text-[2.8rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)]">
+                      <h2 className="font-editorial mt-4 line-clamp-2 max-w-full break-words text-left text-[2.8rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)]">
                         {bookTitle}
                       </h2>
                       {currentBookAuthor && (
@@ -2885,6 +2997,8 @@ export default function Home() {
             >
               {bookTitle ? (
                 <>
+                  <GrowthLedgerPanel ledger={growthLedger} />
+
                   <section className={`p-5 xl:hidden ${workspaceRailPanelClass}`}>
                     <div className="space-y-2">
                       <button
@@ -2937,81 +3051,6 @@ export default function Home() {
                     </div>
                   </section>
 
-                  {hasAnalysisProgress && (
-                    <section className={`p-5 ${workspaceRailPanelClass}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="truncate text-sm font-medium text-[var(--ink)]">{message || bookTitle}</p>
-                        <span className="rounded-sm bg-[var(--paper)] px-2.5 py-1 text-[11px] font-semibold text-[var(--ink-faint)]">
-                          {completedAnalysisSteps}/{visibleAnalysisSteps.length}
-                        </span>
-                      </div>
-                      <div className="mt-4 space-y-2.5">
-                        {visibleAnalysisSteps.map((step) => {
-                          const state: "done" | "active" | "pending" = step.done
-                            ? "done"
-                            : step.loading
-                            ? "active"
-                            : "pending";
-                          const isCurrent = activeCardKey === step.key;
-                          const isClickable =
-                            state === "done" &&
-                            isAnalysisRailInteractive &&
-                            availableAnalysisStepKeys.has(step.key);
-
-                          const className = `flex w-full items-center justify-between rounded-[16px] px-3 py-2.5 text-sm transition-all ${
-                            isCurrent
-                              ? "bg-[var(--ink)] text-[#faf7f6]"
-                              : state === "done"
-                              ? isClickable
-                                ? "bg-[var(--paper)] text-[var(--accent)] hover:bg-[var(--surface)]"
-                                : "bg-[var(--paper)] text-[var(--accent)]"
-                              : state === "active"
-                              ? "bg-[var(--ink)] text-[#faf7f6]"
-                              : "bg-[rgba(119,124,123,0.08)] text-[var(--ink-faint)]"
-                          }`;
-
-                          const content = (
-                            <>
-                              <span>{step.label}</span>
-                              <span className="shrink-0">
-                                {isCurrent ? (
-                                  <span className="text-xs text-white/70">→</span>
-                                ) : state === "done" ? (
-                                  <svg className="h-3.5 w-3.5" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M2.5 6.5L5 9l4.5-6" />
-                                  </svg>
-                                ) : state === "active" ? (
-                                  <span className="relative flex h-2 w-2">
-                                    <span className="absolute inline-flex h-full w-full animate-status-pulse rounded-full bg-white/50" />
-                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex h-2 w-2 rounded-full bg-[rgba(119,124,123,0.35)]" />
-                                )}
-                              </span>
-                            </>
-                          );
-
-                          return isClickable ? (
-                            <button
-                              key={step.key}
-                              onClick={() => openCardFromRail(step.key)}
-                              className={className}
-                            >
-                              {content}
-                            </button>
-                          ) : (
-                            <div key={step.key} className={className}>
-                              {content}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  )}
-
-                  <GrowthLedgerPanel ledger={growthLedger} />
-
                   {isLiteMode && !isLiteUnlocked && (
                     <section className="rounded-[24px] bg-[var(--accent-soft)] px-5 py-4">
                       <div className="flex items-start gap-3">
@@ -3032,6 +3071,8 @@ export default function Home() {
                 </>
               ) : (
                 <>
+                  <GrowthLedgerPanel ledger={growthLedger} />
+
                   <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
                     <div className="space-y-2">
                       <button
@@ -3054,22 +3095,6 @@ export default function Home() {
                       </button>
                     </div>
                   </section>
-
-                  <section className={`hidden p-5 xl:block ${workspaceRailPanelClass}`}>
-                    <div className="space-y-2.5">
-                      {analysisSteps.map((step) => (
-                        <div
-                          key={`analysis-placeholder-${step.key}`}
-                          className="flex items-center justify-between rounded-[16px] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink-faint)]"
-                        >
-                          <span>{step.label}</span>
-                          <span className="inline-flex h-2 w-2 rounded-full bg-[rgba(119,124,123,0.35)]" />
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  <GrowthLedgerPanel ledger={growthLedger} />
                 </>
               )}
             </aside>
