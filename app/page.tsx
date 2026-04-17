@@ -302,10 +302,10 @@ export default function LandingPage() {
             <div className="mx-auto grid max-w-[1440px] gap-8 rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
               <div>
                 <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[3rem]">
-                  把下一本书，整理进你的工作台
+                  「时间才是我们成长时付出的最大成本」
                 </h2>
                 <p className="mt-4 max-w-[560px] text-sm leading-7 text-white/70 md:text-base">
-                  不用再等到"完整读完"才开始吸收。先让一本书变得清晰，再决定你要如何继续使用它。
+                  现在就把一本书，整理进你的工作台
                 </p>
               </div>
               <a
