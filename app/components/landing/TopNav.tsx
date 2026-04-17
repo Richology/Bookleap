@@ -29,9 +29,12 @@ export function TopNav() {
         <div className="flex min-w-0 items-center gap-4">
           <a
             href="/"
-            className="font-editorial text-[1.7rem] font-semibold tracking-tight text-[var(--ink)]"
+            className="flex items-baseline gap-2 font-editorial text-[1.7rem] font-semibold tracking-tight text-[var(--ink)]"
           >
             书跃 · BookLeap
+            <span className="font-editorial text-[1.02rem] font-normal tracking-normal text-[var(--ink-soft)]">
+              从好书中完成认知跃迁
+            </span>
           </a>
         </div>
 

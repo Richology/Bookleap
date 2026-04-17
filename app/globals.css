@@ -11,8 +11,8 @@
   --ink: #2f3333;
   --ink-soft: #5b605f;
   --ink-faint: #777c7b;
-  --accent: #51635a;
-  --accent-soft: rgba(211, 231, 219, 0.6);
+  --accent: #3a6f52;
+  --accent-soft: rgba(186, 221, 200, 0.65);
   --ghost-border: rgba(47, 51, 51, 0.06);
   --shadow-paper: 0 4px 20px rgba(47, 51, 51, 0.045);
   --shadow-paper-strong: 0 14px 36px rgba(47, 51, 51, 0.055);
@@ -140,7 +140,7 @@ select {
 }
 
 .archive-callout {
-  background: rgba(211, 231, 219, 0.42);
+  background: rgba(186, 221, 200, 0.45);
 }
 
 .archive-button {
@@ -331,4 +331,10 @@ select {
 
 .animate-marquee {
   animation: marquee 40s linear infinite;
+}
+
+/* ── BookComparison scroll-driven fade ──────────────────────────────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

@@ -444,8 +444,35 @@ export default function Home() {
   const currentStarterBook = currentStarterBookId
     ? starterBooksById[currentStarterBookId] ?? null
     : null;
-  const currentBookCover = currentStarterBook?.coverImage ?? "";
+  const starterCover = currentStarterBook?.coverImage ?? "";
   const currentBookAuthor = currentStarterBook?.author ?? "";
+
+  const [fetchedCover, setFetchedCover] = useState("");
+  useEffect(() => {
+    if (starterCover || !bookTitle) {
+      setFetchedCover("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookTitle)}&maxResults=1`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const thumb = data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail;
+        if (thumb && !cancelled) {
+          setFetchedCover(thumb.replace("http://", "https://"));
+        }
+      } catch {
+        // silently ignore
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [bookTitle, starterCover]);
+
+  const currentBookCover = starterCover || fetchedCover;
   const currentFileTypeLabel = selectedFile
     ? selectedFile.name.toLowerCase().endsWith(".pdf")
       ? "PDF"
@@ -2159,7 +2186,7 @@ export default function Home() {
       </nav>
 
       <main className="archive-atmosphere-soft relative min-h-screen overflow-x-clip pt-24">
-        <div className="pointer-events-none absolute left-[-120px] top-16 h-[320px] w-[320px] rounded-full bg-[rgba(81,99,90,0.08)] blur-3xl" />
+        <div className="pointer-events-none absolute left-[-120px] top-16 h-[320px] w-[320px] rounded-full bg-[rgba(58,111,82,0.08)] blur-3xl" />
         <div className="pointer-events-none absolute right-[-160px] top-[280px] h-[420px] w-[420px] rounded-full bg-[rgba(119,124,123,0.09)] blur-3xl" />
         <div className="mx-auto max-w-[1680px] px-4 pb-12 md:px-6">
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
@@ -2199,10 +2226,10 @@ export default function Home() {
                     onDrop={handleDrop}
                     className={`relative overflow-hidden rounded-[18px] border border-dashed px-5 py-8 text-center transition-all duration-200 select-none ${
                       isDragging
-                        ? "border-[rgba(81,99,90,0.58)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(81,99,90,0.12)] scale-[1.01]"
+                        ? "border-[rgba(58,111,82,0.58)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(58,111,82,0.12)] scale-[1.01]"
                         : selectedFile
-                        ? "cursor-pointer border-[rgba(47,51,51,0.12)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(47,51,51,0.02)] hover:border-[rgba(81,99,90,0.3)]"
-                        : "cursor-pointer border-[rgba(47,51,51,0.1)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(47,51,51,0.02)] hover:border-[rgba(81,99,90,0.35)]"
+                        ? "cursor-pointer border-[rgba(47,51,51,0.12)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(47,51,51,0.02)] hover:border-[rgba(58,111,82,0.3)]"
+                        : "cursor-pointer border-[rgba(47,51,51,0.1)] bg-[var(--paper)] shadow-[inset_0_0_0_1px_rgba(47,51,51,0.02)] hover:border-[rgba(58,111,82,0.35)]"
                     }`}
                   >
                     <div
@@ -2213,12 +2240,12 @@ export default function Home() {
                       }`}
                     />
                     <div className="pointer-events-none absolute inset-x-6 top-5 flex items-center justify-between">
-                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.16)]" />
-                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.16)]" />
+                      <span className="h-2 w-2 rounded-full bg-[rgba(58,111,82,0.16)]" />
+                      <span className="h-2 w-2 rounded-full bg-[rgba(58,111,82,0.16)]" />
                     </div>
                     <div className="pointer-events-none absolute inset-x-6 bottom-5 flex items-center justify-between">
-                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.12)]" />
-                      <span className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.12)]" />
+                      <span className="h-2 w-2 rounded-full bg-[rgba(58,111,82,0.12)]" />
+                      <span className="h-2 w-2 rounded-full bg-[rgba(58,111,82,0.12)]" />
                     </div>
 
                     <div className="relative">
@@ -2276,7 +2303,7 @@ export default function Home() {
                 >
                   <div className="space-y-3">
                     <div className="flex justify-center">
-                      <span className="rounded-[14px] bg-[rgba(81,99,90,0.1)] px-3 py-2 text-center text-[11px] font-medium text-[var(--accent)]">
+                      <span className="rounded-[14px] bg-[rgba(58,111,82,0.1)] px-3 py-2 text-center text-[11px] font-medium text-[var(--accent)]">
                         🎁 送你 3 本好书 · 拖到上方开始体验
                       </span>
                     </div>
@@ -2476,9 +2503,7 @@ export default function Home() {
                 <section className={`${workspacePanelClass} overflow-hidden p-4 md:p-6`}>
                   <div className="grid min-h-[560px] gap-8 rounded-[24px] bg-[var(--surface-low)] px-6 py-8 md:grid-cols-[minmax(0,1fr)_280px] md:px-8 md:py-10">
                     <div className="flex flex-col justify-center">
-                    <div className="mb-5 inline-flex w-fit items-center gap-1.5 rounded-sm bg-[var(--paper)] px-3 py-1 text-[11px] text-[var(--ink-faint)]">
-                      <span className="text-[var(--ink-faint)]">✦</span> AI 驱动的结构化书籍分析平台
-                    </div>
+                    
                     <h2 className="font-editorial text-[2.75rem] font-semibold tracking-[-0.04em] text-[var(--ink)]">
                       书跃 · BookLeap
                     </h2>
