@@ -2612,11 +2612,11 @@ export default function Home() {
               })()}
 
               {!bookTitle && (
-                <section className={`${workspacePanelClass} overflow-hidden p-4 md:p-6`}>
-                  <div className="grid min-h-[560px] gap-8 rounded-[24px] bg-[var(--surface-low)] px-6 py-8 md:grid-cols-[minmax(0,1fr)_280px] md:px-8 md:py-10">
-                    <div className="flex flex-col justify-center">
+                <section className={`${workspacePanelClass} p-4 md:p-6`}>
+                  <div className="grid min-h-[480px] gap-6 rounded-[24px] bg-[var(--surface-low)] px-6 py-8 md:grid-cols-[minmax(0,1fr)_240px] md:px-8 md:py-10">
+                    <div className="flex min-w-0 flex-col justify-center">
                     
-                    <h2 className="font-editorial text-[2.75rem] font-semibold tracking-[-0.04em] text-[var(--ink)]">
+                    <h2 className="font-editorial text-[2rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[2.5rem]">
                       书跃 · BookLeap
                     </h2>
                     <p className="mt-3 text-base text-[var(--ink-soft)]">从好书中完成认知跃迁</p>
