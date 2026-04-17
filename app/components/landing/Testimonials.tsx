@@ -108,22 +108,22 @@ export function Testimonials() {
 
   return (
     <section id="testimonials" className="px-6 py-8 md:px-10 md:py-10">
-      <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--ink)] px-6 py-6 text-[#faf7f6] md:px-10 md:py-8">
-        <div className="flex flex-col gap-2 border-b border-white/8 pb-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mx-auto max-w-[1540px] rounded-[32px] border border-[var(--ghost-border)] bg-[var(--paper)] px-6 py-6 md:px-10 md:py-8">
+        <div className="flex flex-col gap-2 border-b border-[var(--ghost-border)] pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="font-editorial text-[2rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[2.5rem]">
-              他们已经在用书跃
+            <h2 className="font-editorial text-[2rem] font-semibold leading-[1.04] tracking-[-0.04em] text-[var(--ink)] md:text-[2.5rem]">
+              他们已经在用<span className="text-[var(--accent)]">书跃</span>
             </h2>
           </div>
         </div>
 
         <div className="mt-5 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* Featured quote */}
-          <article className="self-start rounded-[20px] bg-[rgba(255,255,255,0.06)] px-5 py-5 md:px-6 md:py-6">
+          <article className="self-start rounded-[20px] border border-[var(--ink)] bg-[var(--ink)] px-5 py-5 md:px-6 md:py-6">
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_140px]">
               <div className="min-w-0">
                 <svg
-                  className="mb-3 h-5 w-5 text-white/24"
+                  className="mb-3 h-5 w-5 text-[var(--accent)]"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
@@ -133,18 +133,18 @@ export function Testimonials() {
                   {featured.quote}
                 </p>
                 <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-white/10 text-xs font-semibold text-white/82">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-[var(--accent)] text-xs font-semibold text-white">
                     {featured.name[0]}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">{featured.name}</p>
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">{featured.title}</p>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/50">{featured.title}</p>
                   </div>
                 </div>
               </div>
 
               <div className="hidden border-l border-white/10 pl-5 lg:flex lg:flex-col lg:justify-between">
-                <p className="archive-kicker text-white/36">Featured</p>
+                <p className="archive-kicker text-[var(--accent)]">Featured</p>
                 <p className="font-editorial text-[2rem] font-semibold tracking-[-0.06em] text-white/14">
                   01
                 </p>
@@ -153,10 +153,10 @@ export function Testimonials() {
           </article>
 
           {/* Auto-scrolling rail */}
-          <div className="flex flex-col rounded-[20px] bg-[rgba(255,255,255,0.04)] p-2.5">
+          <div className="flex flex-col rounded-[20px] border border-[var(--ghost-border)] bg-[var(--surface-low)] p-2.5">
             <div className="mb-2 flex items-center justify-between px-2">
-              <p className="archive-kicker text-white/40">More Notes</p>
-              <span className="text-[10px] uppercase tracking-[0.12em] text-white/30">
+              <p className="archive-kicker text-[var(--accent)]">More Notes</p>
+              <span className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
                 {notes.length}
               </span>
             </div>
@@ -170,18 +170,18 @@ export function Testimonials() {
               {loopedNotes.map((t, index) => (
                 <article
                   key={`${t.name}-${index}`}
-                  className="rounded-[14px] bg-[rgba(255,255,255,0.05)] px-3.5 py-3"
+                  className="rounded-[14px] border border-[var(--ghost-border)] bg-[var(--paper)] px-3.5 py-3"
                 >
                   <div className="mb-1.5 flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-white/10 text-[10px] font-semibold text-white/80">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-[var(--accent-soft)] text-[10px] font-semibold text-[var(--accent)]">
                       {t.name[0]}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-white">{t.name}</p>
-                      <p className="truncate text-[9px] uppercase tracking-[0.1em] text-white/36">{t.title}</p>
+                      <p className="text-[13px] font-semibold text-[var(--ink)]">{t.name}</p>
+                      <p className="truncate text-[9px] uppercase tracking-[0.1em] text-[var(--ink-faint)]">{t.title}</p>
                     </div>
                   </div>
-                  <p className="text-[12px] leading-[18px] text-white/62">
+                  <p className="text-[12px] leading-[18px] text-[var(--ink-soft)]">
                     {t.quote}
                   </p>
                 </article>

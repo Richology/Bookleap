@@ -179,6 +179,72 @@ const BOOKS: BookData[] = [
       { icon: "🌊", title: "思想溯源", desc: "底层命题：财富来自杠杆，幸福来自放下" },
     ],
   },
+  {
+    title: "财富自由之路",
+    author: "李笑来",
+    wordCount: "约 35,000 字",
+    rawFragments: [
+      "所谓个人财富自由，是指某个人再也不用为了满足生活必需而出售自己的时间了。",
+      "注意力才是你最宝贵的资源，而不是时间，更不是金钱。",
+      "你必须把最宝贵的注意力放在自己的成长上。",
+      "很多人一辈子都在用错误的方法努力：用勤奋的身体掩盖懒惰的大脑。",
+      "活在未来的人，比活在当下的人有天然的优势，因为他们的行动有方向。",
+      "复利效应不只适用于金钱，它适用于知识、技能和人脉的每一个领域。",
+      "长期持有的核心障碍不是耐心，而是你对所持标的的真正理解深度。",
+      "元认知能力是一切学习和自我提升的起点：你能不能意识到自己在想什么。",
+      "选择比努力更重要。你在什么赛道上，决定了你努力的天花板在哪里。",
+      "大多数人的问题不是不够努力，而是不肯花时间想清楚什么最重要。",
+      "耐心是一切成长策略的基石。没有耐心的人会反复推翻自己的长期计划。",
+      "所有的人生困境，本质上都是选择困境：你不知道什么对你真正重要。",
+      "写作是把自己的思考产品化的过程，它强迫你整理混乱的想法。",
+      "付费就是捡便宜。凡是能用钱买到的时间，就别用命去换。",
+      "万能钥匙：当你遇到一个困难时，想想有没有人已经解决了这个问题。",
+      "操作系统升级：你需要不断更新自己的概念，因为概念就是思维的操作系统。",
+      "刚需幻觉：很多你觉得非做不可的事情，其实只是习惯和从众。",
+      "别用你的现状限制你的想象力。你今天的局限不代表明天的边界。",
+    ],
+    cards: [
+      { icon: "📖", title: "全书摘要", desc: "财富自由的本质是不再被迫出售时间，关键是注意力管理和持续成长" },
+      { icon: "🧭", title: "阅读指南", desc: "先理解注意力 > 时间 > 金钱，再看复利思维，最后看行动方法论" },
+      { icon: "🗺️", title: "观点地图", desc: "注意力优先 · 活在未来 · 复利效应 · 元认知 · 选择大于努力" },
+      { icon: "⚡", title: "行动提炼", desc: "审计注意力去向 · 定义个人刚需 · 每天写作整理思维 · 为时间付费" },
+      { icon: "🔍", title: "观点校验", desc: "\"注意力 > 时间 > 金钱\"的优先级在资源匮乏时是否成立？" },
+      { icon: "🌊", title: "思想溯源", desc: "底层命题：升级你的概念就是升级你的人生操作系统" },
+    ],
+  },
+  {
+    title: "10x Is Easier Than 2x",
+    author: "丹·沙利文 / 本杰明·哈迪",
+    wordCount: "约 40,000 字",
+    rawFragments: [
+      "追求10倍增长反而比2倍增长更简单，因为它迫使你放弃80%不重要的事情。",
+      "2倍增长让你优化现有路径，10倍增长逼你重新发明路径。",
+      "你过去的每一次重大突破，回头看都是一次10倍跳跃，而不是渐进式改进。",
+      "10倍思维的核心不是做更多，而是做更少——只做那20%真正创造结果的事。",
+      "大多数人困在2倍陷阱里，因为放弃已有的东西比获得新东西更难。",
+      "每一次10倍跳跃都要求你成为一个不同的人，放下旧身份才能拥抱新身份。",
+      "你的独特能力是你做起来毫不费力、但别人觉得极其困难的事情。",
+      "把时间花在独特能力上，把其他一切委托、自动化或直接删除。",
+      "质量比数量更能带来10倍增长。做更少但更好的事情。",
+      "2倍思维是竞争逻辑：做得比别人更好。10倍思维是创造逻辑：做别人没做的事。",
+      "恐惧和兴奋的生理反应几乎完全一样，区别只在于你的解读。",
+      "自由时间不是奢侈品，而是10倍增长的必需品。最好的想法来自空间和休息。",
+      "衡量进步应该看你离起点多远，而不是离终点多远。",
+      "10倍目标是一个过滤器：它帮你立刻看清什么值得做，什么应该放弃。",
+      "不可能是一种观点，不是事实。当你真正想要10倍的结果，方法会自己出现。",
+      "团队不是用来帮你执行你的想法的，是用来实现他们自己的10倍目标的。",
+      "每做一次减法，你的能量密度就会增加。专注是有复利效应的。",
+      "过去的成功模式是未来10倍增长的最大障碍。",
+    ],
+    cards: [
+      { icon: "📖", title: "全书摘要", desc: "10倍增长的秘密是激进地做减法，只保留20%最重要的事" },
+      { icon: "🧭", title: "阅读指南", desc: "先理解10x vs 2x的本质区别，再看独特能力框架，最后做减法练习" },
+      { icon: "🗺️", title: "观点地图", desc: "10倍做减法 · 独特能力 · 身份跃迁 · 质量胜数量 · 自由时间是必需品" },
+      { icon: "⚡", title: "行动提炼", desc: "列出80%可以放弃的事 · 找到独特能力 · 设定一个10倍目标做过滤器" },
+      { icon: "🔍", title: "观点校验", desc: "激进做减法在资源有限的早期阶段是否适用？" },
+      { icon: "🌊", title: "思想溯源", desc: "底层命题：增长的瓶颈不是能力不够，而是放不下" },
+    ],
+  },
 ];
 
 const N = BOOKS.length;
@@ -220,7 +286,7 @@ function DenseWall({ fragments }: { fragments: string[] }) {
  *   FIXED   rect.top ≤ 0 && rect.bottom > vh   content = fixed, cycling books
  *   AFTER   rect.bottom ≤ vh   content = absolute bottom:0, fading out
  */
-const WRAPPER_VH = 380;
+const WRAPPER_VH = 500;
 
 export function BookComparison() {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -277,6 +343,15 @@ export function BookComparison() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const scrollToBook = (index: number) => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const wrapperTop = el.offsetTop;
+    const maxScroll = el.offsetHeight - window.innerHeight;
+    const targetScroll = wrapperTop + (index + 0.5) / N * maxScroll;
+    window.scrollTo({ top: targetScroll, behavior: "smooth" });
+  };
+
   const book = BOOKS[activeIndex];
 
   const contentPositionStyle: React.CSSProperties =
@@ -301,11 +376,9 @@ export function BookComparison() {
         }}
       >
         <div className="mx-auto w-full max-w-[1200px] px-6 md:px-10">
-          {/* ── Compact header (one line) ──────────────────── */}
-          <p className="mb-8 text-center text-sm tracking-wide text-[var(--ink-faint)] md:mb-10">
-            <span className="font-semibold uppercase tracking-[0.12em]">Before / After</span>
-            <span className="mx-3 text-[var(--ghost-border)]">|</span>
-            一本书，6 张卡片，30 秒
+          {/* ── Header ──────────────────── */}
+          <p className="mb-8 text-center text-[1.5rem] font-semibold uppercase tracking-[0.18em] text-[var(--ink)] md:mb-10 md:text-[1.75rem]">
+            Before / After
           </p>
 
           {/* ── Three-column layout ───────────────────────── */}
@@ -324,19 +397,19 @@ export function BookComparison() {
                 <DenseWall fragments={book.rawFragments} />
               </div>
               {/* Caption below panel */}
-              <p className="mt-3 text-center text-xs leading-relaxed text-[var(--ink-faint)]">
+              <p className="mt-3 text-center text-sm leading-relaxed text-[var(--accent)]">
                 《{book.title}》· {book.author} · {book.wordCount}
               </p>
             </div>
 
             {/* CENTER COLUMN — book name list */}
-            <div className="flex flex-col items-center gap-1 py-4">
+            <div className="flex flex-col items-center gap-1.5 py-4">
               {BOOKS.map((b, i) => {
                 const isActive = i === activeIndex;
                 return (
                   <div
                     key={b.title}
-                    className="whitespace-nowrap text-center transition-all duration-500"
+                    className="cursor-pointer whitespace-nowrap rounded-full text-center transition-all duration-500"
                     style={{
                       fontFamily: "var(--font-serif), 'Songti SC', serif",
                       fontSize: isActive ? "1.5rem" : "1rem",
@@ -344,8 +417,10 @@ export function BookComparison() {
                       letterSpacing: isActive ? "-0.02em" : "0",
                       color: isActive ? "var(--ink)" : "var(--ink-faint)",
                       opacity: isActive ? 1 : 0.25,
-                      padding: isActive ? "0.5rem 0" : "0.3rem 0",
+                      padding: isActive ? "0.5rem 1.4rem" : "0.3rem 0.8rem",
+                      backgroundColor: isActive ? "var(--accent-soft)" : "transparent",
                     }}
+                    onClick={() => scrollToBook(i)}
                   >
                     {b.title}
                   </div>
@@ -382,7 +457,7 @@ export function BookComparison() {
                 </div>
               </div>
               {/* Caption below panel */}
-              <p className="mt-3 text-center text-xs leading-relaxed text-[var(--ink-faint)]">
+              <p className="mt-3 text-center text-sm leading-relaxed text-[var(--accent)]">
                 6 张结构化知识卡片 · 30 秒生成
               </p>
             </div>
@@ -401,7 +476,7 @@ export function BookComparison() {
                 >
                   <DenseWall fragments={book.rawFragments} />
                 </div>
-                <p className="mt-2 text-center text-[10px] text-[var(--ink-faint)]">
+                <p className="mt-2 text-center text-xs text-[var(--accent)]">
                   《{book.title}》· {book.author}
                 </p>
               </div>
@@ -424,7 +499,7 @@ export function BookComparison() {
                     </div>
                   </div>
                 </div>
-                <p className="mt-2 text-center text-[10px] text-[var(--ink-faint)]">
+                <p className="mt-2 text-center text-xs text-[var(--accent)]">
                   6 张卡片 · 30 秒
                 </p>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const OPTIONS = [
   { icon: "📚", label: "这些书值得一读，推荐给你" },
@@ -14,6 +14,15 @@ export function NeedAHand() {
   const [isOpen, setIsOpen] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setEntered(true), 1200);
+    const t2 = setTimeout(() => setShowHint(true), 2800);
+    const t3 = setTimeout(() => setShowHint(false), 6800);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -21,7 +30,6 @@ export function NeedAHand() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback
       const el = document.createElement("textarea");
       el.value = WECHAT_ID;
       document.body.appendChild(el);
@@ -34,9 +42,20 @@ export function NeedAHand() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+    <div
+      className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3"
+      style={{
+        opacity: entered ? 1 : 0,
+        transform: entered ? "translateY(0) scale(1)" : "translateY(20px) scale(0.8)",
+        transition: "opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+      }}
+    >
+      {/* Panel */}
       {isOpen && (
-        <div className="w-72 rounded-[22px] bg-[var(--paper)] p-5 shadow-[var(--shadow-paper-strong)]">
+        <div
+          className="w-72 rounded-[22px] border border-[var(--ghost-border)] bg-[var(--paper)] p-5 shadow-[var(--shadow-paper-strong)]"
+          style={{ animation: "fadeSlideIn 0.25s ease-out both" }}
+        >
           {showQR ? (
             <div>
               <button
@@ -102,47 +121,40 @@ export function NeedAHand() {
         </div>
       )}
 
-      {/* Floating button */}
+      {/* Hint tooltip */}
+      <div
+        className="pointer-events-none flex items-center gap-2"
+        style={{
+          opacity: showHint && !isOpen ? 1 : 0,
+          transform: showHint && !isOpen ? "translateX(0)" : "translateX(8px)",
+          transition: "opacity 0.4s ease, transform 0.4s ease",
+        }}
+      >
+        <span className="rounded-full bg-[var(--ink)] px-3 py-1.5 text-[12px] font-medium text-white shadow-lg">
+          👋 有任何问题，随时找我
+        </span>
+      </div>
+
+      {/* Floating button with pulse */}
       <button
         onClick={() => {
           setIsOpen(!isOpen);
+          setShowHint(false);
           if (isOpen) setShowQR(false);
         }}
-        className="flex h-12 items-center gap-2 rounded-[16px] bg-[var(--paper)] px-4 shadow-[var(--shadow-paper)] transition-all hover:bg-[var(--surface-low)] active:scale-95"
+        className="need-a-hand-btn relative flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ink)] text-white shadow-lg transition-all hover:scale-105 active:scale-95"
       >
+        {!isOpen && (
+          <span className="need-a-hand-pulse absolute inset-0 rounded-full bg-[var(--ink)]" />
+        )}
         {isOpen ? (
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-[var(--ink-soft)]"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         ) : (
-          <>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-[var(--ink-soft)]"
-            >
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            <span className="text-sm font-medium text-[var(--ink)]">
-              需要帮助？
-            </span>
-          </>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
         )}
       </button>
     </div>
