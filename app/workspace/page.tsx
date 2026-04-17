@@ -3195,7 +3195,12 @@ export default function Home() {
             bookTitle: currentBookDisplayTitle,
             content: posterContent,
           }}
-          onClose={() => setIsPosterModalOpen(false)}
+          onClose={() => {
+            setIsPosterModalOpen(false);
+            setToastQueue((prev) =>
+              prev.filter((t) => !t.id.startsWith("growth-expression-"))
+            );
+          }}
           onSaveSuccess={() => {
             if (!currentBookId) return;
             const expressionGrowth = awardGrowth("expression", {
@@ -3205,7 +3210,7 @@ export default function Home() {
             });
             if (expressionGrowth.changed) {
               setGrowthLedger(expressionGrowth.ledger);
-              enqueueGuidanceToast({
+              setActiveToast({
                 id: `growth-expression-${currentBookId}`,
                 message: `表达力 +1\n来自《${currentBookDisplayTitle}》的海报导出`,
                 priority: TOAST_PRIORITY.INFO,
