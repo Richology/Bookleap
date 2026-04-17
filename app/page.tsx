@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
+import { FacetCarousel } from "./components/landing/FacetCarousel";
 import { FAQ } from "./components/landing/FAQ";
 import { NeedAHand } from "./components/landing/NeedAHand";
+import { ScrollSection } from "./components/landing/ScrollSection";
 import { Testimonials } from "./components/landing/Testimonials";
 import { TopNav } from "./components/landing/TopNav";
 
@@ -33,25 +36,71 @@ const ANALYSIS_FACETS = [
   },
 ];
 
+const WORKBENCH_CARDS = [
+  { kicker: "Main Surface", text: "以阅读区为中心，六项分析结果成为真正的主工作面，而不是被一堆功能卡片挤压。" },
+  { kicker: "Side Context", text: "侧栏负责上传、状态、历史和动作，不抢主线，只提供清晰的次级上下文。" },
+  { kicker: "Action Loop", text: "读完分析后继续训练、导出、分享，让\u201c读过\u201d真正进入可复用状态。" },
+  { kicker: "Quiet Interface", text: "用纸面层次、排版和留白定义秩序，不依赖泛滥卡片、渐变或花哨装饰。" },
+];
+
 export default function LandingPage() {
+  const facetsRef = useRef<HTMLDivElement>(null);
+  const [facetsVisible, setFacetsVisible] = useState(false);
+  const facetsTriggered = useRef(false);
+  const workbenchRef = useRef<HTMLDivElement>(null);
+  const [workbenchVisible, setWorkbenchVisible] = useState(false);
+  const wbTriggered = useRef(false);
+
+  useEffect(() => {
+    const el = facetsRef.current;
+    if (!el) return;
+    const check = () => {
+      if (facetsTriggered.current) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.85) {
+        facetsTriggered.current = true;
+        setFacetsVisible(true);
+      }
+    };
+    window.addEventListener("scroll", check, { passive: true });
+    check();
+    return () => window.removeEventListener("scroll", check);
+  }, []);
+
+  useEffect(() => {
+    const el = workbenchRef.current;
+    if (!el) return;
+    const check = () => {
+      if (wbTriggered.current) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight * 0.85) {
+        wbTriggered.current = true;
+        setWorkbenchVisible(true);
+      }
+    };
+    window.addEventListener("scroll", check, { passive: true });
+    check();
+    return () => window.removeEventListener("scroll", check);
+  }, []);
+
   return (
     <>
       <TopNav />
 
-      <main className="archive-atmosphere relative overflow-hidden text-[var(--ink)]">
-        <div className="pointer-events-none absolute -left-40 top-24 h-[360px] w-[360px] rounded-full bg-[rgba(81,99,90,0.08)] blur-3xl" />
+      <main className="archive-atmosphere relative overflow-x-clip text-[var(--ink)]">
+        <div className="pointer-events-none absolute -left-40 top-24 h-[360px] w-[360px] rounded-full bg-[rgba(58,111,82,0.08)] blur-3xl" />
         <div className="pointer-events-none absolute right-[-160px] top-[220px] h-[440px] w-[440px] rounded-full bg-[rgba(119,124,123,0.1)] blur-3xl" />
         <section className="px-6 pb-16 pt-28 md:px-10 md:pb-24 md:pt-32">
           <div className="mx-auto grid max-w-[1540px] gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(460px,0.95fr)] lg:items-center">
             <div className="max-w-[760px]">
               <h1 className="font-editorial text-[3.55rem] leading-[0.92] tracking-[-0.055em] text-[var(--ink)] sm:text-[4.5rem] lg:text-[6.7rem]">
-                重新定义
+                一本好书
                 <span className="mt-3 block text-[0.62em] font-normal italic tracking-[-0.035em] text-[var(--ink)]">
-                  你的阅读方式
+                  一次清醒的决策
                 </span>
               </h1>
               <p className="mt-8 max-w-[620px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.05rem]">
-                从好书中完成认知跃迁。上传一本电子书，30 秒获取 6 张结构化知识卡片，并继续在 workspace
+                上传一本电子书，30 秒获取 6 张结构化知识卡片，并继续在 workspace
                 里阅读、训练、导出、分享。
               </p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -61,12 +110,6 @@ export default function LandingPage() {
                 >
                   进入工作台
                   <span aria-hidden>↗</span>
-                </a>
-                <a
-                  href="#comparison"
-                  className="inline-flex items-center justify-center gap-2 border-b border-[var(--ghost-border)] px-1 py-3 text-sm font-medium text-[var(--ink)] transition-all hover:border-[rgba(81,99,90,0.35)]"
-                >
-                  看看它如何工作
                 </a>
               </div>
 
@@ -120,9 +163,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="px-2 pt-2">
-                    <p className="archive-kicker">Analysis Register</p>
-                  </div>
+                  
                   {ANALYSIS_FACETS.map((item, index) => (
                     <div
                       key={item.title}
@@ -144,40 +185,38 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="px-6 py-8 md:px-10 md:py-12">
-          <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--surface-low)] px-6 py-8 md:px-10 md:py-12">
-            <div className="mb-10 max-w-[760px]">
+        {/* ── 六维分析：3D 圆柱旋转展示 ── */}
+        <section
+          ref={facetsRef}
+          className="px-6 py-8 md:px-10 md:py-12"
+          style={{
+            opacity: facetsVisible ? 1 : 0,
+            transform: facetsVisible ? "none" : "translateY(40px)",
+            transition: "opacity 0.6s ease, transform 0.6s ease",
+          }}
+        >
+          <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--surface-low)] px-6 py-10 md:px-10 md:py-14">
+            <div className="mb-12 max-w-[760px]">
               <h2 className="font-editorial text-[2.3rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[3rem]">
-                不重复制，是重建这本书的结构
+                不是复制，是重建这本书的结构
               </h2>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {ANALYSIS_FACETS.map((item, index) => (
-                <article
-                  key={item.title}
-                  className={`rounded-[22px] px-5 py-6 ${
-                    index === 2 ? "archive-callout" : "bg-[var(--paper)]"
-                  }`}
-                >
-                  <div className="mb-6 flex items-center justify-between gap-3">
-                    <span className="rounded-sm bg-[rgba(81,99,90,0.1)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-                      {item.title}
-                    </span>
-                    <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <p className="text-sm leading-7 text-[var(--ink-soft)]">{item.detail}</p>
-                  <div className="mt-8 h-px w-12 bg-[rgba(81,99,90,0.22)]" />
-                </article>
-              ))}
-            </div>
+            <FacetCarousel items={ANALYSIS_FACETS} visible={facetsVisible} />
           </div>
         </section>
 
         <BookComparison />
 
-        <section className="px-6 py-8 md:px-10 md:py-12">
+        {/* ── 工作台介绍：左侧即时展示，右侧 4 卡依次入场 ── */}
+        <section
+          ref={workbenchRef}
+          className="px-6 py-8 md:px-10 md:py-12"
+          style={{
+            opacity: workbenchVisible ? 1 : 0,
+            transform: workbenchVisible ? "none" : "translateY(40px)",
+            transition: "opacity 0.6s ease, transform 0.6s ease",
+          }}
+        >
           <div className="mx-auto grid max-w-[1540px] gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)]">
             <div className="rounded-[30px] bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:px-8 md:py-10">
               <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.04em] text-white">
@@ -190,70 +229,69 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
-                <p className="archive-kicker">Main Surface</p>
-                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
-                  以阅读区为中心，六项分析结果成为真正的主工作面，而不是被一堆功能卡片挤压。
-                </p>
-              </div>
-              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
-                <p className="archive-kicker">Side Context</p>
-                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
-                  侧栏负责上传、状态、历史和动作，不抢主线，只提供清晰的次级上下文。
-                </p>
-              </div>
-              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
-                <p className="archive-kicker">Action Loop</p>
-                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
-                  读完分析后继续训练、导出、分享，让“读过”真正进入可复用状态。
-                </p>
-              </div>
-              <div className="rounded-[22px] bg-[var(--paper)] px-5 py-5">
-                <p className="archive-kicker">Quiet Interface</p>
-                <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">
-                  用纸面层次、排版和留白定义秩序，不依赖泛滥卡片、渐变或花哨装饰。
-                </p>
-              </div>
+              {WORKBENCH_CARDS.map((card, i) => (
+                <div
+                  key={card.kicker}
+                  className="rounded-[22px] bg-[var(--paper)] px-5 py-5"
+                  style={{
+                    opacity: workbenchVisible ? 1 : 0,
+                    transform: workbenchVisible ? "none" : "translateY(24px)",
+                    transition: `opacity 0.5s ease ${0.2 + i * 0.12}s, transform 0.5s ease ${0.2 + i * 0.12}s`,
+                  }}
+                >
+                  <p className="archive-kicker">{card.kicker}</p>
+                  <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{card.text}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <Testimonials />
-        <FAQ />
+        <ScrollSection>
+          <Testimonials />
+        </ScrollSection>
 
-        <section className="px-6 pb-20 pt-8 md:px-10 md:pb-24 md:pt-12">
-          <div className="mx-auto grid max-w-[1440px] gap-8 rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
-            <div>
-              <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[3rem]">
-                把下一本书，整理进你的工作台
-              </h2>
-              <p className="mt-4 max-w-[560px] text-sm leading-7 text-white/70 md:text-base">
-                不用再等到“完整读完”才开始吸收。先让一本书变得清晰，再决定你要如何继续使用它。
-              </p>
+        <ScrollSection>
+          <FAQ />
+        </ScrollSection>
+
+        <ScrollSection>
+          <section className="px-6 pb-20 pt-8 md:px-10 md:pb-24 md:pt-12">
+            <div className="mx-auto grid max-w-[1440px] gap-8 rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
+              <div>
+                <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[3rem]">
+                  把下一本书，整理进你的工作台
+                </h2>
+                <p className="mt-4 max-w-[560px] text-sm leading-7 text-white/70 md:text-base">
+                  不用再等到"完整读完"才开始吸收。先让一本书变得清晰，再决定你要如何继续使用它。
+                </p>
+              </div>
+              <a
+                href="/workspace"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-white/92 active:scale-[0.98]"
+              >
+                立即开始
+                <span aria-hidden>↗</span>
+              </a>
             </div>
-            <a
-              href="/workspace"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-white/92 active:scale-[0.98]"
-            >
-              立即开始
-              <span aria-hidden>↗</span>
-            </a>
-          </div>
-        </section>
+          </section>
+        </ScrollSection>
 
-        <footer className="px-6 pb-8 md:px-10">
-          <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-4 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center">
-            <p>书跃 · BookLeap</p>
-            <a
-              href="https://richology.cn"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-[var(--ink)]"
-            >
-              由 安瑟A11BERICH 构建 · 了解作者 →
-            </a>
-          </div>
-        </footer>
+        <ScrollSection>
+          <footer className="px-6 pb-8 md:px-10">
+            <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-4 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center">
+              <p>书跃 · BookLeap</p>
+              <a
+                href="https://richology.cn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-[var(--ink)]"
+              >
+                由 安瑟A11BERICH 构建 · 了解作者 →
+              </a>
+            </div>
+          </footer>
+        </ScrollSection>
       </main>
 
       <NeedAHand />

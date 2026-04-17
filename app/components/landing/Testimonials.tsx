@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const TESTIMONIALS = [
   {
@@ -19,7 +19,7 @@ const TESTIMONIALS = [
     name: "科学怪熊",
     title: "全科老师，素质教育工作者",
     quote:
-      "作为一个教育工作者，我会向学生强力推荐这个网站。不同于Notebookllm和ima这样的知识库，书跃展示了一种思维方式，为阅读者提供了地图而非答案。对“AI时代如何读书”这个问题，书跃给出了具有启发性的回答。",
+      "作为一个教育工作者，我会向学生强力推荐这个网站。不同于NotebookLM和ima这样的知识库，书跃展示了一种思维方式，为阅读者提供了地图而非答案。对\u201cAI时代如何读书\u201d这个问题，书跃给出了具有启发性的回答。",
   },
   {
     name: "宇宇",
@@ -57,12 +57,25 @@ const TESTIMONIALS = [
     quote:
       "终于不用再为读不完书焦虑了。6 张卡片就是一本书的精华，随时可以回顾。最喜欢的是沉浸式阅读模式，左右滑动卡片的体验很流畅，像在翻一本精简版的书。",
   },
+  {
+    name: "文博",
+    title: "互联网产品增长专家",
+    quote:
+      "书跃不只是帮我快速看懂一本书，更能把书里的核心结构、重点观点和后续可执行的方向梳理出来。对我来说，它最大的价值是把这本书里更适合我的内容提炼出来，引导我变成自身的行动。它是适合当下时代的高效率工具。",
+  },
 ];
 
 export function Testimonials() {
   const [isRailPaused, setIsRailPaused] = useState(false);
   const railViewportRef = useRef<HTMLDivElement>(null);
-  const [featured, ...notes] = TESTIMONIALS;
+
+  const { featured, notes } = useMemo(() => {
+    const idx = Math.floor(Math.random() * TESTIMONIALS.length);
+    const f = TESTIMONIALS[idx];
+    const rest = [...TESTIMONIALS.slice(0, idx), ...TESTIMONIALS.slice(idx + 1)];
+    return { featured: f, notes: rest };
+  }, []);
+
   const loopedNotes = notes.length > 1 ? [...notes, ...notes] : notes;
 
   useEffect(() => {
@@ -94,116 +107,89 @@ export function Testimonials() {
   }, [isRailPaused, notes.length]);
 
   return (
-    <section id="testimonials" className="px-6 py-12 md:px-10 md:py-16">
-      <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--ink)] px-6 py-7 text-[#faf7f6] md:px-10 md:py-9">
-        <div className="flex flex-col gap-5 border-b border-white/8 pb-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-[640px]">
-            <h2 className="font-editorial text-[2.25rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[2.9rem]">
+    <section id="testimonials" className="px-6 py-8 md:px-10 md:py-10">
+      <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--ink)] px-6 py-6 text-[#faf7f6] md:px-10 md:py-8">
+        <div className="flex flex-col gap-2 border-b border-white/8 pb-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="font-editorial text-[2rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[2.5rem]">
               他们已经在用书跃
             </h2>
-            <p className="mt-4 max-w-[560px] text-sm leading-7 text-white/68">
-              不是“看起来很聪明”的摘要器，而是能持续进入实际工作流的阅读工具。
-            </p>
           </div>
-
         </div>
 
-        <div className="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <article className="self-start rounded-[24px] bg-[rgba(255,255,255,0.06)] px-6 py-6 md:px-7 md:py-7">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_200px]">
+        <div className="mt-5 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          {/* Featured quote */}
+          <article className="self-start rounded-[20px] bg-[rgba(255,255,255,0.06)] px-5 py-5 md:px-6 md:py-6">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_140px]">
               <div className="min-w-0">
                 <svg
-                  className="mb-4 h-6 w-6 text-white/28"
+                  className="mb-3 h-5 w-5 text-white/24"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
                   <path d="M11.3 2.6C6.1 5.1 3 9.8 3 15v6h8v-8H7c0-3.3 2-6.1 4.8-7.4L11.3 2.6zM23.3 2.6C18.1 5.1 15 9.8 15 15v6h8v-8h-4c0-3.3 2-6.1 4.8-7.4L23.3 2.6z" />
                 </svg>
-                <p className="max-w-[30ch] font-editorial text-[1.45rem] font-semibold leading-[1.24] tracking-[-0.025em] text-white md:text-[1.82rem]">
+                <p className="font-editorial text-[1.1rem] font-semibold leading-[1.55] tracking-[-0.01em] text-white md:text-[1.25rem]">
                   {featured.quote}
                 </p>
-                <div className="mt-8 flex items-center justify-between gap-4 border-t border-white/10 pt-4 lg:hidden">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-white/10 text-sm font-semibold text-white/82">
-                      {featured.name[0]}
-                    </div>
-                    <div>
-                      <p className="font-editorial text-[1.35rem] font-semibold text-white">{featured.name}</p>
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-white/48">{featured.title}</p>
-                    </div>
+                <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-white/10 text-xs font-semibold text-white/82">
+                    {featured.name[0]}
                   </div>
-                  <p className="font-editorial text-[2.3rem] font-semibold tracking-[-0.06em] text-white/18">
-                    01
-                  </p>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{featured.name}</p>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/45">{featured.title}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="hidden border-l border-white/10 pl-6 lg:flex lg:min-h-full lg:flex-col lg:justify-between">
-                <div>
-                  <p className="archive-kicker text-white/36">Featured</p>
-                  <div className="mt-5 flex h-11 w-11 items-center justify-center rounded-sm bg-white/10 text-sm font-semibold text-white/82">
-                    {featured.name[0]}
-                  </div>
-                  <div className="mt-4">
-                    <p className="font-editorial text-[1.45rem] font-semibold text-white">{featured.name}</p>
-                    <p className="mt-2 text-[11px] uppercase leading-6 tracking-[0.12em] text-white/48">{featured.title}</p>
-                  </div>
-                </div>
-
-                <div className="mt-8 border-t border-white/10 pt-4">
-                  <p className="font-editorial text-[2.35rem] font-semibold tracking-[-0.06em] text-white/20">
-                    01
-                  </p>
-                </div>
+              <div className="hidden border-l border-white/10 pl-5 lg:flex lg:flex-col lg:justify-between">
+                <p className="archive-kicker text-white/36">Featured</p>
+                <p className="font-editorial text-[2rem] font-semibold tracking-[-0.06em] text-white/14">
+                  01
+                </p>
               </div>
             </div>
           </article>
 
-          <div className="flex flex-col rounded-[24px] bg-[rgba(255,255,255,0.04)] p-3">
-            <div className="mb-3 flex items-center justify-between gap-4 px-2 pb-1">
-              <p className="archive-kicker text-white/42">More Notes</p>
-              <span className="text-[11px] uppercase tracking-[0.12em] text-white/38">
-                {notes.length} entries
+          {/* Auto-scrolling rail */}
+          <div className="flex flex-col rounded-[20px] bg-[rgba(255,255,255,0.04)] p-2.5">
+            <div className="mb-2 flex items-center justify-between px-2">
+              <p className="archive-kicker text-white/40">More Notes</p>
+              <span className="text-[10px] uppercase tracking-[0.12em] text-white/30">
+                {notes.length}
               </span>
             </div>
 
             <div
               ref={railViewportRef}
-              className="no-scrollbar min-h-0 max-h-[420px] flex-1 space-y-3 overflow-y-auto pr-1"
+              className="no-scrollbar min-h-0 max-h-[320px] flex-1 space-y-2 overflow-y-auto pr-1"
               onMouseEnter={() => setIsRailPaused(true)}
               onMouseLeave={() => setIsRailPaused(false)}
             >
               {loopedNotes.map((t, index) => (
                 <article
                   key={`${t.name}-${index}`}
-                  className="rounded-[18px] bg-[rgba(255,255,255,0.05)] px-4 py-4"
+                  className="rounded-[14px] bg-[rgba(255,255,255,0.05)] px-3.5 py-3"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-3 flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-white/10 text-xs font-semibold text-white/82">
-                          {t.name[0]}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-editorial text-[1.12rem] font-semibold text-white">{t.name}</p>
-                          <p className="truncate text-[10px] uppercase tracking-[0.12em] text-white/42">{t.title}</p>
-                        </div>
-                      </div>
-                      <p className="text-[13px] leading-6 text-white/72">
-                        {t.quote}
-                      </p>
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-sm bg-white/10 text-[10px] font-semibold text-white/80">
+                      {t.name[0]}
                     </div>
-                    <div className="pt-0.5 text-[11px] uppercase tracking-[0.12em] text-white/26">
-                      {String((index % notes.length) + 2).padStart(2, "0")}
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-white">{t.name}</p>
+                      <p className="truncate text-[9px] uppercase tracking-[0.1em] text-white/36">{t.title}</p>
                     </div>
                   </div>
+                  <p className="text-[12px] leading-[18px] text-white/62">
+                    {t.quote}
+                  </p>
                 </article>
               ))}
             </div>
           </div>
         </div>
       </div>
-
     </section>
   );
 }
