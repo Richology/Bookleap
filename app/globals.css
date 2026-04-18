@@ -156,6 +156,21 @@ select {
   color: var(--ink);
 }
 
+@keyframes testimonial-orbit-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+.testimonial-orbit-float {
+  animation: testimonial-orbit-float 7s ease-in-out infinite;
+  will-change: transform, translate, box-shadow;
+}
+
 /* ── Markdown prose ─────────────────────────────────────────────────────────── */
 .md-prose {
   font-size: 0.9375rem;
