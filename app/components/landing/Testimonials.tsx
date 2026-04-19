@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 type Testimonial = {
   name: string;
@@ -18,6 +18,14 @@ type OrbitLayout = {
 type RingShape = {
   width: number;
   height: number;
+};
+
+type OrbitBeam = {
+  angle: number;
+  distance: number;
+  width: number;
+  pulseWidth: number;
+  travel: number;
 };
 
 const TESTIMONIALS: Testimonial[] = [
@@ -110,6 +118,20 @@ const RING_SHAPES: RingShape[] = [
 ];
 const AUTOPLAY_MS = 4800;
 
+function getOrbitBeam(layout: OrbitLayout, extend = 0): OrbitBeam {
+  const distance = Math.sqrt(layout.x ** 2 + layout.y ** 2);
+  const width = Math.max(0, distance + extend);
+  const pulseWidth = Math.min(132, Math.max(68, width * 0.24));
+
+  return {
+    angle: (Math.atan2(layout.y, layout.x) * 180) / Math.PI,
+    distance,
+    width,
+    pulseWidth,
+    travel: Math.max(0, width - pulseWidth),
+  };
+}
+
 export function Testimonials() {
   const sectionRef = useRef<HTMLElement>(null);
   const [autoIndex, setAutoIndex] = useState(0);
@@ -165,13 +187,17 @@ export function Testimonials() {
     return () => window.clearInterval(timer);
   }, [isPaused, isVisible, selectedIndex]);
 
+  const ambientBeams = useMemo(
+    () => ORBIT_LAYOUT.map((layout) => getOrbitBeam(layout, 18)),
+    []
+  );
+
   const activeLine = useMemo(() => {
-    const angle = (Math.atan2(activeLayout.y, activeLayout.x) * 180) / Math.PI;
-    const distance = Math.sqrt(activeLayout.x ** 2 + activeLayout.y ** 2);
+    const beam = getOrbitBeam(activeLayout, -150);
 
     return {
-      angle,
-      width: Math.max(0, distance - 150),
+      angle: beam.angle,
+      width: beam.width,
     };
   }, [activeLayout]);
 
@@ -227,6 +253,41 @@ export function Testimonials() {
                         opacity: isEngaged && !isActiveRing ? 0.56 : 1,
                       }}
                     />
+                  );
+                })}
+
+                {ambientBeams.map((beam, index) => {
+                  const layout = ORBIT_LAYOUT[index];
+                  const pulseStyle = {
+                    width: `${beam.pulseWidth}px`,
+                    animationDelay: `${0.45 + layout.delay * 7}s`,
+                    animationDuration: `${6.6 + layout.ring * 0.75}s`,
+                    ["--orbit-travel" as any]: `${beam.travel}px`,
+                  } as CSSProperties;
+
+                  return (
+                    <div
+                      key={`ambient-beam-${index}`}
+                      className="absolute left-1/2 top-1/2 origin-left"
+                      style={{
+                        width: `${beam.width}px`,
+                        transform: `translateY(-0.5px) rotate(${beam.angle}deg)`,
+                        opacity: index === displayIndex ? 0 : 1,
+                      }}
+                    >
+                      <div
+                        className="absolute inset-y-1/2 left-0 h-px w-full -translate-y-1/2 rounded-full transition-opacity duration-500"
+                        style={{
+                          opacity: isEngaged ? 0.34 : 0.5,
+                          background:
+                            "linear-gradient(90deg, rgba(186,221,200,0.36) 0%, rgba(186,221,200,0.16) 24%, rgba(81,99,90,0.08) 72%, rgba(81,99,90,0) 100%)",
+                        }}
+                      />
+                      <div
+                        className="testimonial-orbit-signal absolute inset-y-1/2 left-0 h-[1.5px] -translate-y-1/2 rounded-full"
+                        style={pulseStyle}
+                      />
+                    </div>
                   );
                 })}
 

@@ -171,6 +171,36 @@ select {
   will-change: transform, translate, box-shadow;
 }
 
+@keyframes testimonial-orbit-signal {
+  0% {
+    transform: translateX(-10px);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.92;
+  }
+  78% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(var(--orbit-travel, 160px));
+    opacity: 0;
+  }
+}
+
+.testimonial-orbit-signal {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.96) 14%,
+    rgba(186, 221, 200, 0.92) 48%,
+    rgba(81, 99, 90, 0.18) 100%
+  );
+  filter: blur(0.4px);
+  animation: testimonial-orbit-signal 7s linear infinite;
+  will-change: transform, opacity;
+}
+
 /* ── Markdown prose ─────────────────────────────────────────────────────────── */
 .md-prose {
   font-size: 0.9375rem;

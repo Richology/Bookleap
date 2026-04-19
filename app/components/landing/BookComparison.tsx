@@ -248,7 +248,7 @@ const BOOKS: BookData[] = [
 ];
 
 const N = BOOKS.length;
-const PANEL_SIZE = 360; // px, square panels
+const PANEL_MAX_WIDTH = 500; // px, desktop panel cap
 
 /* ── Readable dense text (left side) ─────────────────────────────────────────── */
 function DenseWall({ fragments }: { fragments: string[] }) {
@@ -353,6 +353,8 @@ export function BookComparison() {
   };
 
   const book = BOOKS[activeIndex];
+  const featuredCard = book.cards[0];
+  const secondaryCards = book.cards.slice(1);
 
   const contentPositionStyle: React.CSSProperties =
     pinState === "before"
@@ -375,24 +377,27 @@ export function BookComparison() {
           backgroundColor: "var(--surface)",
         }}
       >
-        <div className="mx-auto w-full max-w-[1200px] px-6 md:px-10">
+        <div className="mx-auto w-full max-w-[1560px] px-6 md:px-10">
           {/* ── Header ──────────────────── */}
           <p className="mb-8 text-center text-[1.5rem] font-semibold uppercase tracking-[0.18em] text-[var(--ink)] md:mb-10 md:text-[1.75rem]">
             Before / After
           </p>
 
           {/* ── Three-column layout ───────────────────────── */}
-          <div className="flex items-center justify-center gap-6 md:gap-10 lg:gap-14">
+          <div className="hidden items-center gap-8 lg:grid lg:grid-cols-[minmax(430px,1fr)_220px_minmax(430px,1fr)] xl:gap-12">
 
             {/* LEFT COLUMN */}
-            <div className="hidden flex-col items-center lg:flex" style={{ width: PANEL_SIZE }}>
+            <div className="flex w-full max-w-[500px] flex-col items-center justify-self-center">
               {/* Label above panel */}
               <p className="mb-3 font-editorial text-sm italic text-[var(--ink-faint)]">原书</p>
               {/* Square panel */}
               <div
                 key={`left-${contentKey}`}
-                className="relative overflow-hidden rounded-2xl bg-[#eae8e5]"
-                style={{ width: PANEL_SIZE, height: PANEL_SIZE, animation: "fadeSlideIn 0.4s ease-out both" }}
+                className="relative aspect-square w-full overflow-hidden rounded-2xl bg-[#eae8e5]"
+                style={{
+                  maxWidth: `${PANEL_MAX_WIDTH}px`,
+                  animation: "fadeSlideIn 0.4s ease-out both",
+                }}
               >
                 <DenseWall fragments={book.rawFragments} />
               </div>
@@ -403,7 +408,7 @@ export function BookComparison() {
             </div>
 
             {/* CENTER COLUMN — book name list */}
-            <div className="flex flex-col items-center gap-1.5 py-4">
+            <div className="flex min-w-[220px] flex-col items-center gap-1.5 py-4">
               {BOOKS.map((b, i) => {
                 const isActive = i === activeIndex;
                 return (
@@ -429,30 +434,87 @@ export function BookComparison() {
             </div>
 
             {/* RIGHT COLUMN */}
-            <div className="hidden flex-col items-center lg:flex" style={{ width: PANEL_SIZE }}>
+            <div className="flex w-full max-w-[500px] flex-col items-center justify-self-center">
               {/* Label above panel */}
               <p className="mb-3 font-editorial text-sm italic text-[var(--ink-faint)]">书跃</p>
               {/* Square panel */}
               <div
                 key={`right-${contentKey}`}
-                className="relative overflow-hidden rounded-2xl bg-[var(--paper)] shadow-[var(--shadow-paper)]"
-                style={{ width: PANEL_SIZE, height: PANEL_SIZE, animation: "fadeSlideIn 0.4s ease-out 0.06s both" }}
+                className="relative aspect-square w-full overflow-hidden rounded-2xl bg-[var(--paper)] shadow-[var(--shadow-paper)]"
+                style={{
+                  maxWidth: `${PANEL_MAX_WIDTH}px`,
+                  animation: "fadeSlideIn 0.4s ease-out 0.06s both",
+                }}
               >
-                <div className="flex h-full flex-col justify-center px-4 py-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {book.cards.map((card, ci) => (
-                      <div
-                        key={card.title}
-                        className="rounded-[10px] bg-[var(--surface-low)] px-2.5 py-2.5"
-                        style={{ animation: `fadeSlideIn 0.3s ease-out ${0.08 + ci * 0.045}s both` }}
-                      >
-                        <div className="mb-0.5 flex items-center gap-1">
-                          <span className="text-xs opacity-70">{card.icon}</span>
-                          <span className="font-editorial text-xs font-semibold text-[var(--ink)]">{card.title}</span>
-                        </div>
-                        <p className="text-[10px] leading-[14px] text-[var(--ink-soft)]">{card.desc}</p>
+                <div className="flex h-full flex-col px-4 py-4">
+                  <div
+                    className="rounded-[20px] border border-[rgba(81,99,90,0.16)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,246,241,0.98)_100%)] px-4 py-4 shadow-[0_18px_36px_rgba(47,51,51,0.06)]"
+                    style={{ animation: "fadeSlideIn 0.38s ease-out 0.05s both" }}
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(186,221,200,0.42)] px-3 py-1.5 text-[11px] font-medium tracking-[0.08em] text-[var(--accent)]">
+                        <span className="text-sm leading-none">{featuredCard.icon}</span>
+                        <span>{featuredCard.title}</span>
+                      </span>
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                        BookLeap Card
+                      </span>
+                    </div>
+                    <p className="font-editorial text-[1.02rem] font-semibold leading-[1.58] tracking-[-0.012em] text-[var(--ink)]">
+                      {featuredCard.desc}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-[rgba(81,99,90,0.1)] pt-3">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                        结构化主卡
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <span
+                            key={index}
+                            className="h-2 w-2 rounded-full bg-[rgba(81,99,90,0.18)]"
+                          />
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid flex-1 auto-rows-fr grid-cols-2 gap-2">
+                    {secondaryCards.map((card, ci) => {
+                      const shouldSpan =
+                        secondaryCards.length % 2 === 1 && ci === secondaryCards.length - 1;
+
+                      return (
+                        <div
+                          key={card.title}
+                          className={`group rounded-[14px] border border-transparent bg-[var(--surface-low)] px-3 py-2.5 text-left transition-all duration-300 hover:-translate-y-1.5 hover:scale-[1.015] hover:border-[rgba(81,99,90,0.22)] hover:bg-[rgba(186,221,200,0.46)] hover:shadow-[0_16px_28px_rgba(81,99,90,0.14)] ${
+                            shouldSpan ? "col-span-2 flex flex-col justify-center text-center" : ""
+                          }`}
+                          style={{
+                            animation: `fadeSlideIn 0.3s ease-out ${0.1 + ci * 0.045}s both`,
+                          }}
+                        >
+                          <div
+                            className={`mb-1 flex items-center gap-1.5 ${
+                              shouldSpan ? "justify-center" : ""
+                            }`}
+                          >
+                            <span className="text-xs opacity-70 transition-transform duration-300 group-hover:scale-110">
+                              {card.icon}
+                            </span>
+                            <span className="font-editorial text-[13px] font-semibold text-[var(--ink)] transition-colors duration-300 group-hover:text-[var(--accent)]">
+                              {card.title}
+                            </span>
+                          </div>
+                          <p
+                            className={`text-[11px] leading-[16px] text-[var(--ink-soft)] transition-colors duration-300 group-hover:text-[var(--ink)] ${
+                              shouldSpan ? "mx-auto max-w-[80%]" : ""
+                            }`}
+                          >
+                            {card.desc}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -488,14 +550,47 @@ export function BookComparison() {
                   className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--paper)] shadow-[var(--shadow-paper)]"
                   style={{ animation: "fadeSlideIn 0.4s ease-out 0.06s both" }}
                 >
-                  <div className="flex h-full flex-col justify-center px-2 py-2">
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {book.cards.map((card) => (
-                        <div key={card.title} className="rounded-lg bg-[var(--surface-low)] p-1.5">
-                          <span className="font-editorial text-[9px] font-semibold text-[var(--ink)]">{card.icon} {card.title}</span>
-                          <p className="text-[7.5px] leading-[10px] text-[var(--ink-soft)]">{card.desc}</p>
-                        </div>
-                      ))}
+                  <div className="flex h-full flex-col px-2 py-2">
+                    <div className="rounded-[12px] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,246,241,0.98)_100%)] p-2 shadow-[0_10px_18px_rgba(47,51,51,0.05)]">
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <span className="text-[10px] opacity-80">{featuredCard.icon}</span>
+                        <span className="font-editorial text-[10px] font-semibold text-[var(--ink)]">
+                          {featuredCard.title}
+                        </span>
+                      </div>
+                      <p className="text-[8px] leading-[11px] text-[var(--ink-soft)]">
+                        {featuredCard.desc}
+                      </p>
+                    </div>
+                    <div className="mt-2 grid flex-1 auto-rows-fr grid-cols-2 gap-1.5">
+                      {secondaryCards.map((card, ci) => {
+                        const shouldSpan =
+                          secondaryCards.length % 2 === 1 && ci === secondaryCards.length - 1;
+
+                        return (
+                          <div
+                            key={card.title}
+                            className={`rounded-lg bg-[var(--surface-low)] p-1.5 text-left transition-all ${
+                              shouldSpan ? "col-span-2 flex flex-col justify-center text-center" : ""
+                            }`}
+                          >
+                            <span
+                              className={`font-editorial text-[9px] font-semibold text-[var(--ink)] ${
+                                shouldSpan ? "block text-center" : ""
+                              }`}
+                            >
+                              {card.icon} {card.title}
+                            </span>
+                            <p
+                              className={`mt-0.5 text-[7.5px] leading-[10px] text-[var(--ink-soft)] ${
+                                shouldSpan ? "mx-auto max-w-[84%]" : ""
+                              }`}
+                            >
+                              {card.desc}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
