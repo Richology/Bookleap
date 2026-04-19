@@ -24,8 +24,7 @@ export function FAQ() {
     <section id="faq" className="px-6 py-14 md:px-10 md:py-20">
       <div className="mx-auto grid max-w-[1540px] gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="max-w-[320px] xl:pt-3">
-          <p className="archive-kicker">Common Questions</p>
-          <h2 className="font-editorial mt-4 text-[2.2rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[2.9rem]">
+          <h2 className="font-editorial text-[2.2rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[2.9rem]">
             常见问题
           </h2>
         </div>
