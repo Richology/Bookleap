@@ -184,8 +184,7 @@ export function Testimonials() {
       <div className="mx-auto max-w-[1540px] rounded-[32px] border border-[var(--ghost-border)] bg-[var(--paper)] px-5 py-4 md:px-8 md:py-5">
         <div className="flex flex-col gap-2 border-b border-[var(--ghost-border)] pb-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[500px]">
-            <p className="archive-kicker text-[var(--accent)]">Reader Orbit</p>
-            <h2 className="font-editorial mt-1.5 text-[1.62rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)] md:text-[2rem]">
+            <h2 className="font-editorial text-[1.62rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)] md:text-[2rem]">
               他们已经在用<span className="text-[var(--accent)]">书跃</span>
             </h2>
           </div>
