@@ -8,6 +8,7 @@ import { NeedAHand } from "./components/landing/NeedAHand";
 import { ScrollSection } from "./components/landing/ScrollSection";
 import { Testimonials } from "./components/landing/Testimonials";
 import { TopNav } from "./components/landing/TopNav";
+import { WorkbenchStory } from "./components/landing/WorkbenchStory";
 
 const ANALYSIS_FACETS = [
   {
@@ -36,13 +37,6 @@ const ANALYSIS_FACETS = [
   },
 ];
 
-const WORKBENCH_CARDS = [
-  { kicker: "Main Surface", text: "以阅读区为中心，六项分析结果成为真正的主工作面，而不是被一堆功能卡片挤压。" },
-  { kicker: "Side Context", text: "侧栏负责上传、状态、历史和动作，不抢主线，只提供清晰的次级上下文。" },
-  { kicker: "Action Loop", text: "读完分析后继续训练、导出、分享，让\u201c读过\u201d真正进入可复用状态。" },
-  { kicker: "Quiet Interface", text: "用纸面层次、排版和留白定义秩序，不依赖泛滥卡片、渐变或花哨装饰。" },
-];
-
 export default function LandingPage() {
   const [heroCardsRevealed, setHeroCardsRevealed] = useState(0);
   const [heroTextPhase, setHeroTextPhase] = useState(0);
@@ -64,9 +58,6 @@ export default function LandingPage() {
   const facetsRef = useRef<HTMLDivElement>(null);
   const [facetsVisible, setFacetsVisible] = useState(false);
   const facetsTriggered = useRef(false);
-  const workbenchRef = useRef<HTMLDivElement>(null);
-  const [workbenchVisible, setWorkbenchVisible] = useState(false);
-  const wbTriggered = useRef(false);
 
   useEffect(() => {
     const el = facetsRef.current;
@@ -77,22 +68,6 @@ export default function LandingPage() {
       if (rect.top < window.innerHeight * 0.85) {
         facetsTriggered.current = true;
         setFacetsVisible(true);
-      }
-    };
-    window.addEventListener("scroll", check, { passive: true });
-    check();
-    return () => window.removeEventListener("scroll", check);
-  }, []);
-
-  useEffect(() => {
-    const el = workbenchRef.current;
-    if (!el) return;
-    const check = () => {
-      if (wbTriggered.current) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.top < window.innerHeight * 0.85) {
-        wbTriggered.current = true;
-        setWorkbenchVisible(true);
       }
     };
     window.addEventListener("scroll", check, { passive: true });
@@ -249,45 +224,7 @@ export default function LandingPage() {
 
         <BookComparison />
 
-        {/* ── 工作台介绍：左侧即时展示，右侧 4 卡依次入场 ── */}
-        <section
-          ref={workbenchRef}
-          className="px-6 py-8 md:px-10 md:py-12"
-          style={{
-            opacity: workbenchVisible ? 1 : 0,
-            transform: workbenchVisible ? "none" : "translateY(40px)",
-            transition: "opacity 0.6s ease, transform 0.6s ease",
-          }}
-        >
-          <div className="mx-auto grid max-w-[1540px] gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)]">
-            <div className="rounded-[30px] bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:px-8 md:py-10">
-              <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.04em] text-white">
-                不是拆书工具，
-                <br />
-                是你的认知升级工作台
-              </h2>
-              <p className="mt-6 max-w-[460px] text-sm leading-7 text-white/70">
-                上传、解析、阅读、训练、导出、分享，被重新组织成一套连续工作流，而不是彼此孤立的功能点。
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {WORKBENCH_CARDS.map((card, i) => (
-                <div
-                  key={card.kicker}
-                  className="rounded-[22px] bg-[var(--paper)] px-5 py-5"
-                  style={{
-                    opacity: workbenchVisible ? 1 : 0,
-                    transform: workbenchVisible ? "none" : "translateY(24px)",
-                    transition: `opacity 0.5s ease ${0.2 + i * 0.12}s, transform 0.5s ease ${0.2 + i * 0.12}s`,
-                  }}
-                >
-                  <p className="archive-kicker">{card.kicker}</p>
-                  <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{card.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <WorkbenchStory />
 
         <ScrollSection>
           <Testimonials />
