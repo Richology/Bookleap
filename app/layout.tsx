@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "书跃 · BookLeap",
   description: "从好书中完成认知跃迁",
   other: {
-    "deploy-probe": "private-repo-sync-test-20260421-093052",
+    "deploy-probe": "private-repo-sync-test-20260422-094848",
   },
 };
 
