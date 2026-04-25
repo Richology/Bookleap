@@ -36,7 +36,7 @@ export function WorkspaceShell({
 
         <div className="mx-auto max-w-[1760px] px-3 pb-10 md:px-5 xl:px-6" style={shellStyle}>
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-[52px_var(--workspace-library-width)_minmax(0,1fr)_var(--workspace-growth-width)]">
-            <div className="hidden xl:block xl:sticky xl:top-[88px] xl:self-start">
+            <div className="hidden xl:block xl:sticky xl:top-[88px] xl:z-20 xl:-translate-y-3 xl:self-start">
               {toolRail}
             </div>
             {librarySidebar}

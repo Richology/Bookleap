@@ -49,7 +49,7 @@ export function WorkspaceToolRail({
   actions: WorkspaceToolAction[];
 }) {
   return (
-    <div className="relative rounded-[14px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(238,240,235,0.98)_0%,rgba(232,234,229,0.98)_100%)] p-1 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
+    <div className="relative z-20 overflow-visible rounded-[14px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(238,240,235,0.98)_0%,rgba(232,234,229,0.98)_100%)] p-1 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
       <div className="absolute inset-x-1.5 top-0 h-px bg-[rgba(255,255,255,0.78)]" />
       <div className="flex flex-col gap-1">
         {actions.map((action) => (
@@ -57,7 +57,6 @@ export function WorkspaceToolRail({
             key={action.id}
             onClick={action.onClick}
             disabled={action.disabled}
-            title={action.title}
             className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
               action.active
                 ? "border-[rgba(58,111,82,0.2)] bg-[rgba(225,236,229,0.96)] text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]"
@@ -66,7 +65,7 @@ export function WorkspaceToolRail({
             aria-label={action.label}
           >
             <ToolIcon id={action.id} />
-            <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-20 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
+            <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
               {action.title}
             </span>
           </button>
