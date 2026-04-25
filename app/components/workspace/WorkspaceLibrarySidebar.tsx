@@ -2,6 +2,16 @@
 
 import type { ReactNode } from "react";
 
+function LibraryToggleIcon() {
+  return (
+    <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="13" height="13" rx="3.5" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="4.8" y="4.8" width="4.1" height="10.4" rx="2" fill="currentColor" fillOpacity="0.12" />
+      <path d="M10 4.7V15.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function WorkspaceLibrarySidebar({
   isCollapsed,
   onToggle,
@@ -64,9 +74,7 @@ export function WorkspaceLibrarySidebar({
             className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-[rgba(59,63,60,0.09)] bg-[rgba(255,255,255,0.78)] text-[var(--ink-soft)] transition-all hover:border-[rgba(59,63,60,0.12)] hover:bg-white hover:text-[var(--ink)]"
             aria-label={isCollapsed ? "展开书库栏" : "收起书库栏"}
           >
-            <svg className={`h-4 w-4 transition-transform ${isCollapsed ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.5 4.5L7 10l5.5 5.5" />
-            </svg>
+            <LibraryToggleIcon />
           </button>
         </div>
 

@@ -2279,7 +2279,7 @@ export default function Home() {
                 {selectedFile ? selectedFile.name : "把新书放进书库"}
               </p>
               <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
-                {selectedFile ? "点击重新选择，或直接拖拽覆盖" : "支持 EPUB / PDF，上传入口固定在左侧书库栏顶部"}
+                {selectedFile ? "点击重新选择，或直接拖拽覆盖" : "支持 EPUB / PDF"}
               </p>
             </div>
           </div>
