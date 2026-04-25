@@ -208,6 +208,32 @@ select {
   color: var(--ink-soft);
 }
 
+.workspace-prose {
+  font-size: 1.02rem;
+  line-height: 2;
+  color: #474d4b;
+}
+
+.workspace-prose p {
+  line-height: 2;
+  margin: 0.85rem 0;
+}
+
+.workspace-prose h1,
+.workspace-prose h2,
+.workspace-prose h3 {
+  color: #2b302f;
+}
+
+.workspace-prose ul,
+.workspace-prose ol {
+  margin: 0.8rem 0;
+}
+
+.workspace-prose li {
+  margin: 0.34rem 0;
+}
+
 .md-prose > *:first-child { margin-top: 0; }
 .md-prose > *:last-child  { margin-bottom: 0; }
 
