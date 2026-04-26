@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 type WorkspaceToolAction = {
   id: string;
   label: string;
@@ -49,27 +51,42 @@ export function WorkspaceToolRail({
   actions: WorkspaceToolAction[];
 }) {
   return (
-    <div className="relative z-20 overflow-visible rounded-[14px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(238,240,235,0.98)_0%,rgba(232,234,229,0.98)_100%)] p-1 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
-      <div className="absolute inset-x-1.5 top-0 h-px bg-[rgba(255,255,255,0.78)]" />
-      <div className="flex flex-col gap-1">
-        {actions.map((action) => (
-          <button
-            key={action.id}
-            onClick={action.onClick}
-            disabled={action.disabled}
-            className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
-              action.active
-                ? "border-[rgba(58,111,82,0.2)] bg-[rgba(225,236,229,0.96)] text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]"
-                : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[rgba(59,63,60,0.1)] hover:bg-[rgba(255,255,255,0.82)] hover:text-[var(--ink)]"
-            } ${action.disabled ? "cursor-not-allowed opacity-40" : ""}`}
-            aria-label={action.label}
-          >
-            <ToolIcon id={action.id} />
-            <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
-              {action.title}
-            </span>
-          </button>
-        ))}
+    <div className="flex flex-col items-center gap-2">
+      <Link
+        href="/"
+        className="group relative flex h-10 w-10 items-center justify-center rounded-[12px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(244,245,241,0.98)_0%,rgba(236,238,234,0.98)_100%)] text-[var(--ink-soft)] shadow-[0_8px_22px_rgba(33,37,35,0.04)] transition-all hover:border-[rgba(59,63,60,0.14)] hover:bg-[rgba(255,255,255,0.92)] hover:text-[var(--ink)]"
+        aria-label="返回首页"
+      >
+        <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M11.5 4.5L6 10l5.5 5.5" />
+          <path d="M6.5 10H15" />
+        </svg>
+        <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
+          返回首页
+        </span>
+      </Link>
+
+      <div className="relative z-20 overflow-visible rounded-[14px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(238,240,235,0.98)_0%,rgba(232,234,229,0.98)_100%)] p-1 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
+        <div className="flex flex-col gap-1">
+          {actions.map((action) => (
+            <button
+              key={action.id}
+              onClick={action.onClick}
+              disabled={action.disabled}
+              className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
+                action.active
+                  ? "border-[rgba(58,111,82,0.2)] bg-[rgba(225,236,229,0.96)] text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]"
+                  : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[rgba(59,63,60,0.1)] hover:bg-[rgba(255,255,255,0.82)] hover:text-[var(--ink)]"
+              } ${action.disabled ? "cursor-not-allowed opacity-40" : ""}`}
+              aria-label={action.label}
+            >
+              <ToolIcon id={action.id} />
+              <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
+                {action.title}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

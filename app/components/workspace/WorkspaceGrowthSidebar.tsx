@@ -22,14 +22,14 @@ export function WorkspaceGrowthSidebar({
   children: ReactNode;
 }) {
   return (
-    <aside className="order-3 min-w-0 xl:order-none xl:sticky xl:top-[88px] xl:-translate-y-3 xl:self-start">
-      <div className="relative rounded-[18px] border border-[rgba(59,63,60,0.11)] bg-[linear-gradient(180deg,rgba(239,240,235,0.98)_0%,rgba(232,234,228,0.98)_100%)] px-3 pb-3 pt-2 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
+    <aside className="order-3 min-w-0 xl:order-none xl:h-full xl:min-h-0">
+      <div className="relative rounded-[18px] border border-[rgba(59,63,60,0.11)] bg-[linear-gradient(180deg,rgba(239,240,235,0.98)_0%,rgba(232,234,228,0.98)_100%)] px-3 pb-3 pt-2 shadow-[0_8px_22px_rgba(33,37,35,0.04)] xl:flex xl:h-full xl:min-h-0 xl:flex-col">
         <div className="absolute inset-x-4 top-0 h-px bg-[rgba(255,255,255,0.7)]" />
         <div className="mb-2 flex items-start justify-between gap-3 border-b border-[rgba(59,63,60,0.08)] pb-2.5">
           {!isCollapsed && (
             <div>
               <p className="font-editorial text-[1.22rem] font-semibold tracking-[-0.03em] text-[var(--ink)]">
-                成长区
+                跃迁
               </p>
             </div>
           )}
@@ -44,7 +44,7 @@ export function WorkspaceGrowthSidebar({
         </div>
 
         {isCollapsed ? (
-          <div className="flex items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.82)] py-3">
+          <div className="flex items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.82)] py-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
             <svg className="h-4.5 w-4.5 text-[var(--ink-soft)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4.5 15.5h11" />
               <path d="M6.5 13V9.5" />
@@ -53,7 +53,7 @@ export function WorkspaceGrowthSidebar({
             </svg>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
             {children}
           </div>
         )}
