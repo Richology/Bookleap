@@ -15,9 +15,9 @@ function LibraryToggleIcon() {
 function UploadIcon() {
   return (
     <>
-      <path d="M10 4v7.5" />
-      <path d="M6.8 7.2 10 4l3.2 3.2" />
-      <path d="M4.8 15h10.4" />
+      <path d="M10 5.1v6.1" />
+      <path d="M7.6 7.6 10 5.1l2.4 2.5" />
+      <path d="M5.2 12.9v1.3c0 .8.6 1.4 1.4 1.4h6.8c.8 0 1.4-.6 1.4-1.4v-1.3" />
     </>
   );
 }
@@ -25,11 +25,10 @@ function UploadIcon() {
 function GiftBooksIcon() {
   return (
     <>
-      <path d="M5.4 7.8h9.2" />
-      <path d="M5.4 10.2h9.2" />
-      <path d="M5.4 12.6h9.2" />
-      <path d="M7 6v8.4" />
-      <path d="M13 6v8.4" />
+      <rect x="4.8" y="5.4" width="2.5" height="8.6" rx="1" />
+      <rect x="8.65" y="4.9" width="2.5" height="9.1" rx="1" />
+      <rect x="12.5" y="5.8" width="2.1" height="8.2" rx="1" />
+      <path d="M4.5 14.4h10.9" />
     </>
   );
 }
@@ -37,9 +36,9 @@ function GiftBooksIcon() {
 function HistoryIcon() {
   return (
     <>
-      <path d="M6 6.7A5 5 0 1 1 5 10" />
-      <path d="M5.2 5v3.4h3.3" />
-      <path d="M10 7.2v3.1l2.1 1.3" />
+      <path d="M5.7 6.6A5 5 0 1 1 5 10.2" />
+      <path d="M5.1 4.9v3.2h3.2" />
+      <path d="M10 7.4v2.8l1.9 1.2" />
     </>
   );
 }
@@ -93,15 +92,17 @@ export function WorkspaceLibrarySidebar({
         {isCollapsed ? (
           <div className="no-scrollbar space-y-1.5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
             {collapsedItems.map((item) => (
-              <div
+              <button
                 key={item.label}
                 title={item.label}
-                className="flex h-10 items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.09)] bg-[rgba(255,255,255,0.78)] text-[var(--ink-soft)]"
+                type="button"
+                className="flex h-10 w-full items-center justify-center rounded-[11px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.82)] text-[var(--ink-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,0.66)] transition-colors hover:bg-white hover:text-[var(--ink)]"
+                aria-label={item.label}
               >
-                <svg className="h-[20px] w-[20px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="h-[19px] w-[19px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   {item.icon}
                 </svg>
-              </div>
+              </button>
             ))}
           </div>
         ) : (

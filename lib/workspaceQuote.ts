@@ -124,6 +124,7 @@ export function hasWorkspaceQuoteArtifacts(text: string, options?: { title?: str
 
   const artifactPattern = /(?:书名|作者|作者名|全书摘要|全书概要|内容摘要|摘要|核心问题|核心观点|核心命题|核心结论|关键观点|关键问题|阅读回响)[:：]?/u;
   if (artifactPattern.test(normalized)) return true;
+  if (/^[A-Za-z\u4e00-\u9fa5《》\s]{1,14}[:：]\s*/u.test(normalized)) return true;
 
   if (options?.title) {
     const title = options.title.trim();
