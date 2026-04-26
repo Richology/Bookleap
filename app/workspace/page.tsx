@@ -62,6 +62,7 @@ import {
   loadGrowthLedger,
   type GrowthLedger,
 } from "@/lib/growthLedger";
+import { sanitizeWorkspaceQuote } from "@/lib/workspaceQuote";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
   type GuidanceToast,
@@ -183,15 +184,6 @@ type WorkspaceMemoryCard = {
   author: string;
   quote: string;
 };
-
-function sanitizeWorkspaceQuote(text: string): string {
-  return text
-    .replace(
-      /^(这本书的核心是[:：]\s*|这本书的关键是[:：]\s*|核心是[:：]\s*|关键是[:：]\s*|一句话概括[:：]\s*|如果压缩成一句话[:：]\s*|可以概括为[:：]\s*)/u,
-      ""
-    )
-    .trim();
-}
 
 function pickWorkspaceQuote(record: HistoryRecord): string {
   const quote = sanitizeWorkspaceQuote(
