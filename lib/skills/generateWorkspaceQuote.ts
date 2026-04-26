@@ -20,5 +20,5 @@ export async function generateWorkspaceQuote(
 
   const prompt = WORKSPACE_QUOTE_PROMPT(title, bookSummary, context);
   const result = await generateWithOllama(prompt);
-  return sanitizeWorkspaceQuote(result);
+  return sanitizeWorkspaceQuote(result, { title });
 }
