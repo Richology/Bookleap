@@ -204,7 +204,8 @@ function pickWorkspaceQuote(record: HistoryRecord): string {
     .map((part) => part.trim())
     .find((part) => part.length >= 12) || record.bookSummary.trim();
 
-  return sanitizeWorkspaceQuote(sentence.slice(0, 40), { title: record.title });
+  const fallback = sanitizeWorkspaceQuote(sentence.slice(0, 40), { title: record.title });
+  return hasWorkspaceQuoteArtifacts(fallback, { title: record.title }) ? "" : fallback;
 }
 
 function hashString(value: string): number {
@@ -713,7 +714,7 @@ export default function Home() {
       viewValidation: criticalExamination,
       ideaSourceTracing,
       bookRecommendation: "",
-      workspaceQuote,
+      workspaceQuote: sanitizeWorkspaceQuote(workspaceQuote, { title: bookTitle }),
       posterContent: posterContent ?? null,
       isStarterBook: !!currentStarterBook,
       starterBookId: currentStarterBook?.id,
@@ -1003,7 +1004,7 @@ export default function Home() {
     setActionExtraction(bg.actionExtraction);
     setCriticalExamination(bg.viewValidation);
     setIdeaSourceTracing(bg.ideaSourceTracing);
-    setWorkspaceQuote(bg.workspaceQuote);
+    setWorkspaceQuote(sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }));
     setIsLiteMode(bg.liteMode);
     setIsLiteUnlocked(!bg.liteMode);
     setCurrentStarterBookId(bg.starterBookId);
@@ -1477,7 +1478,7 @@ export default function Home() {
     setActionExtraction(starterBook.analysis.actionExtraction);
     setCriticalExamination(starterBook.analysis.viewValidation);
     setIdeaSourceTracing(starterBook.analysis.ideaSourceTracing);
-    setWorkspaceQuote(starterBook.posterContent.highlight);
+    setWorkspaceQuote(sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }));
     setPosterContent(starterBook.posterContent);
     setDecisionScenarios(starterBook.decisionTraining);
     saveDecisionScenarioCache(buildDecisionBookId(starterBook.title), starterBook.decisionTraining);
@@ -1499,7 +1500,7 @@ export default function Home() {
       viewValidation: starterBook.analysis.viewValidation,
       ideaSourceTracing: starterBook.analysis.ideaSourceTracing,
       bookRecommendation: "",
-      workspaceQuote: starterBook.posterContent.highlight,
+      workspaceQuote: sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }),
       starterBookId: starterBook.id,
       author: starterBook.author,
     };
@@ -1832,7 +1833,10 @@ export default function Home() {
         }
 
         if (quoteResult.status === "fulfilled" && quoteResult.value.success) {
-          bg.workspaceQuote = quoteResult.value.workspaceQuote || "";
+          bg.workspaceQuote = sanitizeWorkspaceQuote(
+            quoteResult.value.workspaceQuote || "",
+            { title: bg.title }
+          );
           if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
         }
 
@@ -1918,7 +1922,10 @@ export default function Home() {
         if (isStillViewing()) setIdeaSourceTracing(bg.ideaSourceTracing);
       }
       if (quoteResult.status === "fulfilled" && quoteResult.value.success) {
-        bg.workspaceQuote = quoteResult.value.workspaceQuote || "";
+        bg.workspaceQuote = sanitizeWorkspaceQuote(
+          quoteResult.value.workspaceQuote || "",
+          { title: bg.title }
+        );
         if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
       }
       if (isStillViewing()) {
