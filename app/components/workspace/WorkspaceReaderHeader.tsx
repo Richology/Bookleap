@@ -16,14 +16,14 @@ export function WorkspaceReaderHeader({
   cover?: ReactNode;
 }) {
   return (
-    <div className="grid gap-6 border-b border-[rgba(59,63,60,0.09)] bg-[linear-gradient(180deg,rgba(241,242,237,0.96)_0%,rgba(250,250,247,0.92)_100%)] px-5 py-6 md:grid-cols-[122px_minmax(0,1fr)] md:px-8 md:py-7">
+    <div className="grid gap-5 border-b border-[rgba(59,63,60,0.09)] bg-[linear-gradient(180deg,rgba(241,242,237,0.96)_0%,rgba(250,250,247,0.92)_100%)] px-5 py-5 md:grid-cols-[108px_minmax(0,1fr)] md:px-6 md:py-5">
       <div className="hidden md:block">
         {cover}
       </div>
 
       <div className="min-w-0">
-        <div className="flex flex-col gap-5 md:gap-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-4 md:gap-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.76)] px-3 py-1 text-[11px] font-medium text-[var(--ink-soft)]">
@@ -34,19 +34,19 @@ export function WorkspaceReaderHeader({
                 </span>
               </div>
 
-              <h1 className="font-editorial mt-4 line-clamp-2 text-[2.3rem] font-semibold leading-[1.02] tracking-[-0.045em] text-[var(--ink)] md:text-[2.9rem]">
+              <h1 className="font-editorial mt-3 line-clamp-2 text-[2.15rem] font-semibold leading-[1.02] tracking-[-0.045em] text-[var(--ink)] md:text-[2.65rem]">
                 {title}
               </h1>
 
               {subtitle && (
-                <p className="mt-2 text-[15px] font-medium text-[var(--ink-soft)] md:text-lg">
+                <p className="mt-1.5 text-[14px] font-medium text-[var(--ink-soft)] md:text-[16px]">
                   {subtitle}
                 </p>
               )}
             </div>
 
             {controls && (
-              <div className="flex flex-wrap items-center gap-3 md:justify-end">
+              <div className="flex flex-wrap items-center gap-2.5 md:justify-end">
                 {controls}
               </div>
             )}

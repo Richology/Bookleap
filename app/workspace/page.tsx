@@ -1880,7 +1880,7 @@ export default function Home() {
 
     const cardClassName = (() => {
       const base =
-        "group w-full rounded-[22px] p-6 flex min-h-[260px] flex-col gap-4 transition-all duration-200";
+        "group flex w-full min-h-[228px] flex-col gap-3 rounded-[20px] p-5 transition-all duration-200";
       const restingTone = isMapCard
         ? "archive-callout"
         : "bg-[var(--paper)]";
@@ -1923,7 +1923,7 @@ export default function Home() {
         ) : (
           <>
             <div
-              className={`relative flex-1 overflow-hidden ${isExpanded ? "" : "max-h-28"}`}
+              className={`relative flex-1 overflow-hidden ${isExpanded ? "" : "max-h-32"}`}
             >
               <div className="md-prose workspace-prose">
                 <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
@@ -1940,7 +1940,7 @@ export default function Home() {
                 />
               )}
             </div>
-            <p className="mt-auto text-right text-[10px] text-[var(--ink-faint)] select-none">
+            <p className="mt-auto pt-1 text-right text-[10px] text-[var(--ink-faint)] select-none">
               {isExpanded ? "收起 ↑" : "展开阅读 ↓"}
             </p>
           </>
@@ -2502,7 +2502,7 @@ export default function Home() {
             )}
           />
 
-          <div ref={cardSectionRef} className="p-5 md:p-8" style={{ scrollMarginTop: "24px" }}>
+          <div ref={cardSectionRef} className="p-4 md:p-6 xl:p-5" style={{ scrollMarginTop: "24px" }}>
             {isDecisionPanelOpen && decisionScenarios.length > 0 && (
               <DecisionTrainingPanel
                 scenarios={decisionScenarios}
@@ -2731,30 +2731,30 @@ export default function Home() {
               )}
 
             {!isDecisionPanelOpen && viewMode === "card" && (
-              <div className="space-y-10">
+              <div className="space-y-8">
                 {beforeReadingCards.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
                       <p className="archive-kicker">
                         阅读前
                       </p>
                       <div className="h-px flex-1 bg-[rgba(119,124,123,0.16)]" />
                     </div>
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
                       {beforeReadingCards}
                     </div>
                   </div>
                 )}
 
                 {(!isLiteMode || isLiteUnlocked) && afterReadingCards.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
                       <p className="archive-kicker">
                         阅读后
                       </p>
                       <div className="h-px flex-1 bg-[rgba(119,124,123,0.16)]" />
                     </div>
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
                       {afterReadingCards}
                     </div>
                   </div>
