@@ -57,8 +57,8 @@ export function WorkspaceLibrarySidebar({
   ];
 
   return (
-    <aside className="order-2 min-w-0 xl:order-none xl:sticky xl:top-[88px] xl:self-start">
-      <div className="relative rounded-[18px] border border-[rgba(59,63,60,0.11)] bg-[linear-gradient(180deg,rgba(239,240,235,0.98)_0%,rgba(232,234,228,0.98)_100%)] p-3 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
+    <aside className="order-2 min-w-0 xl:order-none xl:h-full xl:min-h-0">
+      <div className="relative rounded-[18px] border border-[rgba(59,63,60,0.11)] bg-[linear-gradient(180deg,rgba(239,240,235,0.98)_0%,rgba(232,234,228,0.98)_100%)] p-3 shadow-[0_8px_22px_rgba(33,37,35,0.04)] xl:flex xl:h-full xl:min-h-0 xl:flex-col">
         <div className="absolute inset-x-4 top-0 h-px bg-[rgba(255,255,255,0.7)]" />
         <div className="mb-3 flex items-start justify-between gap-3 border-b border-[rgba(59,63,60,0.08)] pb-3">
           {!isCollapsed && (
@@ -79,7 +79,7 @@ export function WorkspaceLibrarySidebar({
         </div>
 
         {isCollapsed ? (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
             {collapsedItems.map((item) => (
               <div
                 key={item.label}
@@ -93,7 +93,7 @@ export function WorkspaceLibrarySidebar({
             ))}
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
             {children}
           </div>
         )}

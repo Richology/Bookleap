@@ -361,6 +361,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const touchStartXRef = useRef(0);
   const immersiveContainerRef = useRef<HTMLDivElement>(null);
+  const readerScrollContainerRef = useRef<HTMLDivElement>(null);
   const immersiveCardsLenRef = useRef(0);
   const shouldScrollToStarterSectionRef = useRef(false);
 
@@ -839,6 +840,13 @@ export default function Home() {
     setIsDragging(false);
   }, []);
 
+  const resetReaderScrollPosition = useCallback(() => {
+    readerScrollContainerRef.current?.scrollTo({
+      top: 0,
+      behavior: "auto",
+    });
+  }, []);
+
   const toggleCard = (key: string) => {
     setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -973,10 +981,10 @@ export default function Home() {
 
   const openHistoryRecord = useCallback((record: HistoryRecord) => {
     restoreFromHistory(record);
-    setTimeout(() => {
-      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-  }, [restoreFromHistory]);
+    requestAnimationFrame(() => {
+      resetReaderScrollPosition();
+    });
+  }, [resetReaderScrollPosition, restoreFromHistory]);
 
   const processFile = (file: File | undefined | null) => {
     if (!file) {
@@ -1544,9 +1552,9 @@ export default function Home() {
         return next;
       });
 
-      setTimeout(() => {
-        cardSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 120);
+      requestAnimationFrame(() => {
+        resetReaderScrollPosition();
+      });
 
       setTimeout(() => {
         enqueueGuidanceToast({
@@ -1560,7 +1568,7 @@ export default function Home() {
       resetDragState();
       setIsStarterLoading(false);
     }
-  }, [applyStarterBook, enqueueGuidanceToast, isStarterLoading, resetDragState]);
+  }, [applyStarterBook, enqueueGuidanceToast, isStarterLoading, resetDragState, resetReaderScrollPosition]);
 
   const activateWorkspaceTab = useCallback((tabId: string) => {
     const tab = openTabs.find((item) => item.id === tabId);
@@ -1604,6 +1612,17 @@ export default function Home() {
     resetAllState();
     setActiveTabId(null);
   }, [activeTabId, activateWorkspaceTab, isAnalyzing, openTabs, resetAllState]);
+
+  const closeAllWorkspaceTabs = useCallback(() => {
+    if (isAnalyzing) return;
+
+    setOpenTabs([]);
+    setActiveTabId(null);
+    bgAnalysisTitleRef.current = "";
+    setSelectedFile(null);
+    setMessage("");
+    resetAllState();
+  }, [isAnalyzing, resetAllState]);
 
   useEffect(() => {
     if (message !== "分析完成" || isAnalyzing || !bookTitle || !selectedFile || !currentBookId) return;
@@ -2166,7 +2185,6 @@ export default function Home() {
   const topBarTabs = openTabs.map<WorkspaceTabItem>((tab) => ({
     id: tab.id,
     title: tab.title,
-    subtitle: tab.subtitle,
     closable: tab.closable,
   }));
   const hasPendingStarterBooks = experiencedStarterIds.length < starterBooks.length;
@@ -2311,15 +2329,13 @@ export default function Home() {
         >
           {starterBooks.map((book) => {
             const isCurrentStarter = currentStarterBookId === book.id;
-            const hasExperienced = experiencedStarterIds.includes(book.id);
-            const badge = isCurrentStarter ? "当前打开" : hasExperienced ? "已体验" : "赠送";
 
             return (
               <WorkspaceBookItem
                 key={book.id}
                 title={book.title}
                 subtitle={book.author}
-                badge={badge}
+                badge={isCurrentStarter ? "当前" : undefined}
                 tone={isCurrentStarter ? "current" : "gifted"}
                 onClick={() => void handleSelectStarterBook(book.id)}
               />
@@ -2362,7 +2378,7 @@ export default function Home() {
                 key={`history-${record.id}`}
                 title={record.title}
                 subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
-                badge={record.title === bookTitle ? "当前" : record.isStarterBook ? "赠送" : undefined}
+                badge={record.title === bookTitle ? "当前" : undefined}
                 tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
                 onClick={() => openHistoryRecord(record)}
                 onDelete={() => deleteHistoryRecord(record.id)}
@@ -2375,7 +2391,18 @@ export default function Home() {
   );
 
   const readerPane = (
-    <WorkspaceReaderPane>
+    <WorkspaceReaderPane
+      topBar={(
+        <WorkspaceTopBar
+          tabs={topBarTabs}
+          activeTabId={activeTabId}
+          onActivateTab={activateWorkspaceTab}
+          onCloseTab={closeWorkspaceTab}
+          onCloseAllTabs={closeAllWorkspaceTabs}
+        />
+      )}
+      scrollContainerRef={readerScrollContainerRef}
+    >
       {message && !(bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle) && (() => {
         const isError =
           message.includes("失败") ||
@@ -2434,7 +2461,7 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div ref={immersiveContainerRef} style={{ scrollMarginTop: "84px" }}>
+        <div ref={immersiveContainerRef} style={{ scrollMarginTop: "24px" }}>
           <WorkspaceReaderHeader
             title={bookTitle}
             subtitle={currentBookAuthor}
@@ -2475,7 +2502,7 @@ export default function Home() {
             )}
           />
 
-          <div ref={cardSectionRef} className="p-5 md:p-8" style={{ scrollMarginTop: "84px" }}>
+          <div ref={cardSectionRef} className="p-5 md:p-8" style={{ scrollMarginTop: "24px" }}>
             {isDecisionPanelOpen && decisionScenarios.length > 0 && (
               <DecisionTrainingPanel
                 scenarios={decisionScenarios}
@@ -2792,14 +2819,6 @@ export default function Home() {
   return (
     <>
       <WorkspaceShell
-        topBar={(
-          <WorkspaceTopBar
-            tabs={topBarTabs}
-            activeTabId={activeTabId}
-            onActivateTab={activateWorkspaceTab}
-            onCloseTab={closeWorkspaceTab}
-          />
-        )}
         toolRail={<WorkspaceToolRail actions={toolRailActions} />}
         librarySidebar={librarySidebar}
         readerPane={readerPane}
