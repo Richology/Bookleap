@@ -2169,12 +2169,10 @@ export default function Home() {
     subtitle: tab.subtitle,
     closable: tab.closable,
   }));
-  const recentReadingRecords = recentHistory.slice(0, 4);
-  const completedHistoryRecords = recentHistory
-    .filter((record) => record.id !== currentHistoryRecord?.id)
-    .slice(0, 4);
-  const uploadedHistoryRecords = (showFullHistory ? recentHistory : recentHistory.slice(0, 6))
-    .filter((record) => !record.isStarterBook);
+  const hasPendingStarterBooks = experiencedStarterIds.length < starterBooks.length;
+  const fullHistoryRecords = recentHistory
+    .filter((record) => hasPendingStarterBooks ? !record.isStarterBook : true);
+  const historyRecords = showFullHistory ? fullHistoryRecords : fullHistoryRecords.slice(0, 6);
   const inProgressLabel = visibleAnalysisSteps.length > 0
     ? `${completedAnalysisSteps}/${visibleAnalysisSteps.length}`
     : "准备中";
@@ -2307,26 +2305,28 @@ export default function Home() {
         <p className="mt-3 text-[11px] text-[var(--ink-faint)]">推荐 EPUB，解析更完整。</p>
       </section>
 
-      <WorkspaceLibraryGroup
-        title="赠送书单"
-      >
-        {starterBooks.map((book) => {
-          const isCurrentStarter = currentStarterBookId === book.id;
-          const hasExperienced = experiencedStarterIds.includes(book.id);
-          const badge = isCurrentStarter ? "当前打开" : hasExperienced ? "已体验" : "赠送";
+      {hasPendingStarterBooks && (
+        <WorkspaceLibraryGroup
+          title="赠送书单"
+        >
+          {starterBooks.map((book) => {
+            const isCurrentStarter = currentStarterBookId === book.id;
+            const hasExperienced = experiencedStarterIds.includes(book.id);
+            const badge = isCurrentStarter ? "当前打开" : hasExperienced ? "已体验" : "赠送";
 
-          return (
-            <WorkspaceBookItem
-              key={book.id}
-              title={book.title}
-              subtitle={book.author}
-              badge={badge}
-              tone={isCurrentStarter ? "current" : "gifted"}
-              onClick={() => void handleSelectStarterBook(book.id)}
-            />
-          );
-        })}
-      </WorkspaceLibraryGroup>
+            return (
+              <WorkspaceBookItem
+                key={book.id}
+                title={book.title}
+                subtitle={book.author}
+                badge={badge}
+                tone={isCurrentStarter ? "current" : "gifted"}
+                onClick={() => void handleSelectStarterBook(book.id)}
+              />
+            );
+          })}
+        </WorkspaceLibraryGroup>
+      )}
 
       {bookTitle && isAnalyzing && (
         <WorkspaceLibraryGroup
@@ -2344,71 +2344,32 @@ export default function Home() {
         </WorkspaceLibraryGroup>
       )}
 
-      {recentReadingRecords.length > 0 && (
+      {historyRecords.length > 0 && (
         <div ref={historyPanelRef}>
           <WorkspaceLibraryGroup
-            title="最近阅读"
+            title="上传历史"
+            actions={fullHistoryRecords.length > 6 ? (
+              <button
+                onClick={() => setShowFullHistory((prev) => !prev)}
+                className="text-[11px] font-medium text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+              >
+                {showFullHistory ? "收起" : "展开"}
+              </button>
+            ) : undefined}
           >
-            {recentReadingRecords.map((record) => (
+            {historyRecords.map((record) => (
               <WorkspaceBookItem
-                key={`recent-${record.id}`}
+                key={`history-${record.id}`}
                 title={record.title}
                 subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
-                badge={record.title === bookTitle ? "当前" : undefined}
-                tone={record.title === bookTitle ? "current" : "default"}
+                badge={record.title === bookTitle ? "当前" : record.isStarterBook ? "赠送" : undefined}
+                tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
                 onClick={() => openHistoryRecord(record)}
                 onDelete={() => deleteHistoryRecord(record.id)}
               />
             ))}
           </WorkspaceLibraryGroup>
         </div>
-      )}
-
-      {completedHistoryRecords.length > 0 && (
-        <WorkspaceLibraryGroup
-          title="已完成"
-        >
-          {completedHistoryRecords.map((record) => (
-            <WorkspaceBookItem
-              key={`completed-${record.id}`}
-              title={record.title}
-              subtitle={record.author || `${record.fileType.toUpperCase()} · ${new Date(record.createdAt).toLocaleDateString("zh-CN", {
-                month: "short",
-                day: "numeric",
-              })}`}
-              badge={record.mode === "lite" ? "简化版" : "已完成"}
-              onClick={() => openHistoryRecord(record)}
-            />
-          ))}
-        </WorkspaceLibraryGroup>
-      )}
-
-      {uploadedHistoryRecords.length > 0 && (
-        <WorkspaceLibraryGroup
-          title="上传历史"
-          actions={recentHistory.length > 6 ? (
-            <button
-              onClick={() => setShowFullHistory((prev) => !prev)}
-              className="text-[11px] font-medium text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
-            >
-              {showFullHistory ? "收起" : "展开"}
-            </button>
-          ) : undefined}
-        >
-          {uploadedHistoryRecords.length > 0 ? uploadedHistoryRecords.map((record) => (
-            <WorkspaceBookItem
-              key={`upload-${record.id}`}
-              title={record.title}
-              subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
-              badge={record.title === bookTitle ? "当前" : undefined}
-              tone={record.title === bookTitle ? "current" : "default"}
-              onClick={() => openHistoryRecord(record)}
-              onDelete={() => deleteHistoryRecord(record.id)}
-            />
-          )) : (
-            <p className="px-1 text-xs text-[var(--ink-faint)]">还没有上传历史。</p>
-          )}
-        </WorkspaceLibraryGroup>
       )}
     </WorkspaceLibrarySidebar>
   );
