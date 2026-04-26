@@ -87,6 +87,7 @@ type BgAnalysisData = {
   actionExtraction: string;
   viewValidation: string;
   ideaSourceTracing: string;
+  workspaceQuote: string;
   liteMode: boolean;
   fileType: string;
   starterBookId: string | null;
@@ -169,11 +170,51 @@ type HistoryRecord = {
   viewValidation: string;
   ideaSourceTracing: string;
   bookRecommendation: string;
+  workspaceQuote?: string;
   posterContent?: PosterContent | null;
   isStarterBook?: boolean;
   starterBookId?: string;
   author?: string;
 };
+
+type WorkspaceMemoryCard = {
+  id: string;
+  title: string;
+  author: string;
+  quote: string;
+};
+
+function sanitizeWorkspaceQuote(text: string): string {
+  return text
+    .replace(
+      /^(这本书的核心是[:：]\s*|这本书的关键是[:：]\s*|核心是[:：]\s*|关键是[:：]\s*|一句话概括[:：]\s*|如果压缩成一句话[:：]\s*|可以概括为[:：]\s*)/u,
+      ""
+    )
+    .trim();
+}
+
+function pickWorkspaceQuote(record: HistoryRecord): string {
+  const quote = sanitizeWorkspaceQuote(
+    record.workspaceQuote?.trim() || record.posterContent?.highlight?.trim() || ""
+  );
+  if (quote) return quote;
+
+  const sentence = record.bookSummary
+    .replace(/\s+/g, " ")
+    .split(/[。！？!?]/)
+    .map((part) => part.trim())
+    .find((part) => part.length >= 12) || record.bookSummary.trim();
+
+  return sanitizeWorkspaceQuote(sentence.slice(0, 40));
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
 
 function loadHistory(): HistoryRecord[] {
   try {
@@ -379,6 +420,7 @@ export default function Home() {
   const [actionExtraction, setActionExtraction] = useState("");
   const [criticalExamination, setCriticalExamination] = useState("");
   const [ideaSourceTracing, setIdeaSourceTracing] = useState("");
+  const [workspaceQuote, setWorkspaceQuote] = useState("");
   const [bookSummary, setBookSummary] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -428,6 +470,7 @@ export default function Home() {
   const [growthLedger, setGrowthLedger] = useState<GrowthLedger>(() => getEmptyGrowthLedger());
   const cardSectionRef = useRef<HTMLDivElement>(null);
   const [recentHistory, setRecentHistory] = useState<HistoryRecord[]>([]);
+  const [workspaceCardSeed] = useState(() => Math.random().toString(36).slice(2));
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [isLibraryCollapsed, setIsLibraryCollapsed] = useState(false);
   const [isGrowthPanelCollapsed, setIsGrowthPanelCollapsed] = useState(false);
@@ -538,6 +581,25 @@ export default function Home() {
     () => recentHistory.find((record) => record.title === bookTitle) ?? null,
     [bookTitle, recentHistory]
   );
+  const workspaceMemoryCards = useMemo<WorkspaceMemoryCard[]>(() => {
+    return recentHistory
+      .filter((record) => {
+        const quote = pickWorkspaceQuote(record);
+        return !!record.title && !!quote;
+      })
+      .map((record) => ({
+        id: record.id,
+        title: record.title,
+        author: record.author || (record.starterBookId ? starterBooksById[record.starterBookId]?.author ?? "" : ""),
+        quote: pickWorkspaceQuote(record),
+      }))
+      .sort((a, b) => {
+        const aScore = hashString(`${workspaceCardSeed}:${a.id}`);
+        const bScore = hashString(`${workspaceCardSeed}:${b.id}`);
+        return aScore - bScore;
+      })
+      .slice(0, 2);
+  }, [recentHistory, workspaceCardSeed]);
   const currentWorkspaceTab = useMemo<WorkspaceTab | null>(() => {
     if (!bookTitle) return null;
 
@@ -652,6 +714,7 @@ export default function Home() {
       viewValidation: criticalExamination,
       ideaSourceTracing,
       bookRecommendation: "",
+      workspaceQuote,
       posterContent: posterContent ?? null,
       isStarterBook: !!currentStarterBook,
       starterBookId: currentStarterBook?.id,
@@ -909,6 +972,7 @@ export default function Home() {
     setIsLoadingViewValidation(false);
     setIdeaSourceTracing("");
     setIsLoadingIdeaSourceTracing(false);
+    setWorkspaceQuote("");
     setChapters([]);
     setIsLiteMode(false);
     setIsLiteUnlocked(false);
@@ -940,6 +1004,7 @@ export default function Home() {
     setActionExtraction(bg.actionExtraction);
     setCriticalExamination(bg.viewValidation);
     setIdeaSourceTracing(bg.ideaSourceTracing);
+    setWorkspaceQuote(bg.workspaceQuote);
     setIsLiteMode(bg.liteMode);
     setIsLiteUnlocked(!bg.liteMode);
     setCurrentStarterBookId(bg.starterBookId);
@@ -969,6 +1034,7 @@ export default function Home() {
     setActionExtraction(record.actionExtraction);
     setCriticalExamination(record.viewValidation);
     setIdeaSourceTracing(record.ideaSourceTracing);
+    setWorkspaceQuote(pickWorkspaceQuote(record));
     setPosterContent(record.posterContent ?? null);
     setCurrentStarterBookId(record.isStarterBook ? record.starterBookId ?? null : null);
     setIsLiteMode(record.mode === "lite");
@@ -1412,6 +1478,7 @@ export default function Home() {
     setActionExtraction(starterBook.analysis.actionExtraction);
     setCriticalExamination(starterBook.analysis.viewValidation);
     setIdeaSourceTracing(starterBook.analysis.ideaSourceTracing);
+    setWorkspaceQuote(starterBook.posterContent.highlight);
     setPosterContent(starterBook.posterContent);
     setDecisionScenarios(starterBook.decisionTraining);
     saveDecisionScenarioCache(buildDecisionBookId(starterBook.title), starterBook.decisionTraining);
@@ -1433,6 +1500,7 @@ export default function Home() {
       viewValidation: starterBook.analysis.viewValidation,
       ideaSourceTracing: starterBook.analysis.ideaSourceTracing,
       bookRecommendation: "",
+      workspaceQuote: starterBook.posterContent.highlight,
       starterBookId: starterBook.id,
       author: starterBook.author,
     };
@@ -1673,7 +1741,7 @@ export default function Home() {
       const bg: BgAnalysisData = {
         title: "", bookSummary: "", chapters: [], readingGuide: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
-        ideaSourceTracing: "", liteMode: false,
+        ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
         fileType: selectedFile.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub",
         starterBookId: currentStarterBookId,
       };
@@ -1746,7 +1814,31 @@ export default function Home() {
         
         setMessage("正在生成阅读指南...");
         updateProgress("阅读指南…");
-        fetchReadingGuide(title, bkSummary, chaps, false);
+        const [guideResult, quoteResult] = await Promise.allSettled([
+          fetch("/api/skills/reading-guide", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, bookSummary: bkSummary, chapters: chaps }),
+          }).then((r) => r.json()),
+          fetch("/api/skills/workspace-quote", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, bookSummary: bkSummary, chapters: chaps }),
+          }).then((r) => r.json()),
+        ]);
+
+        if (guideResult.status === "fulfilled" && guideResult.value.success) {
+          bg.readingGuide = guideResult.value.readingGuide || "";
+          if (isStillViewing()) setReadingGuide(bg.readingGuide);
+        }
+
+        if (quoteResult.status === "fulfilled" && quoteResult.value.success) {
+          bg.workspaceQuote = quoteResult.value.workspaceQuote || "";
+          if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
+        }
+
+        if (isStillViewing()) setIsLoadingReadingGuide(false);
+        setMessage("分析完成");
         setBgAnalysisStatus({ active: false });
         // NOTE: We rely on the useEffect hook to catch message === "分析完成" && !isAnalyzing to save history.
         return;
@@ -1791,7 +1883,7 @@ export default function Home() {
       // ── Parallel: Action + Validation + IdeaSource ──
       updateProgress("剩余分析…");
       if (isStillViewing()) setMessage("正在生成剩余分析...");
-      const [actionResult, validResult, ideaResult] = await Promise.allSettled([
+      const [actionResult, validResult, ideaResult, quoteResult] = await Promise.allSettled([
         fetch("/api/skills/action-extraction", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1807,6 +1899,11 @@ export default function Home() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, bookSummary: bkSummary, viewMap: bg.viewMap || "" }),
         }).then(r => r.json()),
+        fetch("/api/skills/workspace-quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, bookSummary: bkSummary, chapters: chaps }),
+        }).then(r => r.json()),
       ]);
 
       if (actionResult.status === "fulfilled" && actionResult.value.success) {
@@ -1820,6 +1917,10 @@ export default function Home() {
       if (ideaResult.status === "fulfilled" && ideaResult.value.success) {
         bg.ideaSourceTracing = ideaResult.value.ideaSourceTracing || "";
         if (isStillViewing()) setIdeaSourceTracing(bg.ideaSourceTracing);
+      }
+      if (quoteResult.status === "fulfilled" && quoteResult.value.success) {
+        bg.workspaceQuote = quoteResult.value.workspaceQuote || "";
+        if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
       }
       if (isStillViewing()) {
         setIsLoadingActionExtraction(false);
@@ -2452,13 +2553,57 @@ export default function Home() {
       })()}
 
       {!bookTitle ? (
-        <div className="flex min-h-[680px] items-center justify-center px-8 py-14">
+        <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
           <div className="max-w-2xl text-center">
             <p className="archive-kicker">Workspace</p>
             <h2 className="font-editorial mt-4 text-[2.4rem] font-semibold tracking-[-0.05em] text-[var(--ink)] md:text-[3.2rem]">
               选择一本书开始阅读
             </h2>
           </div>
+
+          {workspaceMemoryCards.length > 0 && (
+            <div className="mt-16 grid w-full max-w-5xl grid-cols-1 gap-5 xl:grid-cols-2">
+              {workspaceMemoryCards.map((card, index) => (
+                <div
+                  key={card.id}
+                  className="rounded-[22px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.72)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[rgba(58,111,82,0.14)] bg-[rgba(241,249,244,0.96)] text-[var(--accent)]">
+                      {index === 0 ? (
+                        <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M4.5 5.5h11" />
+                          <path d="M4.5 10h8.5" />
+                          <path d="M4.5 14.5h6.5" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M10 3.8a4 4 0 0 1 4 4c0 1.3-.6 2.4-1.5 3.2L10 13.2 7.5 11C6.6 10.2 6 9.1 6 7.8a4 4 0 0 1 4-4Z" />
+                          <path d="M10 13.2v3" />
+                        </svg>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-[var(--accent)]">
+                        {index === 0 ? "书中金句" : "阅读回响"}
+                      </p>
+                      <p className="mt-0.5 truncate text-[12px] text-[var(--ink-faint)]">
+                        《{card.title}》{card.author ? ` · ${card.author}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-[16px] bg-[rgba(246,247,243,0.88)] px-4 py-4">
+                    <div className="border-l-2 border-[rgba(58,111,82,0.72)] pl-3">
+                      <p className="text-[18px] italic leading-8 text-[var(--ink)]">
+                        {card.quote}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div ref={immersiveContainerRef} style={{ scrollMarginTop: "24px" }}>
