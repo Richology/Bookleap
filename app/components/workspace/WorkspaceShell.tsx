@@ -18,8 +18,8 @@ export function WorkspaceShell({
   isGrowthCollapsed: boolean;
 }) {
   const shellStyle = {
-    "--workspace-library-width": isLibraryCollapsed ? "88px" : "312px",
-    "--workspace-growth-width": isGrowthCollapsed ? "56px" : "320px",
+    "--workspace-library-width": isLibraryCollapsed ? "88px" : "286px",
+    "--workspace-growth-width": isGrowthCollapsed ? "56px" : "294px",
   } as CSSProperties;
 
   return (
@@ -29,8 +29,8 @@ export function WorkspaceShell({
       <div className="pointer-events-none absolute left-[-80px] top-24 h-[240px] w-[240px] rounded-full bg-[rgba(58,111,82,0.06)] blur-3xl" />
       <div className="pointer-events-none absolute right-[-120px] top-[260px] h-[320px] w-[320px] rounded-full bg-[rgba(85,92,89,0.05)] blur-3xl" />
 
-      <div className="mx-auto max-w-[1760px] px-3 pb-10 pt-3 md:px-5 md:pt-4 xl:flex xl:h-full xl:min-h-0 xl:box-border xl:flex-col xl:px-6 xl:pb-4 xl:pt-4" style={shellStyle}>
-        <div className="grid grid-cols-1 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[52px_var(--workspace-library-width)_minmax(0,1fr)_var(--workspace-growth-width)]">
+      <div className="mx-auto max-w-[1760px] px-3 pb-10 pt-3 md:px-5 md:pt-4 xl:flex xl:h-full xl:min-h-0 xl:box-border xl:flex-col xl:px-5 xl:pb-3 xl:pt-3" style={shellStyle}>
+        <div className="grid grid-cols-1 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[48px_var(--workspace-library-width)_minmax(0,1fr)_var(--workspace-growth-width)] xl:gap-2.5">
           <div className="hidden xl:flex xl:h-full xl:min-h-0 xl:items-start xl:justify-center">
             {toolRail}
           </div>
