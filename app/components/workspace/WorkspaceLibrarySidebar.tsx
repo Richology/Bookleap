@@ -12,6 +12,38 @@ function LibraryToggleIcon() {
   );
 }
 
+function UploadIcon() {
+  return (
+    <>
+      <path d="M10 4v7.5" />
+      <path d="M6.8 7.2 10 4l3.2 3.2" />
+      <path d="M4.8 15h10.4" />
+    </>
+  );
+}
+
+function GiftBooksIcon() {
+  return (
+    <>
+      <path d="M5.4 7.8h9.2" />
+      <path d="M5.4 10.2h9.2" />
+      <path d="M5.4 12.6h9.2" />
+      <path d="M7 6v8.4" />
+      <path d="M13 6v8.4" />
+    </>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <>
+      <path d="M6 6.7A5 5 0 1 1 5 10" />
+      <path d="M5.2 5v3.4h3.3" />
+      <path d="M10 7.2v3.1l2.1 1.3" />
+    </>
+  );
+}
+
 export function WorkspaceLibrarySidebar({
   isCollapsed,
   onToggle,
@@ -24,35 +56,15 @@ export function WorkspaceLibrarySidebar({
   const collapsedItems = [
     {
       label: "上传",
-      icon: (
-        <>
-          <path d="M10 4v7.5" />
-          <path d="M6.8 7.2 10 4l3.2 3.2" />
-          <path d="M4.8 15h10.4" />
-        </>
-      ),
+      icon: <UploadIcon />,
     },
     {
       label: "赠送",
-      icon: (
-        <>
-          <path d="M4.8 8.5h10.4v6H4.8z" />
-          <path d="M10 8.5v6" />
-          <path d="M4.8 10.2h10.4" />
-          <path d="M7.1 6.6c0-.9.6-1.5 1.4-1.5.9 0 1.5.7 1.5 1.8v1.6H8.4c-.8 0-1.3-.8-1.3-1.9Z" />
-          <path d="M12.9 6.6c0-.9-.6-1.5-1.4-1.5-.9 0-1.5.7-1.5 1.8v1.6h1.6c.8 0 1.3-.8 1.3-1.9Z" />
-        </>
-      ),
+      icon: <GiftBooksIcon />,
     },
     {
       label: "历史",
-      icon: (
-        <>
-          <path d="M5.3 7.2A5 5 0 1 1 4.9 10" />
-          <path d="M5.1 4.9v3h3" />
-          <path d="M10 7.4v2.9l2 1.2" />
-        </>
-      ),
+      icon: <HistoryIcon />,
     },
   ];
 
@@ -86,7 +98,7 @@ export function WorkspaceLibrarySidebar({
                 title={item.label}
                 className="flex h-10 items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.09)] bg-[rgba(255,255,255,0.78)] text-[var(--ink-soft)]"
               >
-                <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="h-[20px] w-[20px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                   {item.icon}
                 </svg>
               </div>

@@ -63,6 +63,28 @@ function stripLeadingBookTitle(text: string, title?: string): string {
   return text.replace(titlePattern, "").trimStart();
 }
 
+function stripLeadingLabel(text: string): string {
+  let normalized = text;
+
+  for (let i = 0; i < 3; i += 1) {
+    const match = normalized.match(
+      /^([A-Za-z\u4e00-\u9fa5《》\s]{1,14})[:：]\s*([^\n]+)$/u
+    );
+    if (!match) break;
+
+    const label = match[1].replace(/\s+/g, "").trim();
+    const content = match[2].trim();
+
+    if (!label || !content) break;
+    if (/[，。！？、“”‘’；;（）()【】\[\]<>]/u.test(label)) break;
+    if (content.length < 6) break;
+
+    normalized = content;
+  }
+
+  return normalized.trim();
+}
+
 export function sanitizeWorkspaceQuote(text: string, options?: { title?: string }): string {
   let normalized = text
     .replace(/\*\*|__|`/g, " ")
@@ -90,6 +112,7 @@ export function sanitizeWorkspaceQuote(text: string, options?: { title?: string 
     .trim();
 
   normalized = stripLeadingBookTitle(normalized, options?.title);
+  normalized = stripLeadingLabel(normalized);
 
   return normalized;
 }
