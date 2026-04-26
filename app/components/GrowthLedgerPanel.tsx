@@ -138,7 +138,7 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
                 <CircularProgress
                   value={safeCount}
                   max={GROWTH_ABILITY_MAX}
-                  accent={stageMeta.accent}
+                  accent="var(--accent)"
                 />
 
                 <div className="min-w-0 flex-1">

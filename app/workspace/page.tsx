@@ -62,7 +62,7 @@ import {
   loadGrowthLedger,
   type GrowthLedger,
 } from "@/lib/growthLedger";
-import { sanitizeWorkspaceQuote } from "@/lib/workspaceQuote";
+import { hasWorkspaceQuoteArtifacts, sanitizeWorkspaceQuote } from "@/lib/workspaceQuote";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
   type GuidanceToast,
@@ -186,10 +186,17 @@ type WorkspaceMemoryCard = {
 };
 
 function pickWorkspaceQuote(record: HistoryRecord): string {
-  const quote = sanitizeWorkspaceQuote(
-    record.workspaceQuote?.trim() || record.posterContent?.highlight?.trim() || ""
-  );
-  if (quote) return quote;
+  const candidates = [
+    record.workspaceQuote?.trim() || "",
+    record.posterContent?.highlight?.trim() || "",
+  ];
+
+  for (const candidate of candidates) {
+    const quote = sanitizeWorkspaceQuote(candidate, { title: record.title });
+    if (quote && !hasWorkspaceQuoteArtifacts(quote, { title: record.title })) {
+      return quote;
+    }
+  }
 
   const sentence = record.bookSummary
     .replace(/\s+/g, " ")
@@ -197,7 +204,7 @@ function pickWorkspaceQuote(record: HistoryRecord): string {
     .map((part) => part.trim())
     .find((part) => part.length >= 12) || record.bookSummary.trim();
 
-  return sanitizeWorkspaceQuote(sentence.slice(0, 40));
+  return sanitizeWorkspaceQuote(sentence.slice(0, 40), { title: record.title });
 }
 
 function hashString(value: string): number {
