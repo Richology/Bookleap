@@ -79,7 +79,7 @@ export function WorkspaceLibrarySidebar({
         </div>
 
         {isCollapsed ? (
-          <div className="space-y-1.5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
+          <div className="no-scrollbar space-y-1.5 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
             {collapsedItems.map((item) => (
               <div
                 key={item.label}
@@ -93,7 +93,7 @@ export function WorkspaceLibrarySidebar({
             ))}
           </div>
         ) : (
-          <div className="space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
+          <div className="no-scrollbar space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
             {children}
           </div>
         )}
