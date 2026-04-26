@@ -44,7 +44,7 @@ export function WorkspaceGrowthSidebar({
         </div>
 
         {isCollapsed ? (
-          <div className="flex items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.82)] py-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
+          <div className="no-scrollbar flex items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.82)] py-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain">
             <svg className="h-4.5 w-4.5 text-[var(--ink-soft)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M4.5 15.5h11" />
               <path d="M6.5 13V9.5" />
@@ -53,7 +53,7 @@ export function WorkspaceGrowthSidebar({
             </svg>
           </div>
         ) : (
-          <div className="space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
+          <div className="no-scrollbar space-y-2 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
             {children}
           </div>
         )}
