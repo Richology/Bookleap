@@ -151,7 +151,7 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between gap-3">
                     <p className="archive-kicker">Curated Reading Object</p>
                     <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-                      EPUB / PDF
+                      EPUB / AZW3 / TXT / PDF
                     </span>
                   </div>
                   <div className="mt-10 space-y-4">

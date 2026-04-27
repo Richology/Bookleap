@@ -62,6 +62,13 @@ import {
   loadGrowthLedger,
   type GrowthLedger,
 } from "@/lib/growthLedger";
+import {
+  MAX_UPLOAD_SIZE_BYTES,
+  getFileTypeFromName,
+  getFileTypeLabel,
+  stripSupportedFileExtension,
+  type SupportedFileType,
+} from "@/lib/fileFormats";
 import { hasWorkspaceQuoteArtifacts, sanitizeWorkspaceQuote } from "@/lib/workspaceQuote";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
@@ -161,7 +168,7 @@ const DECISION_STEP_LABELS = [
 type HistoryRecord = {
   id: string;
   title: string;
-  fileType: string;
+  fileType: SupportedFileType;
   mode: "full" | "lite";
   createdAt: string;
   bookSummary: string;
@@ -565,22 +572,23 @@ export default function Home() {
   }, [bookTitle, starterCover]);
 
   const currentBookCover = starterCover || fetchedCover;
-  const currentFileTypeLabel = selectedFile
-    ? selectedFile.name.toLowerCase().endsWith(".pdf")
-      ? "PDF"
-      : "EPUB"
+  const currentHistoryRecord = useMemo(
+    () => recentHistory.find((record) => record.title === bookTitle) ?? null,
+    [bookTitle, recentHistory]
+  );
+  const selectedFileType = selectedFile ? getFileTypeFromName(selectedFile.name) : null;
+  const currentFileTypeLabel = selectedFileType
+    ? getFileTypeLabel(selectedFileType)
+    : currentHistoryRecord
+    ? getFileTypeLabel(currentHistoryRecord.fileType)
     : currentStarterBook
     ? "EPUB"
     : "";
   const currentBookDisplayTitle =
     bookTitle ||
-    selectedFile?.name.replace(/\.(epub|pdf)$/i, "") ||
+    (selectedFile ? stripSupportedFileExtension(selectedFile.name) : "") ||
     currentStarterBook?.title ||
     "未知书名";
-  const currentHistoryRecord = useMemo(
-    () => recentHistory.find((record) => record.title === bookTitle) ?? null,
-    [bookTitle, recentHistory]
-  );
   const workspaceMemoryCards = useMemo<WorkspaceMemoryCard[]>(() => {
     return recentHistory
       .filter((record) => {
@@ -697,7 +705,7 @@ export default function Home() {
   // Save to history when analysis completes
   useEffect(() => {
     if (message !== "分析完成" || isAnalyzing || !bookTitle) return;
-    const fileType = selectedFile?.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub";
+    const fileType = selectedFile ? getFileTypeFromName(selectedFile.name) ?? "epub" : "epub";
     const currentStarterBook = currentStarterBookId
       ? starterBooksById[currentStarterBookId] ?? null
       : null;
@@ -1063,12 +1071,17 @@ export default function Home() {
       setMessage("当前正在分析，请稍候完成后再上传新书。");
       return;
     }
-    const isValidType =
-      file.type === "application/pdf" ||
-      file.name.toLowerCase().endsWith(".epub");
-    if (!isValidType) {
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       setSelectedFile(null);
-      setMessage("仅支持上传 PDF 或 EPUB 文件。");
+      setMessage("文件超过 50MB，暂不支持上传。");
+      resetAllState();
+      return;
+    }
+
+    const fileType = getFileTypeFromName(file.name);
+    if (!fileType) {
+      setSelectedFile(null);
+      setMessage("仅支持上传 EPUB、AZW3、TXT 或 PDF 文件。");
       resetAllState();
       return;
     }
@@ -1306,12 +1319,14 @@ export default function Home() {
 
     try {
       setExportStatus("exporting");
+      const exportFileType =
+        selectedFile ? getFileTypeFromName(selectedFile.name) : currentHistoryRecord?.fileType;
       const res = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookTitle,
-          fileType: selectedFile?.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub",
+          fileType: exportFileType ?? "epub",
           mode: isLiteMode && !isLiteUnlocked ? "lite" : "full",
           format,
           structure,
@@ -1388,7 +1403,9 @@ export default function Home() {
         }
         // Persist poster content into history
         try {
-          const fileType = selectedFile?.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub";
+          const fileType =
+            selectedFile ? getFileTypeFromName(selectedFile.name) : currentHistoryRecord?.fileType;
+          if (!fileType) return;
           const recordId = `${bookTitle}-${fileType}`;
           const history = loadHistory();
           const idx = history.findIndex((r) => r.id === recordId);
@@ -1749,7 +1766,7 @@ export default function Home() {
         title: "", bookSummary: "", chapters: [], readingGuide: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
         ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
-        fileType: fileToAnalyze.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub",
+        fileType: getFileTypeFromName(fileToAnalyze.name) ?? "epub",
         starterBookId: currentStarterBookId,
       };
       bgAnalysisRef.current = null;
@@ -2365,7 +2382,7 @@ export default function Home() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".pdf,.epub,application/pdf"
+        accept=".pdf,.epub,.azw3,.txt,application/pdf,application/epub+zip,text/plain"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -2409,7 +2426,7 @@ export default function Home() {
                 {selectedFile ? selectedFile.name : "把新书放进书库"}
               </p>
               <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
-                {selectedFile ? "已开始自动解析，点击可重新选择" : "支持 EPUB / PDF，选书后自动开始解析"}
+                {selectedFile ? "已开始自动解析，点击可重新选择" : "支持 EPUB / AZW3 / TXT / PDF，选书后自动开始解析"}
               </p>
             </div>
           </div>
@@ -2427,7 +2444,7 @@ export default function Home() {
           </button>
         </div>
 
-        <p className="mt-3 text-[11px] text-[var(--ink-faint)]">推荐 EPUB，解析更完整。</p>
+        <p className="mt-3 text-[11px] text-[var(--ink-faint)]">推荐 EPUB / AZW3，解析更完整；TXT / PDF 将进入简化分析模式，单文件最大 50MB。</p>
       </section>
 
       {hasPendingStarterBooks && (
@@ -2952,8 +2969,8 @@ export default function Home() {
       {isLiteMode && !isLiteUnlocked && (
         <section className="rounded-[14px] bg-[var(--accent-soft)] px-4 py-4">
           <p className="text-sm leading-6 text-[var(--accent)]">
-            <strong>PDF 简化分析模式</strong>
-            ：当前仅提供基础摘要与阅读引导。为了获得效果更佳的深度结构化分析，建议优先重新上传 EPUB。
+            <strong>{currentFileTypeLabel || "当前文件"} 简化分析模式</strong>
+            ：当前仅提供基础摘要与阅读引导。为了获得效果更佳的深度结构化分析，建议优先上传 EPUB 或 AZW3。
           </p>
         </section>
       )}

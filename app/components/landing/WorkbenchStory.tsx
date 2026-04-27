@@ -29,7 +29,7 @@ const HOTSPOTS: WorkbenchHotspot[] = [
     id: "sidebar",
     badge: "01",
     title: "上传区",
-    text: "上传入口和上传进度保持清晰可见，开始分析前就能知道文件是否已接收、解析走到哪一步。",
+    text: "上传入口和解析进度保持清晰可见，选书后会自动开始分析，并明确提示当前文件是完整解析还是简化模式。",
     cardPosition: "left-5 bottom-5",
     areaPosition: "left-[4%] top-[22%] h-[58%] w-[18%]",
     pulseDelay: "0.25s",
