@@ -421,6 +421,7 @@ export default function Home() {
   const dragCounter = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
+  const [analysisErrorCode, setAnalysisErrorCode] = useState<string | null>(null);
   const [bookTitle, setBookTitle] = useState("");
   const [readingGuide, setReadingGuide] = useState("");
   const [viewMap, setViewMap] = useState("");
@@ -1019,6 +1020,7 @@ export default function Home() {
     setDecisionScenarios(loadDecisionScenarioCache(buildDecisionBookId(bg.title)));
     setIsDecisionPanelOpen(false);
     setDecisionError("");
+    setAnalysisErrorCode(null);
     setMessage("分析完成");
   }, []);
 
@@ -1050,6 +1052,7 @@ export default function Home() {
     setDecisionError("");
     setDecisionScenarios(loadDecisionScenarioCache(buildDecisionBookId(record.title)));
     setIsDecisionPanelOpen(false);
+    setAnalysisErrorCode(null);
     setMessage("");
   }, []);
 
@@ -1063,10 +1066,11 @@ export default function Home() {
   const processFile = (file: File | undefined | null) => {
     if (!file) {
       setSelectedFile(null);
-      setMessage("");
-      resetAllState();
-      return;
-    }
+    setMessage("");
+    setAnalysisErrorCode(null);
+    resetAllState();
+    return;
+  }
     if (isAnalyzing) {
       setMessage("当前正在分析，请稍候完成后再上传新书。");
       return;
@@ -1074,6 +1078,7 @@ export default function Home() {
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
       setSelectedFile(null);
       setMessage("文件超过 50MB，暂不支持上传。");
+      setAnalysisErrorCode("FILE_TOO_LARGE");
       resetAllState();
       return;
     }
@@ -1082,11 +1087,13 @@ export default function Home() {
     if (!fileType) {
       setSelectedFile(null);
       setMessage("仅支持上传 EPUB、AZW3、TXT 或 PDF 文件。");
+      setAnalysisErrorCode("UNSUPPORTED_FILE_TYPE");
       resetAllState();
       return;
     }
     setSelectedFile(file);
     setMessage("");
+    setAnalysisErrorCode(null);
     resetAllState();
     void handleAnalyze(file);
   };
@@ -1745,7 +1752,8 @@ export default function Home() {
     const fileToAnalyze = fileOverride ?? selectedFile;
 
     if (!fileToAnalyze) {
-      setMessage("请先选择一本 PDF 或 EPUB 电子书。");
+      setMessage("请先选择一本 EPUB、AZW3、TXT 或 PDF 电子书。");
+      setAnalysisErrorCode("NO_FILE_SELECTED");
       return;
     }
     try {
@@ -1804,10 +1812,12 @@ export default function Home() {
       }
       const data = await res.json();
       if (!data.success) {
+        setAnalysisErrorCode(data.errorCode || "ANALYZE_FAILED");
         setMessage(data.error || "上传失败");
         setBgAnalysisStatus({ active: false });
         return;
       }
+      setAnalysisErrorCode(null);
       const title = cleanBookTitle(data.title || "");
       const bkSummary = data.bookSummary || "";
       const chaps: Chapter[] = data.chapters || [];
@@ -1982,6 +1992,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error(error);
+      setAnalysisErrorCode("REQUEST_FAILED");
       setMessage("请求失败，请稍后重试。");
       setIsLoadingBookSummary(false);
       setIsLoadingReadingGuide(false);
@@ -2531,8 +2542,10 @@ export default function Home() {
         const isError =
           message.includes("失败") ||
           message.includes("仅支持") ||
-          message.includes("请先选择");
+          message.includes("请先选择") ||
+          analysisErrorCode === "AZW3_UNSUPPORTED";
         const isSuccess = message === "分析完成" && !isAnalyzing;
+        const isAzw3Unsupported = analysisErrorCode === "AZW3_UNSUPPORTED";
 
         const bannerClass = isError
           ? "bg-red-50/80 border-red-200/60 text-red-600"
@@ -2571,6 +2584,24 @@ export default function Home() {
                 <span className="font-medium">{message}</span>
               </span>
             </div>
+
+            {isAzw3Unsupported && (
+              <div className="mt-3 pl-6 text-[13px] leading-6 text-red-500/90">
+                <p>这不代表我们已经确认它带有版权保护，也可能只是当前 AZW3 结构暂不兼容。</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-full border border-red-200 bg-white/85 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-white"
+                  >
+                    重新上传
+                  </button>
+                  <span className="text-xs text-red-400">
+                    建议优先换成 EPUB，或尝试 TXT / PDF
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}

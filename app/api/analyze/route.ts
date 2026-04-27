@@ -146,7 +146,11 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error("AZW3 解析失败:", error);
         return NextResponse.json(
-          { success: false, error: "该 AZW3 文件可能带有版权保护，或暂不兼容当前解析方式" },
+          {
+            success: false,
+            errorCode: "AZW3_UNSUPPORTED",
+            error: "这本 AZW3 暂时无法解析。常见原因是文件带有版权保护，或内部结构暂不兼容当前解析方式。",
+          },
           { status: 400 }
         );
       }
