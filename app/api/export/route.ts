@@ -13,7 +13,7 @@ type SectionItem = {
 
 type ExportRequestBody = {
   bookTitle: string;
-  fileType: "epub" | "pdf";
+  fileType: "epub" | "pdf" | "azw3" | "txt";
   mode: "full" | "lite";
   format: "md" | "txt" | "json";
   structure: "multi" | "single";
