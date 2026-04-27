@@ -1059,6 +1059,10 @@ export default function Home() {
       resetAllState();
       return;
     }
+    if (isAnalyzing) {
+      setMessage("当前正在分析，请稍候完成后再上传新书。");
+      return;
+    }
     const isValidType =
       file.type === "application/pdf" ||
       file.name.toLowerCase().endsWith(".epub");
@@ -1071,10 +1075,12 @@ export default function Home() {
     setSelectedFile(file);
     setMessage("");
     resetAllState();
+    void handleAnalyze(file);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     processFile(event.target.files?.[0]);
+    event.target.value = "";
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -1718,9 +1724,10 @@ export default function Home() {
     enqueueGuidanceToast,
   ]);
 
-  const handleAnalyze = async () => {
-    
-    if (!selectedFile) {
+  const handleAnalyze = async (fileOverride?: File | null) => {
+    const fileToAnalyze = fileOverride ?? selectedFile;
+
+    if (!fileToAnalyze) {
       setMessage("请先选择一本 PDF 或 EPUB 电子书。");
       return;
     }
@@ -1742,7 +1749,7 @@ export default function Home() {
         title: "", bookSummary: "", chapters: [], readingGuide: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
         ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
-        fileType: selectedFile.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub",
+        fileType: fileToAnalyze.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub",
         starterBookId: currentStarterBookId,
       };
       bgAnalysisRef.current = null;
@@ -1756,7 +1763,7 @@ export default function Home() {
       let res: Response;
       try {
         const { upload } = await import("@vercel/blob/client");
-        const blob = await upload(selectedFile.name, selectedFile, {
+        const blob = await upload(fileToAnalyze.name, fileToAnalyze, {
           access: "public",
           handleUploadUrl: "/api/upload",
         });
@@ -1766,13 +1773,13 @@ export default function Home() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fileUrl: blob.url,
-            filename: selectedFile.name,
+            filename: fileToAnalyze.name,
           }),
         });
       } catch {
         setMessage("正在上传并解析章节...");
         const formData = new FormData();
-        formData.append("file", selectedFile);
+        formData.append("file", fileToAnalyze);
         res = await fetch("/api/analyze", {
           method: "POST",
           body: formData,
@@ -2402,7 +2409,7 @@ export default function Home() {
                 {selectedFile ? selectedFile.name : "把新书放进书库"}
               </p>
               <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
-                {selectedFile ? "点击重新选择，或直接拖拽覆盖" : "支持 EPUB / PDF"}
+                {selectedFile ? "已开始自动解析，点击可重新选择" : "支持 EPUB / PDF，选书后自动开始解析"}
               </p>
             </div>
           </div>
@@ -2417,13 +2424,6 @@ export default function Home() {
             className="rounded-[10px] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white shadow-[0_8px_18px_rgba(58,111,82,0.16)] transition-all hover:brightness-[0.96]"
           >
             + 上传书籍
-          </button>
-          <button
-            onClick={handleAnalyze}
-            disabled={!selectedFile || isLoading}
-            className="rounded-[10px] border border-[rgba(59,63,60,0.09)] bg-[rgba(255,255,255,0.82)] px-3 py-2 text-sm font-medium text-[var(--ink-soft)] transition-all hover:bg-white hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {isLoading ? "解析中…" : "开始分析"}
           </button>
         </div>
 
