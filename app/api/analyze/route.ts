@@ -98,16 +98,9 @@ export async function POST(request: Request) {
       fs.writeFileSync(filePath, buffer);
 
       const epubData = await parseEpub(filePath);
-
-      const chapterContextForSummary = epubData.chapters.map((c, index) => ({
-        index: index + 1,
-        title: c.title,
-        summary: c.text.slice(0, 800),
-      }));
-
-      const bookSummary = await generateBookSummary(
+      const bookSummary = await generateBookSummaryWithFallback(
         epubData.title,
-        chapterContextForSummary
+        epubData.chapters
       );
 
       return NextResponse.json({
@@ -122,27 +115,10 @@ export async function POST(request: Request) {
     }
 
     if (isAzw3) {
-      try {
-        const azw3Data = await parseAzw3(buffer, filename);
-        const chapterContextForSummary = azw3Data.chapters.map((chapter, index) => ({
-          index: index + 1,
-          title: chapter.title,
-          summary: chapter.text.slice(0, 800),
-        }));
-        const bookSummary = await generateBookSummary(
-          azw3Data.title,
-          chapterContextForSummary
-        );
+      let azw3Data: { title: string; chapters: ChapterItem[] };
 
-        return NextResponse.json({
-          success: true,
-          type: "azw3",
-          mode: "full",
-          filename,
-          title: azw3Data.title,
-          bookSummary,
-          chapters: azw3Data.chapters,
-        });
+      try {
+        azw3Data = await parseAzw3(buffer, filename);
       } catch (error) {
         console.error("AZW3 解析失败:", error);
         return NextResponse.json(
@@ -154,6 +130,21 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+
+      const bookSummary = await generateBookSummaryWithFallback(
+        azw3Data.title,
+        azw3Data.chapters
+      );
+
+      return NextResponse.json({
+        success: true,
+        type: "azw3",
+        mode: "full",
+        filename,
+        title: azw3Data.title,
+        bookSummary,
+        chapters: azw3Data.chapters,
+      });
     }
 
     if (isTxt) {
@@ -289,6 +280,50 @@ async function parseAzw3(
   } finally {
     kf8.destroy();
   }
+}
+
+async function generateBookSummaryWithFallback(
+  title: string,
+  chapters: ChapterItem[]
+): Promise<string> {
+  const chapterContextForSummary = chapters.map((chapter, index) => ({
+    index: index + 1,
+    title: chapter.title,
+    summary: chapter.text.slice(0, 800),
+  }));
+
+  try {
+    return await generateBookSummary(title, chapterContextForSummary);
+  } catch (error) {
+    console.error("全书摘要生成失败，使用备用摘要:", error);
+    return buildFallbackBookSummary(title, chapters);
+  }
+}
+
+function buildFallbackBookSummary(
+  title: string,
+  chapters: ChapterItem[]
+): string {
+  const chapterTitles = chapters
+    .map((chapter) => chapter.title.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const chapterSnippets = chapters
+    .map((chapter) => chapter.text.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((text) => text.slice(0, 48));
+
+  const titleLine = chapterTitles.length > 0
+    ? `《${title}》当前已提取出 ${chapters.length} 个核心章节，内容主要围绕 ${chapterTitles.join("、")} 展开。`
+    : `《${title}》当前已提取出 ${chapters.length} 个核心章节，已经可以进入阅读与后续分析。`;
+
+  const excerptLine = chapterSnippets.length > 0
+    ? `先给你一版提取摘要：${chapterSnippets.join(" / ")}。`
+    : "当前摘要服务暂时不可用，但正文内容已经成功提取。";
+
+  return `${titleLine}${excerptLine}`.slice(0, 220);
 }
 
 function getChapterText(epub: Epub, chapterId: string): Promise<string> {
