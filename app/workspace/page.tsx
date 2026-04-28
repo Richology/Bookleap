@@ -1810,10 +1810,19 @@ export default function Home() {
           body: formData,
         });
       }
-      const data = await res.json();
+      const rawResponse = await res.text();
+      let data: { success?: boolean; error?: string; errorCode?: string; title?: string; bookSummary?: string; chapters?: Chapter[]; mode?: string };
+      try {
+        data = rawResponse ? JSON.parse(rawResponse) : {};
+      } catch {
+        setAnalysisErrorCode("ANALYZE_RESPONSE_INVALID");
+        setMessage("解析服务返回异常。请刷新页面后重试；如果还失败，建议重启本地服务。");
+        setBgAnalysisStatus({ active: false });
+        return;
+      }
       if (!data.success) {
-        setAnalysisErrorCode(data.errorCode || "ANALYZE_FAILED");
-        setMessage(data.error || "上传失败");
+        setAnalysisErrorCode(data.errorCode || (res.ok ? "ANALYZE_FAILED" : "ANALYZE_HTTP_ERROR"));
+        setMessage(data.error || (res.ok ? "上传失败" : "解析服务暂时不可用，请稍后重试。"));
         setBgAnalysisStatus({ active: false });
         return;
       }
