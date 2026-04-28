@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
       if (!fileUrl || !fn) {
         return NextResponse.json(
-          { success: false, error: "缺少 fileUrl 或 filename" },
+          { success: false, error: "上传信息不完整，请重新上传这本书。" },
           { status: 400 }
         );
       }
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       const fileRes = await fetch(fileUrl);
       if (!fileRes.ok) {
         return NextResponse.json(
-          { success: false, error: "无法下载文件，请重新上传" },
+          { success: false, error: "文件地址已失效，请重新上传这本书。" },
           { status: 400 }
         );
       }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
       if (!file) {
         return NextResponse.json(
-          { success: false, error: "没有收到文件" },
+          { success: false, error: "没有收到你上传的文件，请重新选择后再试。" },
           { status: 400 }
         );
       }
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
     console.error("分析失败:", error);
 
     return NextResponse.json(
-      { success: false, error: "文件处理失败" },
+      { success: false, error: "这本书暂时无法完成解析，请重新上传后再试。" },
       { status: 500 }
     );
   }
