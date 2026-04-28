@@ -448,6 +448,16 @@ function getRequestFailureMessage(): string {
     : "上传或解析请求没有完成。请刷新页面后重试；如果还失败，请稍后再试或联系支持。";
 }
 
+function getUploadFailureMessage(): string {
+  if (typeof window === "undefined") {
+    return "上传服务暂时不可用，请稍后重试。";
+  }
+
+  return isLocalRuntimeHost(window.location.hostname)
+    ? "本地上传服务暂时不可用，请检查本地服务后重试。"
+    : "上传服务暂时不可用，请稍后重试。";
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -531,6 +541,16 @@ export default function Home() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+  const resetAnalysisLoadingStates = useCallback(() => {
+    setIsLoading(false);
+    setIsLoadingBookSummary(false);
+    setIsLoadingReadingGuide(false);
+    setIsLoadingViewMap(false);
+    setIsLoadingActionExtraction(false);
+    setIsLoadingViewValidation(false);
+    setIsLoadingIdeaSourceTracing(false);
+  }, []);
 
   const isAnalyzing =
     isLoading ||
@@ -1845,7 +1865,16 @@ export default function Home() {
             filename: fileToAnalyze.name,
           }),
         });
-      } catch {
+      } catch (uploadError) {
+        console.error("Blob 上传失败:", uploadError);
+        if (!isLocalRuntimeHost(window.location.hostname)) {
+          setAnalysisErrorCode("UPLOAD_INIT_FAILED");
+          setMessage(getUploadFailureMessage());
+          resetAnalysisLoadingStates();
+          setBgAnalysisStatus({ active: false });
+          return;
+        }
+
         setMessage("正在上传并解析章节...");
         const formData = new FormData();
         formData.append("file", fileToAnalyze);
@@ -1859,14 +1888,21 @@ export default function Home() {
       try {
         data = rawResponse ? JSON.parse(rawResponse) : {};
       } catch {
+        console.error("解析接口返回了非 JSON 内容:", {
+          status: res.status,
+          statusText: res.statusText,
+          preview: rawResponse.slice(0, 300),
+        });
         setAnalysisErrorCode("ANALYZE_RESPONSE_INVALID");
         setMessage(getAnalyzeResponseErrorMessage());
+        resetAnalysisLoadingStates();
         setBgAnalysisStatus({ active: false });
         return;
       }
       if (!data.success) {
         setAnalysisErrorCode(data.errorCode || (res.ok ? "ANALYZE_FAILED" : "ANALYZE_HTTP_ERROR"));
         setMessage(getAnalyzeFailureMessage(res.ok, data.error));
+        resetAnalysisLoadingStates();
         setBgAnalysisStatus({ active: false });
         return;
       }
@@ -2047,12 +2083,7 @@ export default function Home() {
       console.error(error);
       setAnalysisErrorCode("REQUEST_FAILED");
       setMessage(getRequestFailureMessage());
-      setIsLoadingBookSummary(false);
-      setIsLoadingReadingGuide(false);
-      setIsLoadingViewMap(false);
-      setIsLoadingActionExtraction(false);
-      setIsLoadingViewValidation(false);
-      setIsLoadingIdeaSourceTracing(false);
+      resetAnalysisLoadingStates();
     } finally {
       setIsLoading(false);
       setBgAnalysisStatus({ active: false });
