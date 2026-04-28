@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Blob upload token 生成失败:", error);
     return NextResponse.json(
-      { error: "上传初始化失败" },
+      { error: "上传服务暂时不可用，请稍后重试。" },
       { status: 400 }
     );
   }

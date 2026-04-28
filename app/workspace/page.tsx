@@ -404,6 +404,50 @@ function cleanBookTitle(raw: string): string {
   return title || raw.slice(0, 20);
 }
 
+function getAnalyzeResponseErrorMessage(): string {
+  if (typeof window === "undefined") {
+    return "解析服务返回异常。请刷新页面后重试；如果还失败，请稍后再试。";
+  }
+
+  const isLocalRuntime = isLocalRuntimeHost(window.location.hostname);
+
+  return isLocalRuntime
+    ? "解析服务返回异常。请刷新页面后重试；如果还失败，建议重启本地服务。"
+    : "解析服务返回异常。请刷新页面后重试；如果还失败，请稍后再试或联系支持。";
+}
+
+function isLocalRuntimeHost(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "0.0.0.0"
+  );
+}
+
+function getAnalyzeFailureMessage(
+  responseOk: boolean,
+  serverMessage?: string
+): string {
+  if (serverMessage?.trim()) {
+    return serverMessage.trim();
+  }
+
+  return responseOk
+    ? "这本书暂时无法完成解析，请重新上传后再试。"
+    : "解析服务暂时不可用，请稍后再试。";
+}
+
+function getRequestFailureMessage(): string {
+  if (typeof window === "undefined") {
+    return "上传或解析请求没有完成。请刷新页面后重试；如果还失败，请稍后再试。";
+  }
+
+  return isLocalRuntimeHost(window.location.hostname)
+    ? "上传或解析请求没有完成。请刷新页面后重试；如果还失败，请检查本地服务后再试。"
+    : "上传或解析请求没有完成。请刷新页面后重试；如果还失败，请稍后再试或联系支持。";
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1816,13 +1860,13 @@ export default function Home() {
         data = rawResponse ? JSON.parse(rawResponse) : {};
       } catch {
         setAnalysisErrorCode("ANALYZE_RESPONSE_INVALID");
-        setMessage("解析服务返回异常。请刷新页面后重试；如果还失败，建议重启本地服务。");
+        setMessage(getAnalyzeResponseErrorMessage());
         setBgAnalysisStatus({ active: false });
         return;
       }
       if (!data.success) {
         setAnalysisErrorCode(data.errorCode || (res.ok ? "ANALYZE_FAILED" : "ANALYZE_HTTP_ERROR"));
-        setMessage(data.error || (res.ok ? "上传失败" : "解析服务暂时不可用，请稍后重试。"));
+        setMessage(getAnalyzeFailureMessage(res.ok, data.error));
         setBgAnalysisStatus({ active: false });
         return;
       }
@@ -2002,7 +2046,7 @@ export default function Home() {
     } catch (error) {
       console.error(error);
       setAnalysisErrorCode("REQUEST_FAILED");
-      setMessage("请求失败，请稍后重试。");
+      setMessage(getRequestFailureMessage());
       setIsLoadingBookSummary(false);
       setIsLoadingReadingGuide(false);
       setIsLoadingViewMap(false);
@@ -2549,10 +2593,9 @@ export default function Home() {
     >
       {message && !(bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle) && (() => {
         const isError =
-          message.includes("失败") ||
+          analysisErrorCode !== null ||
           message.includes("仅支持") ||
-          message.includes("请先选择") ||
-          analysisErrorCode === "AZW3_UNSUPPORTED";
+          message.includes("请先选择");
         const isSuccess = message === "分析完成" && !isAnalyzing;
         const isAzw3Unsupported = analysisErrorCode === "AZW3_UNSUPPORTED";
 
