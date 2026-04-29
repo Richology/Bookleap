@@ -42,6 +42,8 @@ const LEADING_METADATA_PATTERN = new RegExp(
 );
 const GENERIC_PREFIX_PATTERN =
   /^(这本书的核心是[:：]\s*|这本书的关键是[:：]\s*|核心是[:：]\s*|关键是[:：]\s*|一句话概括[:：]\s*|如果压缩成一句话[:：]\s*|可以概括为[:：]\s*)/u;
+const LEADING_PUNCTUATION_PATTERN = /^[：:，,、；;\-—·•.…\s]+/u;
+const TRAILING_FRAGMENT_PATTERN = /[：:，,、；;\-—]\s*$/u;
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -85,7 +87,7 @@ function stripLeadingLabel(text: string): string {
   return normalized.trim();
 }
 
-export function sanitizeWorkspaceQuote(text: string, options?: { title?: string }): string {
+function normalizeQuoteText(text: string, options?: { title?: string }): string {
   let normalized = text
     .replace(/\*\*|__|`/g, " ")
     .replace(/^[\s>*#-]+/g, "")
@@ -107,6 +109,7 @@ export function sanitizeWorkspaceQuote(text: string, options?: { title?: string 
 
   normalized = normalized
     .replace(GENERIC_PREFIX_PATTERN, "")
+    .replace(LEADING_PUNCTUATION_PATTERN, "")
     .replace(/^["'“”‘’「」『』]+|["'“”‘’「」『』]+$/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -114,13 +117,20 @@ export function sanitizeWorkspaceQuote(text: string, options?: { title?: string 
   normalized = stripLeadingBookTitle(normalized, options?.title);
   normalized = stripLeadingLabel(normalized);
 
-  return normalized;
+  return normalized
+    .replace(LEADING_PUNCTUATION_PATTERN, "")
+    .trim();
+}
+
+export function sanitizeWorkspaceQuote(text: string, options?: { title?: string }): string {
+  return normalizeQuoteText(text, options);
 }
 
 export function hasWorkspaceQuoteArtifacts(text: string, options?: { title?: string }): boolean {
   const normalized = sanitizeWorkspaceQuote(text, options);
   if (!normalized) return true;
   if (normalized.length < 8) return true;
+  if (TRAILING_FRAGMENT_PATTERN.test(normalized)) return true;
 
   const artifactPattern = /(?:书名|作者|作者名|全书摘要|全书概要|内容摘要|摘要|核心问题|核心观点|核心命题|核心结论|关键观点|关键问题|阅读回响)[:：]?/u;
   if (artifactPattern.test(normalized)) return true;
@@ -135,4 +145,31 @@ export function hasWorkspaceQuoteArtifacts(text: string, options?: { title?: str
   }
 
   return false;
+}
+
+export function extractFallbackWorkspaceQuote(text: string, options?: { title?: string }): string {
+  const normalized = normalizeQuoteText(text, options);
+  if (!normalized) return "";
+
+  const sentenceCandidates = normalized
+    .split(/[。！？!?]/)
+    .map((part) => normalizeQuoteText(part, options))
+    .filter(Boolean)
+    .filter((part) => part.length >= 12)
+    .filter((part) => !TRAILING_FRAGMENT_PATTERN.test(part))
+    .filter((part) => !hasWorkspaceQuoteArtifacts(part, options));
+
+  const sentenceInRange = sentenceCandidates.find((part) => part.length >= 18 && part.length <= 36);
+  if (sentenceInRange) return sentenceInRange;
+  if (sentenceCandidates[0]) return sentenceCandidates[0];
+
+  const clauseCandidates = normalized
+    .split(/[；;。！？!?]/)
+    .map((part) => normalizeQuoteText(part, options))
+    .filter(Boolean)
+    .filter((part) => part.length >= 12 && part.length <= 36)
+    .filter((part) => !TRAILING_FRAGMENT_PATTERN.test(part))
+    .filter((part) => !hasWorkspaceQuoteArtifacts(part, options));
+
+  return clauseCandidates[0] ?? "";
 }

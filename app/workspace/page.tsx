@@ -69,7 +69,11 @@ import {
   stripSupportedFileExtension,
   type SupportedFileType,
 } from "@/lib/fileFormats";
-import { hasWorkspaceQuoteArtifacts, sanitizeWorkspaceQuote } from "@/lib/workspaceQuote";
+import {
+  extractFallbackWorkspaceQuote,
+  hasWorkspaceQuoteArtifacts,
+  sanitizeWorkspaceQuote,
+} from "@/lib/workspaceQuote";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
   type GuidanceToast,
@@ -205,13 +209,7 @@ function pickWorkspaceQuote(record: HistoryRecord): string {
     }
   }
 
-  const sentence = record.bookSummary
-    .replace(/\s+/g, " ")
-    .split(/[。！？!?]/)
-    .map((part) => part.trim())
-    .find((part) => part.length >= 12) || record.bookSummary.trim();
-
-  const fallback = sanitizeWorkspaceQuote(sentence.slice(0, 40), { title: record.title });
+  const fallback = extractFallbackWorkspaceQuote(record.bookSummary, { title: record.title });
   return hasWorkspaceQuoteArtifacts(fallback, { title: record.title }) ? "" : fallback;
 }
 
@@ -660,6 +658,13 @@ export default function Home() {
     : currentStarterBook
     ? "EPUB"
     : "";
+  const currentSessionRecordId = useMemo(() => {
+    if (currentHistoryRecord) return currentHistoryRecord.id;
+    if (!bookTitle) return null;
+
+    const inferredFileType = selectedFileType ?? "epub";
+    return `${bookTitle}-${inferredFileType}`;
+  }, [bookTitle, currentHistoryRecord, selectedFileType]);
   const currentBookDisplayTitle =
     bookTitle ||
     (selectedFile ? stripSupportedFileExtension(selectedFile.name) : "") ||
@@ -700,7 +705,7 @@ export default function Home() {
 
     if (currentHistoryRecord) {
       return {
-        id: `history:${currentHistoryRecord.id}`,
+        id: `history:${currentSessionRecordId ?? currentHistoryRecord.id}`,
         title: currentHistoryRecord.title,
         subtitle: currentHistoryRecord.author || currentFileTypeLabel || "历史记录",
         source: "history",
@@ -710,7 +715,7 @@ export default function Home() {
     }
 
     return {
-      id: `current:${buildDecisionBookId(bookTitle)}`,
+      id: `history:${currentSessionRecordId ?? buildDecisionBookId(bookTitle)}`,
       title: bookTitle,
       subtitle: currentBookAuthor || currentFileTypeLabel || "当前会话",
       source: "current",
@@ -721,6 +726,7 @@ export default function Home() {
     currentBookAuthor,
     currentFileTypeLabel,
     currentHistoryRecord,
+    currentSessionRecordId,
     currentStarterBookId,
     isAnalyzing,
   ]);
