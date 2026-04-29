@@ -458,6 +458,17 @@ function getUploadFailureMessage(): string {
     : "上传服务暂时不可用，请稍后重试。";
 }
 
+function getBlobUploadContentType(filename: string): string | undefined {
+  const fileType = getFileTypeFromName(filename);
+
+  if (fileType === "epub") return "application/epub+zip";
+  if (fileType === "pdf") return "application/pdf";
+  if (fileType === "txt") return "text/plain";
+  if (fileType === "azw3") return "application/octet-stream";
+
+  return undefined;
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1852,9 +1863,11 @@ export default function Home() {
       let res: Response;
       try {
         const { upload } = await import("@vercel/blob/client");
+        const explicitContentType = getBlobUploadContentType(fileToAnalyze.name);
         const blob = await upload(fileToAnalyze.name, fileToAnalyze, {
           access: "public",
           handleUploadUrl: "/api/upload",
+          contentType: explicitContentType,
         });
         setMessage("上传成功，正在解析章节...");
         res = await fetch("/api/analyze", {
