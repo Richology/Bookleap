@@ -32,9 +32,6 @@ export function TopNav() {
             className="flex items-baseline gap-2 font-editorial text-[1.7rem] font-semibold tracking-tight text-[var(--ink)]"
           >
             书跃 · BookLeap
-            <span className="font-editorial text-[1.02rem] font-normal tracking-normal text-[var(--ink-soft)]">
-              从好书中完成认知跃迁
-            </span>
           </a>
         </div>
 
@@ -60,7 +57,7 @@ export function TopNav() {
             href="/workspace"
             className="rounded-md bg-[var(--ink)] px-4 py-2 text-[13px] font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.97]"
           >
-            开始使用
+            进入工作台
           </a>
         </div>
       </div>
