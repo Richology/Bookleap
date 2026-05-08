@@ -117,6 +117,36 @@ type ImmersiveCardDef = {
   loadingText: string;
 };
 
+type WorkspaceSearchResult = {
+  id: string;
+  label: string;
+  title: string;
+  excerpt: string;
+  targetKey: string;
+};
+
+type WorkspaceBookSearchResult = {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  record: HistoryRecord;
+};
+
+type WorkspaceLibraryContentSearchResult = {
+  id: string;
+  bookTitle: string;
+  label: string;
+  excerpt: string;
+  targetKey: string;
+  record: HistoryRecord;
+};
+
+type WorkspaceCombinedSearchResult =
+  | { kind: "book"; id: string; result: WorkspaceBookSearchResult }
+  | { kind: "libraryContent"; id: string; result: WorkspaceLibraryContentSearchResult }
+  | { kind: "currentContent"; id: string; result: WorkspaceSearchResult };
+
 type WorkspaceTab = WorkspaceTabItem & {
   source: "starter" | "history" | "current";
   starterBookId?: string;
@@ -167,6 +197,14 @@ const DECISION_STEP_LABELS = [
   "正在生成第 1 题（职场场景）…",
   "正在生成第 2 题（个人成长）…",
   "正在生成第 3 题（高级决策）…",
+] as const;
+const SEARCHABLE_CARD_FIELDS = [
+  { key: "bookSummary", label: "全书摘要" },
+  { key: "readingGuide", label: "阅读指南" },
+  { key: "viewMap", label: "观点地图" },
+  { key: "actionExtraction", label: "行动提炼" },
+  { key: "criticalExamination", label: "观点校验" },
+  { key: "ideaSourceTracing", label: "思想溯源" },
 ] as const;
 
 type HistoryRecord = {
@@ -252,6 +290,107 @@ function markStarterModeSeen() {
   } catch {
     // ignore storage failures
   }
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function getSearchTokens(query: string) {
+  return normalizeSearchText(query)
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function compactSearchText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function getHistoryRecordCardContent(
+  record: HistoryRecord,
+  key: (typeof SEARCHABLE_CARD_FIELDS)[number]["key"]
+) {
+  if (key === "criticalExamination") return record.viewValidation;
+  return record[key] ?? "";
+}
+
+function getTokenMatchScore(haystack: string, tokens: string[]) {
+  if (tokens.length === 0) return 0;
+
+  const lowerHaystack = haystack.toLowerCase();
+  const positions = tokens.map((token) => lowerHaystack.indexOf(token));
+  if (positions.some((position) => position === -1)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.min(...positions);
+}
+
+function createSearchExcerpt(content: string, tokens: string[], maxLength = 170) {
+  const compact = compactSearchText(content);
+  if (!compact) return "";
+  if (tokens.length === 0) return compact.slice(0, maxLength);
+
+  const lower = compact.toLowerCase();
+  const matches = tokens
+    .map((token) => ({ token, index: lower.indexOf(token) }))
+    .filter((match) => match.index !== -1)
+    .sort((a, b) => a.index - b.index);
+  const firstMatch = matches[0];
+  const index = firstMatch?.index ?? -1;
+  if (index === -1) return compact.slice(0, maxLength);
+
+  const start = Math.max(0, index - 54);
+  const end = Math.min(compact.length, index + firstMatch.token.length + 112);
+  const prefix = start > 0 ? "..." : "";
+  const suffix = end < compact.length ? "..." : "";
+  return `${prefix}${compact.slice(start, end)}${suffix}`;
+}
+
+function isTextInputTarget(target: EventTarget | null) {
+  const element = target as HTMLElement | null;
+  return (
+    element?.tagName === "INPUT" ||
+    element?.tagName === "TEXTAREA" ||
+    element?.isContentEditable
+  );
+}
+
+function renderHighlightedSearchText(text: string, tokens: string[]) {
+  if (tokens.length === 0) return text;
+
+  const lowerText = text.toLowerCase();
+  const sortedTokens = [...tokens].sort((a, b) => b.length - a.length);
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const matchedToken = sortedTokens.find((token) => lowerText.startsWith(token, cursor));
+
+    if (!matchedToken) {
+      const nextIndex = sortedTokens.reduce((next, token) => {
+        const index = lowerText.indexOf(token, cursor + 1);
+        if (index === -1) return next;
+        return Math.min(next, index);
+      }, text.length);
+      parts.push(text.slice(cursor, nextIndex));
+      cursor = nextIndex;
+      continue;
+    }
+
+    parts.push(
+      <mark
+        key={`${cursor}-${matchedToken}`}
+        className="rounded-[4px] bg-[rgba(186,221,200,0.72)] px-0.5 text-[var(--ink)]"
+      >
+        {text.slice(cursor, cursor + matchedToken.length)}
+      </mark>
+    );
+    cursor += matchedToken.length;
+  }
+
+  return parts;
 }
 
 function getSelectedStarterBookId() {
@@ -470,6 +609,7 @@ function getBlobUploadContentType(filename: string): string | undefined {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const touchStartXRef = useRef(0);
   const immersiveContainerRef = useRef<HTMLDivElement>(null);
   const readerScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -548,6 +688,10 @@ export default function Home() {
   const [openTabs, setOpenTabs] = useState<WorkspaceTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isWorkspaceSearchOpen, setIsWorkspaceSearchOpen] = useState(false);
+  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState("");
+  const [workspaceSearchActiveIndex, setWorkspaceSearchActiveIndex] = useState(0);
+  const [isWorkspaceFullscreen, setIsWorkspaceFullscreen] = useState(false);
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
@@ -670,6 +814,74 @@ export default function Home() {
     (selectedFile ? stripSupportedFileExtension(selectedFile.name) : "") ||
     currentStarterBook?.title ||
     "未知书名";
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsWorkspaceFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    syncFullscreenState();
+    return () => document.removeEventListener("fullscreenchange", syncFullscreenState);
+  }, []);
+
+  const handleOpenWorkspaceSearch = useCallback(() => {
+    setWorkspaceSearchQuery("");
+    setWorkspaceSearchActiveIndex(0);
+    setIsWorkspaceSearchOpen(true);
+  }, []);
+
+  const handleToggleFullscreen = useCallback(() => {
+    if (typeof document === "undefined") return;
+
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+
+    void document.documentElement.requestFullscreen?.();
+  }, []);
+
+  useEffect(() => {
+    if (!isWorkspaceSearchOpen) return;
+
+    const focusTimer = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }, 40);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsWorkspaceSearchOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isWorkspaceSearchOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isTyping = isTextInputTarget(event.target);
+
+      if (event.key.toLowerCase() === "k" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        handleOpenWorkspaceSearch();
+      }
+
+      if (event.key.toLowerCase() === "f" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        handleToggleFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleOpenWorkspaceSearch, handleToggleFullscreen, isWorkspaceSearchOpen]);
+
   const workspaceMemoryCards = useMemo<WorkspaceMemoryCard[]>(() => {
     return recentHistory
       .filter((record) => {
@@ -2225,6 +2437,216 @@ export default function Home() {
     { key: "ideaSourceTracing",   label: "思想溯源", content: ideaSourceTracing,   isLoading: isLoadingIdeaSourceTracing,  loadingText: "正在生成思想溯源..." },
   ];
 
+  const workspaceSearchTokens = useMemo(
+    () => getSearchTokens(workspaceSearchQuery),
+    [workspaceSearchQuery]
+  );
+
+  const workspaceSearchCorpus = useMemo<WorkspaceSearchResult[]>(() => {
+    const items: WorkspaceSearchResult[] = [];
+
+    const addResult = (label: string, content: string, targetKey: string, title = label) => {
+      const trimmed = content.trim();
+      if (!trimmed) return;
+      items.push({
+        id: targetKey,
+        label,
+        title,
+        excerpt: createSearchExcerpt(trimmed, workspaceSearchTokens, 220),
+        targetKey,
+      });
+    };
+
+    allImmersiveCardDefs.forEach((card) => {
+      addResult(card.label, card.content, card.key);
+    });
+
+    return items;
+  }, [
+    actionExtraction,
+    bookSummary,
+    criticalExamination,
+    ideaSourceTracing,
+    readingGuide,
+    viewMap,
+    workspaceSearchTokens,
+  ]);
+
+  const workspaceSearchResults = useMemo(() => {
+    if (workspaceSearchTokens.length === 0) return workspaceSearchCorpus.slice(0, 6);
+
+    return workspaceSearchCorpus
+      .map((item) => {
+        const haystack = `${item.label} ${item.title} ${item.excerpt}`.toLowerCase();
+        return { item, score: getTokenMatchScore(haystack, workspaceSearchTokens) };
+      })
+      .filter((entry) => entry.score !== Number.POSITIVE_INFINITY)
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 8)
+      .map((entry) => entry.item);
+  }, [workspaceSearchCorpus, workspaceSearchTokens]);
+
+  const workspaceBookSearchResults = useMemo<WorkspaceBookSearchResult[]>(() => {
+    const scored = recentHistory.map((record, index) => {
+      const fileTypeLabel = getFileTypeLabel(record.fileType);
+      const subtitle = record.author || `${fileTypeLabel} · ${record.mode === "lite" ? "简化版" : "完整版"}`;
+      const badge = record.isStarterBook ? "赠送书单" : record.mode === "lite" ? "简化版" : "历史记录";
+      const haystack = `${record.title} ${record.author ?? ""} ${fileTypeLabel} ${badge}`.toLowerCase();
+      const titleScore = getTokenMatchScore(record.title, workspaceSearchTokens);
+      const authorScore = getTokenMatchScore(record.author ?? "", workspaceSearchTokens);
+      const generalScore = getTokenMatchScore(haystack, workspaceSearchTokens);
+
+      let score = index + 10;
+      if (workspaceSearchTokens.length > 0) {
+        if (titleScore === 0) score = 0;
+        else if (titleScore !== Number.POSITIVE_INFINITY) score = 10 + titleScore;
+        else if (authorScore !== Number.POSITIVE_INFINITY) score = 30 + authorScore;
+        else if (generalScore !== Number.POSITIVE_INFINITY) score = 60 + generalScore;
+        else score = Number.POSITIVE_INFINITY;
+      }
+
+      return {
+        result: {
+          id: record.id,
+          title: record.title,
+          subtitle,
+          badge,
+          record,
+        },
+        score,
+      };
+    });
+
+    return scored
+      .filter((entry) => entry.score !== Number.POSITIVE_INFINITY)
+      .sort((a, b) => a.score - b.score)
+      .slice(0, workspaceSearchTokens.length > 0 ? 8 : 5)
+      .map((entry) => entry.result);
+  }, [recentHistory, workspaceSearchTokens]);
+
+  const workspaceLibraryContentSearchResults = useMemo<WorkspaceLibraryContentSearchResult[]>(() => {
+    if (workspaceSearchTokens.length === 0) return [];
+
+    const results: Array<{ result: WorkspaceLibraryContentSearchResult; score: number }> = [];
+
+    recentHistory.forEach((record, recordIndex) => {
+      if (record.title === bookTitle) return;
+
+      SEARCHABLE_CARD_FIELDS.forEach((field, fieldIndex) => {
+        const content = getHistoryRecordCardContent(record, field.key);
+        const compact = compactSearchText(content);
+        if (!compact) return;
+
+        const haystack = `${record.title} ${record.author ?? ""} ${field.label} ${compact}`.toLowerCase();
+        const matchScore = getTokenMatchScore(haystack, workspaceSearchTokens);
+        if (matchScore === Number.POSITIVE_INFINITY) return;
+
+        const contentScore = getTokenMatchScore(compact, workspaceSearchTokens);
+        results.push({
+          result: {
+            id: `${record.id}:${field.key}`,
+            bookTitle: record.title,
+            label: field.label,
+            excerpt: createSearchExcerpt(compact, workspaceSearchTokens),
+            targetKey: field.key,
+            record,
+          },
+          score: (contentScore !== Number.POSITIVE_INFINITY ? contentScore : matchScore + 80) + recordIndex * 8 + fieldIndex,
+        });
+      });
+    });
+
+    return results
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 8)
+      .map((entry) => entry.result);
+  }, [bookTitle, recentHistory, workspaceSearchTokens]);
+
+  const combinedWorkspaceSearchResults = useMemo<WorkspaceCombinedSearchResult[]>(() => [
+    ...workspaceBookSearchResults.map((result) => ({
+      kind: "book" as const,
+      id: `book:${result.id}`,
+      result,
+    })),
+    ...workspaceLibraryContentSearchResults.map((result) => ({
+      kind: "libraryContent" as const,
+      id: `libraryContent:${result.id}`,
+      result,
+    })),
+    ...workspaceSearchResults.map((result) => ({
+      kind: "currentContent" as const,
+      id: `currentContent:${result.id}`,
+      result,
+    })),
+  ], [workspaceBookSearchResults, workspaceLibraryContentSearchResults, workspaceSearchResults]);
+
+  useEffect(() => {
+    setWorkspaceSearchActiveIndex(0);
+  }, [workspaceSearchQuery]);
+
+  useEffect(() => {
+    setWorkspaceSearchActiveIndex((index) => {
+      if (combinedWorkspaceSearchResults.length === 0) return 0;
+      return Math.min(index, combinedWorkspaceSearchResults.length - 1);
+    });
+  }, [combinedWorkspaceSearchResults.length]);
+
+  const handleSelectWorkspaceSearchResult = (result: WorkspaceSearchResult) => {
+    const cardIndex = immersiveCardList.findIndex((card) => card.key === result.targetKey);
+    if (cardIndex >= 0) {
+      setViewMode("immersive");
+      setSlideDir(cardIndex > safeImmersiveIndex ? "left" : "right");
+      setImmersiveIndex(cardIndex);
+    } else {
+      setViewMode("card");
+      setExpandedCards((prev) => ({ ...prev, [result.targetKey]: true }));
+    }
+
+    setIsWorkspaceSearchOpen(false);
+    window.setTimeout(() => {
+      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
+
+  const handleSelectWorkspaceBookSearchResult = (result: WorkspaceBookSearchResult) => {
+    openHistoryRecord(result.record);
+    setIsWorkspaceSearchOpen(false);
+    window.setTimeout(() => {
+      resetReaderScrollPosition();
+    }, 80);
+  };
+
+  const handleSelectWorkspaceLibraryContentSearchResult = (
+    result: WorkspaceLibraryContentSearchResult
+  ) => {
+    openHistoryRecord(result.record);
+    setViewMode("immersive");
+    setIsWorkspaceSearchOpen(false);
+
+    window.setTimeout(() => {
+      const index = SEARCHABLE_CARD_FIELDS.findIndex((field) => field.key === result.targetKey);
+      if (index >= 0) {
+        setSlideDir(index > safeImmersiveIndex ? "left" : "right");
+        setImmersiveIndex(index);
+      }
+      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  const handleSelectCombinedWorkspaceSearchResult = (result: WorkspaceCombinedSearchResult) => {
+    if (result.kind === "book") {
+      handleSelectWorkspaceBookSearchResult(result.result);
+      return;
+    }
+
+    if (result.kind === "libraryContent") {
+      handleSelectWorkspaceLibraryContentSearchResult(result.result);
+      return;
+    }
+
+    handleSelectWorkspaceSearchResult(result.result);
+  };
+
   const immersiveCardList = allImmersiveCardDefs.filter((card) => {
     if (!isLiteMode || isLiteUnlocked) return card.isLoading || !!card.content;
     return (
@@ -2472,6 +2894,25 @@ export default function Home() {
       title: isGeneratingPoster ? "生成中…" : "分享",
       onClick: handleGeneratePoster,
       disabled: isShareActionDisabled,
+    },
+  ];
+  const utilityToolActions = [
+    {
+      id: "search",
+      label: "搜索",
+      title: "搜索 · K",
+      onClick: handleOpenWorkspaceSearch,
+      disabled:
+        recentHistory.length === 0 &&
+        workspaceSearchCorpus.length === 0 &&
+        workspaceLibraryContentSearchResults.length === 0,
+    },
+    {
+      id: isWorkspaceFullscreen ? "exitFullscreen" : "fullscreen",
+      label: isWorkspaceFullscreen ? "退出全屏" : "全屏",
+      title: isWorkspaceFullscreen ? "退出全屏 · F" : "进入全屏 · F",
+      onClick: handleToggleFullscreen,
+      active: isWorkspaceFullscreen,
     },
   ];
 
@@ -3120,7 +3561,7 @@ export default function Home() {
   return (
     <>
       <WorkspaceShell
-        toolRail={<WorkspaceToolRail actions={toolRailActions} />}
+        toolRail={<WorkspaceToolRail actions={toolRailActions} utilityActions={utilityToolActions} />}
         librarySidebar={librarySidebar}
         readerPane={readerPane}
         growthSidebar={growthSidebar}
@@ -3307,6 +3748,238 @@ export default function Home() {
             setLastToastClosedAt(Date.now());
           }}
         />
+      )}
+
+      {isWorkspaceSearchOpen && (
+        <div
+          className="fixed inset-0 z-[70] flex items-start justify-center bg-[rgba(30,33,31,0.42)] px-4 pt-[9vh] backdrop-blur-[2px] md:px-8"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsWorkspaceSearchOpen(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-5xl rounded-[24px] border border-[rgba(59,63,60,0.14)] bg-[rgba(252,252,250,0.98)] p-3 shadow-[0_28px_80px_rgba(17,20,18,0.22)]">
+            <div className="flex items-center gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-4 rounded-[18px] border-2 border-[#9fc4f4] bg-white px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <svg className="h-8 w-8 shrink-0 text-black md:h-9 md:w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="10.8" cy="10.8" r="6.8" />
+                  <path d="m16 16 4.1 4.1" />
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  value={workspaceSearchQuery}
+                  onChange={(event) => setWorkspaceSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setWorkspaceSearchActiveIndex((index) =>
+                        Math.min(index + 1, Math.max(0, combinedWorkspaceSearchResults.length - 1))
+                      );
+                    }
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setWorkspaceSearchActiveIndex((index) => Math.max(0, index - 1));
+                    }
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      const selected = combinedWorkspaceSearchResults[workspaceSearchActiveIndex];
+                      if (selected) {
+                        handleSelectCombinedWorkspaceSearchResult(selected);
+                      }
+                    }
+                  }}
+                  placeholder="搜索书名、作者、观点或行动建议..."
+                  className="min-w-0 flex-1 bg-transparent text-[1.55rem] font-medium text-[var(--ink)] outline-none placeholder:text-[rgba(47,51,51,0.52)] md:text-[2rem]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const selected = combinedWorkspaceSearchResults[workspaceSearchActiveIndex] ?? combinedWorkspaceSearchResults[0];
+                  if (selected) {
+                    handleSelectCombinedWorkspaceSearchResult(selected);
+                  }
+                }}
+                disabled={combinedWorkspaceSearchResults.length === 0}
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-black text-white transition-all hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-35 md:h-20 md:w-20"
+                aria-label="打开第一个搜索结果"
+              >
+                <svg className="h-8 w-8 md:h-10 md:w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsWorkspaceSearchOpen(false)}
+                className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-black transition-all hover:bg-[rgba(59,63,60,0.08)]"
+                aria-label="关闭搜索"
+              >
+                <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                  <path d="M5 5l10 10M15 5 5 15" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-3 max-h-[46vh] overflow-y-auto px-1 pb-1">
+              {workspaceBookSearchResults.length > 0 ||
+              workspaceLibraryContentSearchResults.length > 0 ||
+              workspaceSearchResults.length > 0 ? (
+                <div className="space-y-5">
+                  {workspaceBookSearchResults.length > 0 && (
+                    <section>
+                      <div className="mb-2 flex items-center gap-2 px-3">
+                        <p className="archive-kicker">书库</p>
+                        <span className="h-px flex-1 bg-[rgba(59,63,60,0.08)]" />
+                      </div>
+                      <div className="space-y-1.5">
+                        {workspaceBookSearchResults.map((result) => {
+                          const resultIndex = combinedWorkspaceSearchResults.findIndex((item) => item.id === `book:${result.id}`);
+                          const isActiveResult = resultIndex === workspaceSearchActiveIndex;
+
+                          return (
+                            <button
+                              key={result.id}
+                              type="button"
+                              onMouseEnter={() => {
+                                if (resultIndex >= 0) setWorkspaceSearchActiveIndex(resultIndex);
+                              }}
+                              onClick={() => handleSelectWorkspaceBookSearchResult(result)}
+                              className={`group flex w-full items-center justify-between gap-4 rounded-[16px] px-4 py-3 text-left transition-all ${
+                                isActiveResult ? "bg-[rgba(232,238,231,0.96)]" : "hover:bg-[rgba(242,243,239,0.92)]"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="rounded-full bg-[rgba(58,111,82,0.1)] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
+                                    {result.badge}
+                                  </span>
+                                  <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                                    《{renderHighlightedSearchText(result.title, workspaceSearchTokens)}》
+                                  </p>
+                                </div>
+                                <p className="mt-2 truncate text-sm text-[var(--ink-soft)]">
+                                  {renderHighlightedSearchText(result.subtitle, workspaceSearchTokens)}
+                                </p>
+                              </div>
+                              {isActiveResult ? (
+                                <span className="shrink-0 rounded-md border border-[rgba(59,63,60,0.12)] bg-white/75 px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-faint)]">
+                                  Enter
+                                </span>
+                              ) : (
+                                <span className="shrink-0 text-xl text-[var(--ink-faint)] transition-all group-hover:translate-x-0.5 group-hover:text-[var(--ink)]">
+                                  →
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  {workspaceLibraryContentSearchResults.length > 0 && (
+                    <section>
+                      <div className="mb-2 flex items-center gap-2 px-3">
+                        <p className="archive-kicker">书库内容</p>
+                        <span className="h-px flex-1 bg-[rgba(59,63,60,0.08)]" />
+                      </div>
+                      <div className="space-y-1.5">
+                        {workspaceLibraryContentSearchResults.map((result) => {
+                          const resultIndex = combinedWorkspaceSearchResults.findIndex((item) => item.id === `libraryContent:${result.id}`);
+                          const isActiveResult = resultIndex === workspaceSearchActiveIndex;
+
+                          return (
+                            <button
+                              key={result.id}
+                              type="button"
+                              onMouseEnter={() => {
+                                if (resultIndex >= 0) setWorkspaceSearchActiveIndex(resultIndex);
+                              }}
+                              onClick={() => handleSelectWorkspaceLibraryContentSearchResult(result)}
+                              className={`group w-full rounded-[16px] px-4 py-3 text-left transition-all ${
+                                isActiveResult ? "bg-[rgba(232,238,231,0.96)]" : "hover:bg-[rgba(242,243,239,0.92)]"
+                              }`}
+                            >
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="rounded-full bg-[rgba(58,111,82,0.1)] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
+                                  {result.label}
+                                </span>
+                                <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                                  《{renderHighlightedSearchText(result.bookTitle, workspaceSearchTokens)}》
+                                </p>
+                                {isActiveResult ? (
+                                  <span className="ml-auto shrink-0 rounded-md border border-[rgba(59,63,60,0.12)] bg-white/75 px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-faint)]">
+                                    Enter
+                                  </span>
+                                ) : (
+                                  <span className="ml-auto shrink-0 text-lg text-[var(--ink-faint)] transition-all group-hover:translate-x-0.5 group-hover:text-[var(--ink)]">
+                                    →
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--ink-soft)]">
+                                {renderHighlightedSearchText(result.excerpt, workspaceSearchTokens)}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  {workspaceSearchResults.length > 0 && (
+                    <section>
+                      <div className="mb-2 flex items-center gap-2 px-3">
+                        <p className="archive-kicker">当前书内容</p>
+                        <span className="h-px flex-1 bg-[rgba(59,63,60,0.08)]" />
+                      </div>
+                      <div className="space-y-1.5">
+                        {workspaceSearchResults.map((result) => {
+                          const resultIndex = combinedWorkspaceSearchResults.findIndex((item) => item.id === `currentContent:${result.id}`);
+                          const isActiveResult = resultIndex === workspaceSearchActiveIndex;
+
+                          return (
+                            <button
+                              key={result.id}
+                              type="button"
+                              onMouseEnter={() => {
+                                if (resultIndex >= 0) setWorkspaceSearchActiveIndex(resultIndex);
+                              }}
+                              onClick={() => handleSelectWorkspaceSearchResult(result)}
+                              className={`w-full rounded-[16px] px-4 py-3 text-left transition-all ${
+                                isActiveResult ? "bg-[rgba(232,238,231,0.96)]" : "hover:bg-[rgba(242,243,239,0.92)]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-full bg-[rgba(58,111,82,0.1)] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
+                                  {result.label}
+                                </span>
+                                <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                                  {renderHighlightedSearchText(result.title, workspaceSearchTokens)}
+                                </p>
+                              </div>
+                              <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--ink-soft)]">
+                                {renderHighlightedSearchText(result.excerpt, workspaceSearchTokens)}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-[var(--ink)]">没有找到匹配内容</p>
+                  <p className="mt-1 text-xs text-[var(--ink-faint)]">可以换一个关键词试试。</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
       )}
 
       {/* ── Background analysis progress indicator ── */}

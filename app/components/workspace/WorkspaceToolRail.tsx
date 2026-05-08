@@ -12,6 +12,37 @@ type WorkspaceToolAction = {
 };
 
 function ToolIcon({ id }: { id: string }) {
+  if (id === "search") {
+    return (
+      <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="10.8" cy="10.8" r="6.8" />
+        <path d="m16 16 4.1 4.1" />
+      </svg>
+    );
+  }
+
+  if (id === "fullscreen") {
+    return (
+      <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 9V4h5" />
+        <path d="M20 9V4h-5" />
+        <path d="M4 15v5h5" />
+        <path d="M20 15v5h-5" />
+      </svg>
+    );
+  }
+
+  if (id === "exitFullscreen") {
+    return (
+      <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 4v5H4" />
+        <path d="M15 4v5h5" />
+        <path d="M9 20v-5H4" />
+        <path d="M15 20v-5h5" />
+      </svg>
+    );
+  }
+
   if (id === "training") {
     return (
       <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -47,9 +78,30 @@ function ToolIcon({ id }: { id: string }) {
 
 export function WorkspaceToolRail({
   actions,
+  utilityActions = [],
 }: {
   actions: WorkspaceToolAction[];
+  utilityActions?: WorkspaceToolAction[];
 }) {
+  const renderActionButton = (action: WorkspaceToolAction) => (
+    <button
+      key={action.id}
+      onClick={action.onClick}
+      disabled={action.disabled}
+      className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
+        action.active
+          ? "border-[rgba(58,111,82,0.2)] bg-[rgba(225,236,229,0.96)] text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]"
+          : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[rgba(59,63,60,0.1)] hover:bg-[rgba(255,255,255,0.82)] hover:text-[var(--ink)]"
+      } ${action.disabled ? "cursor-not-allowed opacity-40" : ""}`}
+      aria-label={action.label}
+    >
+      <ToolIcon id={action.id} />
+      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
+        {action.title}
+      </span>
+    </button>
+  );
+
   return (
     <div className="flex flex-col items-center gap-2">
       <Link
@@ -66,26 +118,17 @@ export function WorkspaceToolRail({
         </span>
       </Link>
 
+      {utilityActions.length > 0 && (
+        <div className="relative z-20 overflow-visible rounded-[14px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(248,249,246,0.98)_0%,rgba(239,241,236,0.98)_100%)] p-1 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
+          <div className="flex flex-col gap-1">
+            {utilityActions.map(renderActionButton)}
+          </div>
+        </div>
+      )}
+
       <div className="relative z-20 overflow-visible rounded-[14px] border border-[rgba(52,56,54,0.11)] bg-[linear-gradient(180deg,rgba(238,240,235,0.98)_0%,rgba(232,234,229,0.98)_100%)] p-1 shadow-[0_8px_22px_rgba(33,37,35,0.04)]">
         <div className="flex flex-col gap-1">
-          {actions.map((action) => (
-            <button
-              key={action.id}
-              onClick={action.onClick}
-              disabled={action.disabled}
-              className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
-                action.active
-                  ? "border-[rgba(58,111,82,0.2)] bg-[rgba(225,236,229,0.96)] text-[var(--accent)] shadow-[inset_0_1px_0_rgba(255,255,255,0.68)]"
-                  : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[rgba(59,63,60,0.1)] hover:bg-[rgba(255,255,255,0.82)] hover:text-[var(--ink)]"
-              } ${action.disabled ? "cursor-not-allowed opacity-40" : ""}`}
-              aria-label={action.label}
-            >
-              <ToolIcon id={action.id} />
-              <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[8px] border border-[rgba(24,27,26,0.18)] bg-[rgba(26,30,28,0.96)] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-white shadow-[0_8px_18px_rgba(23,25,24,0.18)] group-hover:block">
-                {action.title}
-              </span>
-            </button>
-          ))}
+          {actions.map(renderActionButton)}
         </div>
       </div>
     </div>
