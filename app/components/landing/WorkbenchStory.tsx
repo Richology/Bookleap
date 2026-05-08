@@ -201,10 +201,10 @@ export function WorkbenchStory() {
                 : "translate-y-8 opacity-0"
             }`}
           >
-            <h2 className="font-editorial text-[3rem] font-semibold leading-[0.94] tracking-[-0.05em] text-[var(--ink)] 2xl:text-[3.35rem]">
-              不是拆书工具，
+            <h2 className="font-editorial text-[2.65rem] font-semibold leading-[1.02] tracking-[-0.045em] text-[var(--ink)] 2xl:text-[3rem]">
+              在拆书之上，
               <br />
-              是你的认知升级工作台
+              提供一个认知升级工作台
             </h2>
             <p className="mt-6 max-w-[320px] text-[1rem] leading-8 text-[var(--ink-soft)]">
               上传、解析、阅读、训练、导出、分享，被重新组织成一套连续工作流，而不是彼此孤立的功能点。
@@ -495,10 +495,10 @@ export function WorkbenchStory() {
                 : "translate-y-8 opacity-0"
             }`}
           >
-            <h2 className="font-editorial text-[2.35rem] font-semibold leading-[0.96] tracking-[-0.045em] text-[var(--ink)]">
-              不是拆书工具，
+            <h2 className="font-editorial text-[2.15rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)]">
+              在拆书之上，
               <br />
-              是你的认知升级工作台
+              提供一个认知升级工作台
             </h2>
             <p className="mt-5 max-w-[620px] text-[0.98rem] leading-7 text-[var(--ink-soft)]">
               上传、解析、阅读、训练、导出、分享，被重新组织成一套连续工作流，而不是彼此孤立的功能点。

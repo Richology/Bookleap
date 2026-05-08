@@ -37,21 +37,29 @@ const ANALYSIS_FACETS = [
   },
 ];
 
+const HERO_TITLE_LINES = ["让一本好书", "变成一次清醒的决策"];
+
+const HERO_FEATURES = [
+  { title: "卡片阅读", detail: "把核心观点拆成可回顾的知识卡" },
+  { title: "精华导出", detail: "把值得留下的内容整理成文档" },
+  { title: "决策训练", detail: "把书中判断转成现实情境练习" },
+  { title: "海报分享", detail: "生成适合分享的读书海报" },
+];
+
 export default function LandingPage() {
   const [heroCardsRevealed, setHeroCardsRevealed] = useState(0);
   const [heroTextPhase, setHeroTextPhase] = useState(0);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    const CARD_START = 400;
+    timers.push(setTimeout(() => setHeroTextPhase(1), 120));
+    timers.push(setTimeout(() => setHeroTextPhase(2), 1450));
+    timers.push(setTimeout(() => setHeroTextPhase(3), 1750));
+    const CARD_START = 1750;
     const CARD_GAP = 120;
     for (let i = 1; i <= ANALYSIS_FACETS.length; i++) {
       timers.push(setTimeout(() => setHeroCardsRevealed(i), CARD_START + (i - 1) * CARD_GAP));
     }
-    const textBase = CARD_START + ANALYSIS_FACETS.length * CARD_GAP + 200;
-    timers.push(setTimeout(() => setHeroTextPhase(1), textBase));
-    timers.push(setTimeout(() => setHeroTextPhase(2), textBase + 300));
-    timers.push(setTimeout(() => setHeroTextPhase(3), textBase + 600));
     return () => timers.forEach(clearTimeout);
   }, []);
 
@@ -85,22 +93,48 @@ export default function LandingPage() {
         <section className="px-6 pb-16 pt-28 md:px-10 md:pb-24 md:pt-32">
           <div className="mx-auto grid max-w-[1540px] gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(460px,0.95fr)] lg:items-center">
             <div className="max-w-[760px]">
-              <h1 className="font-editorial text-[3.55rem] leading-[0.92] tracking-[-0.055em] text-[var(--ink)] sm:text-[4.5rem] lg:text-[6.7rem]">
-                一本好书
-                <span className="mt-3 block text-[0.62em] font-normal italic tracking-[-0.035em] text-[var(--ink)]">
-                  一次清醒的决策
-                </span>
+              <h1
+                className="font-editorial text-[2.8rem] font-semibold leading-[1.04] tracking-[-0.05em] text-[var(--ink)] sm:text-[3.55rem] lg:text-[4.55rem]"
+                aria-label="让一本好书 变成一次清醒的决策"
+              >
+                {HERO_TITLE_LINES.map((line, lineIndex) => {
+                  const offset = HERO_TITLE_LINES.slice(0, lineIndex).join("").length;
+                  return (
+                    <span
+                      key={line}
+                      className={`block ${lineIndex === 1 ? "mt-3" : ""}`}
+                      aria-hidden="true"
+                    >
+                      {Array.from(line).map((char, charIndex) => (
+                        <span
+                          key={`${line}-${charIndex}`}
+                          className="inline-block"
+                          style={{
+                            opacity: heroTextPhase >= 1 ? 1 : 0,
+                            transform: heroTextPhase >= 1 ? "none" : "translateY(0.18em)",
+                            filter: heroTextPhase >= 1 ? "blur(0)" : "blur(4px)",
+                            transition:
+                              "opacity 0.42s ease, transform 0.42s ease, filter 0.42s ease",
+                            transitionDelay: `${(offset + charIndex) * 72}ms`,
+                          }}
+                        >
+                          {char}
+                        </span>
+                      ))}
+                    </span>
+                  );
+                })}
               </h1>
               <p
                 className="mt-8 max-w-[620px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.05rem]"
                 style={{
-                  opacity: heroTextPhase >= 1 ? 1 : 0,
-                  transform: heroTextPhase >= 1 ? "none" : "translateY(16px)",
-                  filter: heroTextPhase >= 1 ? "blur(0)" : "blur(6px)",
+                  opacity: heroTextPhase >= 2 ? 1 : 0,
+                  transform: heroTextPhase >= 2 ? "none" : "translateY(16px)",
+                  filter: heroTextPhase >= 2 ? "blur(0)" : "blur(6px)",
                   transition: "opacity 0.7s ease, transform 0.7s ease, filter 0.7s ease",
                 }}
               >
-                上传一本电子书，30 秒获取 6 张结构化知识卡片。卡片阅读、模拟训练、精华导出、海报分享即可完成一次跃迁
+                上传一本电子书，30 秒获取 6 张结构化的内容精华卡片
               </p>
               <div
                 className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center"
@@ -114,13 +148,13 @@ export default function LandingPage() {
                   href="/workspace"
                   className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--ink)] px-6 py-3.5 text-sm font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.98]"
                 >
-                  进入工作台
+                  上传一本书，开始体验
                   <span aria-hidden>↗</span>
                 </a>
               </div>
 
               <div
-                className="mt-14 max-w-[660px] border-t border-[var(--ghost-border)] pt-6"
+                className="mt-14 max-w-[660px] pt-6"
                 style={{
                   opacity: heroTextPhase >= 3 ? 1 : 0,
                   transform: heroTextPhase >= 3 ? "none" : "translateY(12px)",
@@ -213,9 +247,9 @@ export default function LandingPage() {
           }}
         >
           <div className="mx-auto max-w-[1540px] rounded-[32px] bg-[var(--surface-low)] px-6 py-10 md:px-10 md:py-14">
-            <div className="mb-12 max-w-[760px]">
-              <h2 className="font-editorial text-[2.3rem] font-semibold tracking-[-0.04em] text-[var(--ink)] md:text-[3rem]">
-                不是复制，是重建这本书的结构
+            <div className="mb-12 max-w-[980px]">
+              <h2 className="font-editorial text-[2.1rem] font-semibold leading-[1.12] tracking-[-0.035em] text-[var(--ink)] md:text-[2.65rem]">
+                6 张内容精华卡片，重建一本好书
               </h2>
             </div>
             <FacetCarousel items={ANALYSIS_FACETS} visible={facetsVisible} />
@@ -223,6 +257,37 @@ export default function LandingPage() {
         </section>
 
         <BookComparison />
+
+        <section className="px-6 py-10 md:px-10 md:py-12">
+          <div className="mx-auto max-w-[1440px] rounded-[32px] bg-[var(--surface-low)] px-6 py-10 md:px-10 md:py-14">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] lg:items-start">
+              <div>
+                <h2 className="mt-4 font-editorial text-[2.4rem] font-semibold leading-[1.02] tracking-[-0.04em] text-[var(--ink)] md:text-[3.1rem]">
+                  把一本书，
+                  <br />
+                  用到你的真实问题里
+                </h2>
+                <p className="mt-5 max-w-[520px] text-sm leading-7 text-[var(--ink-soft)] md:text-base md:leading-8">
+                  书跃不是把内容切碎给你看，而是把阅读后的理解、复用、训练和表达串成一个连续工作流。
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {HERO_FEATURES.map((item, index) => (
+                  <div key={item.title} className="rounded-[18px] bg-[var(--paper)] p-5 shadow-[var(--shadow-paper)]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-semibold tracking-[0.14em] text-[var(--accent)]">
+                        0{index + 1}
+                      </span>
+                      <h3 className="text-sm font-semibold text-[var(--ink)]">{item.title}</h3>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <WorkbenchStory />
 
@@ -258,14 +323,13 @@ export default function LandingPage() {
 
         <ScrollSection>
           <footer className="px-6 pb-8 md:px-10">
-            <div className="mx-auto flex max-w-[1440px] flex-col items-start gap-2 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center md:gap-4">
-              <p>书跃 · BookLeap</p>
-              <span className="hidden md:inline">·</span>
+            <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-2 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center">
+              <p>书跃 · BookLeap · 从好书中完成认知跃迁</p>
               <a
                 href="https://richology.cn"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="cursor-pointer rounded-md border border-transparent px-1.5 py-0.5 text-[var(--ink-soft)] underline decoration-[var(--ghost-border)] decoration-1 underline-offset-4 transition-colors hover:border-[var(--ghost-border)] hover:bg-[var(--surface-low)] hover:text-[var(--ink)] hover:decoration-[var(--accent)]"
+                className="cursor-pointer rounded-md border border-transparent px-1.5 py-0.5 pr-20 text-[var(--ink-soft)] underline decoration-[var(--ghost-border)] decoration-1 underline-offset-4 transition-colors hover:border-[var(--ghost-border)] hover:bg-[var(--surface-low)] hover:text-[var(--ink)] hover:decoration-[var(--accent)] md:pr-24"
               >
                 由 安瑟A11BERICH构建 · 了解开发者
               </a>
