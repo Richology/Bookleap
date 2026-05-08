@@ -50,6 +50,7 @@ export function WorkspaceTopBar({
 
         <div ref={menuRef} className="relative shrink-0 self-start">
           <button
+            type="button"
             onClick={() => setIsMenuOpen((prev) => !prev)}
             className="flex h-10 w-10 items-center justify-center rounded-t-[10px] bg-[rgba(246,247,243,0.96)] text-[var(--ink-soft)] transition-all hover:bg-white hover:text-[var(--ink)]"
             aria-label="展开标签页菜单"

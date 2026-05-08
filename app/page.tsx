@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
+import { BookLeapCTA } from "./components/landing/BookLeapCTA";
 import { FacetCarousel } from "./components/landing/FacetCarousel";
 import { FAQ } from "./components/landing/FAQ";
 import { NeedAHand } from "./components/landing/NeedAHand";
@@ -144,13 +145,7 @@ export default function LandingPage() {
                   transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1)",
                 }}
               >
-                <a
-                  href="/workspace"
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--ink)] px-6 py-3.5 text-sm font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.98]"
-                >
-                  上传一本书，开始体验
-                  <span aria-hidden>↗</span>
-                </a>
+                <BookLeapCTA href="/workspace">上传一本书，开始体验</BookLeapCTA>
               </div>
 
               <div
@@ -310,13 +305,9 @@ export default function LandingPage() {
                   现在就把一本书，整理进你的工作台
                 </p>
               </div>
-              <a
-                href="/workspace"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-white/92 active:scale-[0.98]"
-              >
+              <BookLeapCTA href="/workspace" tone="paper">
                 立即开始
-                <span aria-hidden>↗</span>
-              </a>
+              </BookLeapCTA>
             </div>
           </section>
         </ScrollSection>
