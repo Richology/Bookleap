@@ -157,52 +157,44 @@ select {
 }
 
 .bookleap-cta {
-  --cta-shell: #262c2b;
-  --cta-shell-edge: rgba(58, 111, 82, 0.42);
+  --cta-shell: #22362c;
+  --cta-shell-edge: rgba(58, 111, 82, 0.62);
   --cta-text: #fffdf9;
-  --cta-charm-a: #badfc8;
-  --cta-charm-b: #7ea6ff;
-  --cta-charm-c: #e878b4;
-  --cta-bubble: rgba(186, 221, 200, 0.9);
-  --cta-bubble-soft: rgba(255, 255, 255, 0.72);
+  --cta-charm: rgba(186, 221, 200, 0.18);
+  --cta-charm-hover: rgba(186, 221, 200, 0.3);
   position: relative;
   isolation: isolate;
   display: inline-flex;
-  min-height: 4.05rem;
+  min-height: 3.45rem;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  overflow: visible;
+  gap: 0.85rem;
+  overflow: hidden;
   border: 1px solid var(--cta-shell-edge);
-  border-radius: 1.35rem;
-  background:
-    radial-gradient(circle at 86% 24%, rgba(186, 221, 200, 0.14), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0)),
-    var(--cta-shell);
+  border-radius: 0.5rem;
+  background: var(--cta-shell);
   color: var(--cta-text);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.18),
-    0 18px 40px rgba(47, 51, 51, 0.16);
-  padding: 0.42rem 0.48rem 0.42rem 1.55rem;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 30px rgba(58, 111, 82, 0.18);
+  padding: 0.5rem 0.62rem 0.5rem 1.35rem;
   text-decoration: none;
-  transform: translateZ(0);
   transition:
+    background-color 180ms ease,
     border-color 220ms ease,
-    box-shadow 220ms ease,
-    transform 220ms ease;
+    box-shadow 220ms ease;
 }
 
 .bookleap-cta::before {
   content: "";
   position: absolute;
-  inset: -8px;
-  z-index: -1;
-  border-radius: 1.65rem;
-  background: radial-gradient(circle at 82% 50%, rgba(186, 221, 200, 0.2), transparent 58%);
-  opacity: 0;
-  filter: blur(12px);
-  transition: opacity 220ms ease;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 86% 50%, rgba(186, 221, 200, 0.18), transparent 44%),
+    linear-gradient(90deg, transparent 0%, rgba(186, 221, 200, 0.13) 100%);
+  opacity: 0.82;
+  transition: opacity 180ms ease;
 }
 
 .bookleap-cta__label {
@@ -210,7 +202,7 @@ select {
   z-index: 2;
   white-space: nowrap;
   font-size: 0.95rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1;
 }
@@ -219,103 +211,34 @@ select {
   position: relative;
   z-index: 2;
   display: grid;
-  height: 3.12rem;
-  width: 3.55rem;
+  height: 2.25rem;
+  width: 2.25rem;
   place-items: center;
   overflow: hidden;
-  border-radius: 1rem;
-  background:
-    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.64), transparent 19%),
-    radial-gradient(circle at 72% 68%, rgba(255, 255, 255, 0.38), transparent 23%),
-    linear-gradient(135deg, var(--cta-charm-a) 0%, var(--cta-charm-b) 48%, var(--cta-charm-c) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-    inset 0 -12px 24px rgba(48, 43, 96, 0.22),
-    0 8px 20px rgba(12, 23, 22, 0.18);
+  border: 1px solid rgba(186, 221, 200, 0.26);
+  border-radius: 0.42rem;
+  background: var(--cta-charm);
   transition:
-    border-radius 220ms ease,
-    box-shadow 220ms ease,
-    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.bookleap-cta__charm::before {
-  content: "";
-  position: absolute;
-  inset: -36%;
-  background: conic-gradient(
-    from 120deg,
-    transparent,
-    rgba(255, 255, 255, 0.72),
-    transparent,
-    rgba(186, 221, 200, 0.58),
-    transparent
-  );
-  opacity: 0.36;
-  animation: bookleap-cta-sheen 7s linear infinite;
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
 }
 
 .bookleap-cta__arrow {
   position: relative;
   z-index: 1;
-  color: white;
-  font-size: 2rem;
+  color: currentColor;
+  font-size: 1.18rem;
   font-weight: 500;
   line-height: 1;
-  transform: translateX(0);
-  transition: transform 220ms ease;
-}
-
-.bookleap-cta__bubble {
-  position: absolute;
-  z-index: 1;
-  pointer-events: none;
-  border-radius: 999px;
-  background: var(--cta-bubble);
-  box-shadow: 0 0 18px rgba(186, 221, 200, 0.45);
-  opacity: 0;
-  transform: translate3d(0, 0, 0) scale(0.72);
-}
-
-.bookleap-cta__bubble--one {
-  right: 1.9rem;
-  top: -0.45rem;
-  height: 0.58rem;
-  width: 0.58rem;
-  background: var(--cta-bubble-soft);
-}
-
-.bookleap-cta__bubble--two {
-  right: -0.18rem;
-  top: -0.65rem;
-  height: 0.78rem;
-  width: 0.78rem;
-}
-
-.bookleap-cta__bubble--three {
-  right: -0.3rem;
-  bottom: 0.28rem;
-  height: 0.62rem;
-  width: 0.62rem;
-  background: rgba(255, 245, 215, 0.9);
-}
-
-.bookleap-cta__bubble--four {
-  right: 2.8rem;
-  top: 0.52rem;
-  height: 0.42rem;
-  width: 0.42rem;
-  background: rgba(255, 255, 255, 0.82);
 }
 
 .bookleap-cta:hover,
 .bookleap-cta:focus-visible {
-  border-color: rgba(186, 221, 200, 0.78);
+  border-color: rgba(186, 221, 200, 0.88);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 -10px 20px rgba(0, 0, 0, 0.17),
-    0 20px 44px rgba(47, 51, 51, 0.18),
-    0 0 0 6px rgba(186, 221, 200, 0.12);
-  transform: translateY(-1px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 30px rgba(58, 111, 82, 0.18);
 }
 
 .bookleap-cta:hover::before,
@@ -325,134 +248,32 @@ select {
 
 .bookleap-cta:hover .bookleap-cta__charm,
 .bookleap-cta:focus-visible .bookleap-cta__charm {
-  border-radius: 1.08rem;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
-    inset 0 -12px 24px rgba(48, 43, 96, 0.2),
-    0 12px 24px rgba(12, 23, 22, 0.24);
-  transform: translateX(0.16rem) scale(1.035);
-}
-
-.bookleap-cta:hover .bookleap-cta__arrow,
-.bookleap-cta:focus-visible .bookleap-cta__arrow {
-  transform: translateX(0.14rem);
-}
-
-.bookleap-cta:hover .bookleap-cta__bubble--one,
-.bookleap-cta:focus-visible .bookleap-cta__bubble--one {
-  animation: bookleap-cta-bubble-one 1.7s ease-in-out infinite;
-}
-
-.bookleap-cta:hover .bookleap-cta__bubble--two,
-.bookleap-cta:focus-visible .bookleap-cta__bubble--two {
-  animation: bookleap-cta-bubble-two 2s ease-in-out infinite 120ms;
-}
-
-.bookleap-cta:hover .bookleap-cta__bubble--three,
-.bookleap-cta:focus-visible .bookleap-cta__bubble--three {
-  animation: bookleap-cta-bubble-three 1.85s ease-in-out infinite 80ms;
-}
-
-.bookleap-cta:hover .bookleap-cta__bubble--four,
-.bookleap-cta:focus-visible .bookleap-cta__bubble--four {
-  animation: bookleap-cta-bubble-four 1.55s ease-in-out infinite 180ms;
+  border-color: rgba(186, 221, 200, 0.48);
+  background: var(--cta-charm-hover);
 }
 
 .bookleap-cta:active {
-  transform: translateY(0) scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 24px rgba(47, 51, 51, 0.14);
 }
 
 .bookleap-cta--paper {
   --cta-shell: #fffdf9;
   --cta-shell-edge: rgba(255, 255, 255, 0.62);
   --cta-text: #2f3333;
-  --cta-charm-a: #badfc8;
-  --cta-charm-b: #8db6ff;
-  --cta-charm-c: #f18fbe;
-  --cta-bubble: rgba(255, 255, 255, 0.9);
-  --cta-bubble-soft: rgba(186, 221, 200, 0.9);
+  --cta-charm: rgba(47, 51, 51, 0.06);
+  --cta-charm-hover: rgba(186, 221, 200, 0.38);
   box-shadow:
-    inset 0 0 0 1px rgba(47, 51, 51, 0.04),
-    inset 0 -10px 20px rgba(47, 51, 51, 0.04),
-    0 18px 40px rgba(0, 0, 0, 0.18);
-}
-
-@keyframes bookleap-cta-sheen {
-  to {
-    rotate: 360deg;
-  }
-}
-
-@keyframes bookleap-cta-bubble-one {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translate3d(0, 0.15rem, 0) scale(0.7);
-  }
-  34% {
-    opacity: 0.95;
-  }
-  72% {
-    opacity: 0.48;
-    transform: translate3d(-0.42rem, -0.95rem, 0) scale(1.06);
-  }
-}
-
-@keyframes bookleap-cta-bubble-two {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translate3d(-0.12rem, 0.2rem, 0) scale(0.68);
-  }
-  30% {
-    opacity: 0.9;
-  }
-  76% {
-    opacity: 0.35;
-    transform: translate3d(0.3rem, -1.2rem, 0) scale(1.02);
-  }
-}
-
-@keyframes bookleap-cta-bubble-three {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translate3d(0, -0.08rem, 0) scale(0.7);
-  }
-  32% {
-    opacity: 0.86;
-  }
-  70% {
-    opacity: 0.42;
-    transform: translate3d(0.42rem, 0.68rem, 0) scale(1.08);
-  }
-}
-
-@keyframes bookleap-cta-bubble-four {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translate3d(0.08rem, 0.1rem, 0) scale(0.62);
-  }
-  36% {
-    opacity: 0.9;
-  }
-  78% {
-    opacity: 0.4;
-    transform: translate3d(-0.18rem, -0.72rem, 0) scale(1);
-  }
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 14px 30px rgba(47, 51, 51, 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bookleap-cta__charm::before,
-  .bookleap-cta:hover .bookleap-cta__bubble,
-  .bookleap-cta:focus-visible .bookleap-cta__bubble {
-    animation: none;
-  }
-
-  .bookleap-cta:hover .bookleap-cta__bubble,
-  .bookleap-cta:focus-visible .bookleap-cta__bubble {
-    opacity: 0.72;
+  .bookleap-cta,
+  .bookleap-cta__charm,
+  .bookleap-cta__arrow {
+    transition: none;
   }
 }
 

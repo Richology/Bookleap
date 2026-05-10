@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BookComparison } from "../components/landing/BookComparison";
+import { BookLeapCTA } from "../components/landing/BookLeapCTA";
 import { FacetCarousel } from "../components/landing/FacetCarousel";
 import { FAQ } from "../components/landing/FAQ";
 import { NeedAHand } from "../components/landing/NeedAHand";
@@ -198,13 +199,7 @@ export default function HomeV2Page() {
                   transition: "opacity 0.6s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1)",
                 }}
               >
-                <a
-                  href="/workspace"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[var(--ink)] px-7 py-3.5 text-sm font-medium text-[#faf7f6] shadow-[0_14px_30px_rgba(47,51,51,0.16)] transition-all hover:opacity-92 active:scale-[0.98]"
-                >
-                  上传一本书，开始体验
-                  <span aria-hidden>↗</span>
-                </a>
+                <BookLeapCTA href="/workspace">上传一本书，开始体验</BookLeapCTA>
               </div>
             </div>
 
