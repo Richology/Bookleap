@@ -71,7 +71,7 @@ export function WorkspaceTopBar({
             onClick={onExpandLibrary}
             className="mb-px flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="展开书库栏"
-            title="展开书库栏"
+            title="展开书库栏 · ["
           >
             <SidebarToggleIcon side="left" />
           </button>
@@ -105,7 +105,7 @@ export function WorkspaceTopBar({
               onClick={onExpandGrowth}
               className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
               aria-label="展开成长区"
-              title="展开成长区"
+              title="展开成长区 · ]"
             >
               <SidebarToggleIcon side="right" />
             </button>

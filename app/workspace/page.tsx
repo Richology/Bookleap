@@ -876,6 +876,16 @@ export default function Home() {
         event.preventDefault();
         handleToggleFullscreen();
       }
+
+      if (event.key === "[" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        setIsLibraryCollapsed((prev) => !prev);
+      }
+
+      if (event.key === "]" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        setIsGrowthPanelCollapsed((prev) => !prev);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
