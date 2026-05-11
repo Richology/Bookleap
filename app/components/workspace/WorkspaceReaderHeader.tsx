@@ -23,7 +23,7 @@ export function WorkspaceReaderHeader({
 
       <div className="min-w-0">
         <div className="flex flex-col gap-4 md:gap-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-[#dddddd] bg-[#f8fafc] px-3 py-1 text-[11px] font-medium text-[var(--ink-soft)]">
@@ -46,7 +46,7 @@ export function WorkspaceReaderHeader({
             </div>
 
             {controls && (
-              <div className="flex flex-wrap items-center gap-2.5 md:justify-end">
+              <div className="flex shrink-0 flex-wrap items-center gap-2.5 md:justify-end">
                 {controls}
               </div>
             )}

@@ -2952,7 +2952,7 @@ export default function Home() {
   };
 
   const workspacePanelClass =
-    "border-t border-[#dddddd] bg-transparent";
+    "bg-transparent";
   const workspaceRailPanelClass =
     "rounded-[12px] border border-[#dddddd] bg-[#fbfbfa] shadow-[0_1px_2px_rgba(24,29,38,0.04)]";
   const searchResultClass = (isActiveResult: boolean) =>
@@ -3026,7 +3026,7 @@ export default function Home() {
         <div className="mt-3 flex items-center gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-[10px] bg-[#181d26] px-3 py-2 text-sm font-medium text-[#fbfbfa] transition-all hover:bg-[#0d1218] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+            className="rounded-[10px] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[#fbfbfa] transition-all hover:bg-[#123f1a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
           >
             + 上传书籍
           </button>
@@ -3047,7 +3047,6 @@ export default function Home() {
                 key={book.id}
                 title={book.title}
                 subtitle={book.author}
-                badge={isCurrentStarter ? "当前" : undefined}
                 tone={isCurrentStarter ? "current" : "gifted"}
                 onClick={() => void handleSelectStarterBook(book.id)}
               />
@@ -3090,7 +3089,6 @@ export default function Home() {
                 key={`history-${record.id}`}
                 title={record.title}
                 subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
-                badge={record.title === bookTitle ? "当前" : undefined}
                 tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
                 onClick={() => openHistoryRecord(record)}
                 onDelete={() => deleteHistoryRecord(record.id)}
@@ -3228,7 +3226,7 @@ export default function Home() {
                   </div>
 
                   <div className="mt-4 bg-[#fbfbfa] px-3 py-4">
-                    <div className="border-y border-[#dddddd] py-4">
+                    <div className="border-t border-[#dddddd] pt-4">
                       <p className="text-[17px] italic leading-8 text-[var(--ink)]">
                         {card.quote}
                       </p>

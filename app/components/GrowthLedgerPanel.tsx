@@ -99,7 +99,7 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
     : "完成分析、导出海报或 3 题训练后，能力会开始留下印记。";
 
   return (
-    <section className="border-y border-[#dddddd] bg-transparent py-3">
+    <section className="border-b border-[#dddddd] bg-transparent py-3">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <p className="archive-kicker">能力账本</p>
@@ -138,7 +138,7 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
                 <CircularProgress
                   value={safeCount}
                   max={GROWTH_ABILITY_MAX}
-                  accent="var(--accent)"
+                  accent="#2f6f48"
                 />
 
                 <div className="min-w-0 flex-1">
