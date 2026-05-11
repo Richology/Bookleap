@@ -40,6 +40,7 @@ export function WorkspaceGrowthSidebar({
             onClick={onToggle}
             className="absolute right-0 top-0 flex h-8 w-8 items-center justify-center rounded-[9px] border border-[#dddddd] bg-[#fbfbfa] text-[#4f555d] transition-all hover:border-[#9297a0] hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label={isCollapsed ? "展开成长区" : "收起成长区"}
+            title="收起成长区 · ]"
           >
             <GrowthToggleIcon />
           </button>
