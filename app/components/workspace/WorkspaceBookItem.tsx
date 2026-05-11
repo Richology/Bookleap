@@ -19,15 +19,15 @@ export function WorkspaceBookItem({
 }) {
   const toneClass =
     tone === "current"
-      ? "border-[rgba(58,111,82,0.16)] bg-[rgba(230,238,232,0.92)]"
+      ? "border-[#9297a0] bg-[#eef1ef] shadow-[inset_0_0_0_1px_rgba(146,151,160,0.14)]"
       : tone === "gifted"
-      ? "border-[rgba(79,119,90,0.1)] bg-[rgba(240,245,241,0.68)]"
-      : "border-transparent bg-[rgba(255,255,255,0.26)] hover:border-[rgba(59,63,60,0.07)] hover:bg-[rgba(255,255,255,0.74)]";
+      ? "border-[#dddddd] bg-[#fbfbfa] hover:border-[#9297a0] hover:bg-[#fbfbfa]"
+      : "border-transparent bg-transparent hover:border-[#dddddd] hover:bg-[#fbfbfa]";
 
   return (
     <div
       onClick={onClick}
-      className={`group flex cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-2.5 py-2 transition-all ${toneClass}`}
+      className={`group flex cursor-pointer items-start justify-between gap-3 rounded-[7px] border px-2.5 py-2 transition-all ${toneClass}`}
     >
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-medium text-[var(--ink)]">
@@ -42,10 +42,10 @@ export function WorkspaceBookItem({
 
       <div className="flex shrink-0 items-center gap-1.5">
         {badge && (
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+          <span className={`rounded-[6px] px-1.5 py-0.5 text-[10px] font-medium ${
             tone === "current"
-              ? "bg-[rgba(58,111,82,0.12)] text-[var(--accent)]"
-              : "bg-[rgba(59,63,60,0.05)] text-[var(--ink-soft)]"
+              ? "border border-[rgba(10,46,14,0.18)] bg-[#fbfbfa] text-[var(--accent)]"
+              : "border border-[#dddddd] bg-[#fbfbfa] text-[var(--ink-soft)]"
           }`}>
             {badge}
           </span>
@@ -56,7 +56,7 @@ export function WorkspaceBookItem({
               e.stopPropagation();
               onDelete();
             }}
-            className="rounded-[7px] p-1 text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[rgba(255,255,255,0.86)] hover:text-[var(--ink)]"
+            className="rounded-[7px] p-1 text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#edf0f2] hover:text-[var(--ink)] focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label={`删除 ${title}`}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">

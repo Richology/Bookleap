@@ -58,15 +58,15 @@ export function Toast({
 
   return (
     <div
-      className={`fixed z-[9990] bottom-4 left-1/2 w-[min(calc(100vw-24px),420px)] -translate-x-1/2 rounded-2xl border border-white/70 bg-white/92 p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14)] backdrop-blur-md transition-all duration-200 md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:translate-x-0 ${
+      className={`fixed z-[9990] bottom-4 left-1/2 w-[min(calc(100vw-24px),420px)] -translate-x-1/2 rounded-[12px] border border-[#dddddd] bg-[#fbfbfa] p-4 shadow-[0_8px_24px_rgba(24,29,38,0.12)] transition-all duration-200 md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:translate-x-0 ${
         visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
       }`}
       role="status"
       aria-live="polite"
     >
       <div className="flex items-start gap-3">
-        <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-gray-900/75" />
-        <div className="min-w-0 flex-1 text-sm leading-6 text-gray-700">
+        <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[#181d26]" />
+        <div className="min-w-0 flex-1 text-sm leading-6 text-[var(--ink-soft)]">
           {typeof message === "string" ? (
             <p className="whitespace-pre-line">{message}</p>
           ) : (
@@ -81,7 +81,7 @@ export function Toast({
                     onAction();
                     dismiss();
                   }}
-                  className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-all hover:border-gray-300 hover:bg-white hover:text-gray-950"
+                  className="rounded-[9px] border border-[#dddddd] bg-[#f8fafc] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition-all hover:border-[#9297a0] hover:bg-[#fbfbfa]"
                 >
                   {actionText}
                 </button>
@@ -92,7 +92,7 @@ export function Toast({
                     onSecondaryAction();
                     dismiss();
                   }}
-                  className="rounded-full px-3 py-1.5 text-xs font-medium text-gray-400 transition-all hover:text-gray-600"
+                  className="rounded-[9px] px-3 py-1.5 text-xs font-medium text-[var(--ink-faint)] transition-all hover:text-[var(--ink)]"
                 >
                   {secondaryActionText}
                 </button>
@@ -106,7 +106,7 @@ export function Toast({
               if (!dismissible) return;
               dismiss();
             }}
-            className="shrink-0 rounded-full p-1 text-gray-300 transition-colors hover:text-gray-500"
+            className="shrink-0 rounded-[8px] p-1 text-[var(--ink-faint)] transition-colors hover:bg-[#f8fafc] hover:text-[var(--ink)]"
             aria-label="关闭提示"
           >
             <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">

@@ -168,23 +168,23 @@ export function PosterPreviewModal({
 
   const secondaryButtonStyle: React.CSSProperties = {
     padding: "10px 20px",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "rgba(255,255,255,0.08)",
+    borderRadius: 10,
+    border: "1px solid #dddddd",
+    background: "#f8fafc",
     fontSize: 14,
     fontWeight: 600,
-    color: "#ffffff",
+    color: "#41454d",
     cursor: "pointer",
   };
 
   const primaryButtonStyle: React.CSSProperties = {
     padding: "10px 20px",
-    borderRadius: 12,
+    borderRadius: 10,
     border: "none",
-    background: isSaving ? "#6b7280" : "#ffffff",
+    background: isSaving ? "#9297a0" : "#181d26",
     fontSize: 14,
     fontWeight: 600,
-    color: isSaving ? "#ffffff" : "#111827",
+    color: "#fbfbfa",
     cursor: isSaving ? "default" : "pointer",
   };
 
@@ -202,11 +202,11 @@ export function PosterPreviewModal({
           overflow: "hidden",
           cursor: "pointer",
           border: isActive
-            ? "2px solid rgba(255,255,255,0.68)"
-            : "1px solid rgba(255,255,255,0.14)",
+            ? "2px solid #9297a0"
+            : "1px solid #dddddd",
           boxShadow: isActive
-            ? "0 4px 18px rgba(0,0,0,0.28)"
-            : "0 2px 8px rgba(0,0,0,0.18)",
+            ? "0 4px 14px rgba(24,29,38,0.14)"
+            : "0 1px 2px rgba(24,29,38,0.08)",
           opacity: isActive ? 1 : 0.72,
           background: bgForTemplate(tmpl.id),
           transition: "opacity 180ms ease, transform 180ms ease, border-color 180ms ease",
@@ -237,8 +237,8 @@ export function PosterPreviewModal({
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "rgba(0,0,0,0.6)",
-        backdropFilter: "blur(8px)",
+        background: "rgba(24,29,38,0.34)",
+        backdropFilter: "blur(2px)",
         ...overlayStyle,
       }}
       onClick={handleClose}
@@ -285,8 +285,8 @@ export function PosterPreviewModal({
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: "rgba(255,255,255,0.85)",
-                  letterSpacing: 2,
+                  color: "#fbfbfa",
+                  letterSpacing: 1,
                   margin: 0,
                 }}
               >
@@ -296,8 +296,8 @@ export function PosterPreviewModal({
               <div
                 style={{
                   overflow: "hidden",
-                  borderRadius: 16,
-                  boxShadow: "0 12px 48px rgba(0,0,0,0.35)",
+                  borderRadius: 12,
+                  boxShadow: "0 18px 44px rgba(24,29,38,0.18)",
                   background: bgForTemplate(activeTemplate),
                 }}
               >
@@ -359,8 +359,8 @@ export function PosterPreviewModal({
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: "rgba(255,255,255,0.85)",
-                letterSpacing: 2,
+                color: "#fbfbfa",
+                letterSpacing: 1,
                 margin: 0,
               }}
             >
@@ -370,8 +370,8 @@ export function PosterPreviewModal({
             <div
               style={{
                 overflow: "hidden",
-                borderRadius: 16,
-                boxShadow: "0 12px 48px rgba(0,0,0,0.35)",
+                borderRadius: 12,
+                boxShadow: "0 18px 44px rgba(24,29,38,0.18)",
                 background: bgForTemplate(activeTemplate),
               }}
             >

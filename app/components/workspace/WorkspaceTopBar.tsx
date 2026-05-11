@@ -3,18 +3,44 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { WorkspaceTabs, type WorkspaceTabItem } from "./WorkspaceTabs";
 
+function SidebarToggleIcon({ side }: { side: "left" | "right" }) {
+  return (
+    <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="13" height="13" rx="3.5" stroke="currentColor" strokeWidth="1.95" />
+      <rect
+        x={side === "left" ? "4.8" : "11.1"}
+        y="4.8"
+        width="4.1"
+        height="10.4"
+        rx="2"
+        fill="currentColor"
+        fillOpacity="0.18"
+      />
+      <path d="M10 4.7V15.3" stroke="currentColor" strokeWidth="1.95" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function WorkspaceTopBar({
   tabs,
   activeTabId,
   onActivateTab,
   onCloseTab,
   onCloseAllTabs,
+  isLibraryCollapsed,
+  onExpandLibrary,
+  isGrowthCollapsed,
+  onExpandGrowth,
 }: {
   tabs: WorkspaceTabItem[];
   activeTabId: string | null;
   onActivateTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
   onCloseAllTabs: () => void;
+  isLibraryCollapsed: boolean;
+  onExpandLibrary: () => void;
+  isGrowthCollapsed: boolean;
+  onExpandGrowth: () => void;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -37,8 +63,20 @@ export function WorkspaceTopBar({
   }, [isMenuOpen]);
 
   return (
-    <div className="border-b border-[rgba(59,63,60,0.08)] bg-[linear-gradient(180deg,rgba(243,244,240,0.98)_0%,rgba(248,248,245,0.94)_100%)] px-3 pt-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] md:px-5">
-      <div className="flex items-end justify-between gap-3">
+    <div className="border-b border-[#dddddd] bg-[#f8fafc] px-2 pt-2 md:px-3">
+      <div className="flex items-end justify-between gap-2">
+        {isLibraryCollapsed && (
+          <button
+            type="button"
+            onClick={onExpandLibrary}
+            className="mb-px flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+            aria-label="展开书库栏"
+            title="展开书库栏"
+          >
+            <SidebarToggleIcon side="left" />
+          </button>
+        )}
+
         <div className="min-w-0 flex-1">
           <WorkspaceTabs
             tabs={tabs}
@@ -48,11 +86,11 @@ export function WorkspaceTopBar({
           />
         </div>
 
-        <div ref={menuRef} className="relative shrink-0 self-start">
+        <div ref={menuRef} className="relative flex shrink-0 items-start gap-1 self-start">
           <button
             type="button"
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="flex h-10 w-10 items-center justify-center rounded-t-[10px] bg-[rgba(246,247,243,0.96)] text-[var(--ink-soft)] transition-all hover:bg-white hover:text-[var(--ink)]"
+            className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-transparent text-[var(--ink-soft)] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="展开标签页菜单"
             aria-expanded={isMenuOpen}
           >
@@ -61,13 +99,25 @@ export function WorkspaceTopBar({
             </svg>
           </button>
 
+          {isGrowthCollapsed && (
+            <button
+              type="button"
+              onClick={onExpandGrowth}
+              className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+              aria-label="展开成长区"
+              title="展开成长区"
+            >
+              <SidebarToggleIcon side="right" />
+            </button>
+          )}
+
           {isMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+10px)] z-40 w-[320px] overflow-hidden rounded-[18px] border border-[rgba(59,63,60,0.11)] bg-[rgba(252,252,250,0.98)] shadow-[0_18px_38px_rgba(24,28,26,0.14)] backdrop-blur-xl">
-              <div className="border-b border-[rgba(59,63,60,0.08)] px-5 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+            <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-[10px] border border-[#9297a0] bg-[#fbfbfa] shadow-[0_10px_26px_rgba(24,29,38,0.12)]">
+              <div className="border-b border-[#dddddd] px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-faint)]">
                   已打开标签页
                 </p>
-                <p className="mt-2 text-[15px] font-medium text-[var(--ink)]">
+                <p className="mt-1.5 text-[14px] font-medium text-[var(--ink)]">
                   当前共有 {tabs.length} 本书
                 </p>
               </div>
@@ -79,10 +129,10 @@ export function WorkspaceTopBar({
                   return (
                     <div
                       key={tab.id}
-                      className={`flex items-center justify-between gap-3 rounded-[12px] px-3 py-2.5 transition-all ${
+                      className={`flex items-center justify-between gap-3 rounded-[9px] border px-3 py-2.5 transition-all ${
                         isActive
-                          ? "bg-[rgba(236,240,234,0.96)]"
-                          : "hover:bg-[rgba(244,245,241,0.92)]"
+                          ? "border-[#9297a0] bg-[#eef1ef]"
+                          : "border-transparent hover:border-[#dddddd] hover:bg-[#f4f5f7]"
                       }`}
                     >
                       <button
@@ -100,7 +150,7 @@ export function WorkspaceTopBar({
                       {tab.closable ? (
                         <button
                           onClick={() => onCloseTab(tab.id)}
-                          className="shrink-0 rounded-[8px] p-1.5 text-[var(--ink-faint)] transition-all hover:bg-[rgba(59,63,60,0.08)] hover:text-[var(--ink)]"
+                          className="shrink-0 rounded-[7px] p-1.5 text-[var(--ink-faint)] transition-all hover:bg-[#edf0f2] hover:text-[var(--ink)]"
                           aria-label={`关闭 ${tab.title}`}
                         >
                           <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -108,7 +158,7 @@ export function WorkspaceTopBar({
                           </svg>
                         </button>
                       ) : (
-                        <span className="shrink-0 rounded-full bg-[rgba(59,63,60,0.05)] px-2 py-1 text-[10px] font-medium text-[var(--ink-faint)]">
+                        <span className="shrink-0 rounded-full border border-[#dddddd] bg-[#fbfbfa] px-2 py-1 text-[10px] font-medium text-[var(--ink-faint)]">
                           当前
                         </span>
                       )}
@@ -117,14 +167,14 @@ export function WorkspaceTopBar({
                 })}
               </div>
 
-              <div className="border-t border-[rgba(59,63,60,0.08)] px-3 py-3">
+              <div className="border-t border-[#dddddd] px-3 py-3">
                 <button
                   onClick={() => {
                     onCloseAllTabs();
                     setIsMenuOpen(false);
                   }}
                   disabled={closableTabs.length === 0}
-                  className="w-full rounded-[12px] px-3 py-2.5 text-left text-[13px] font-medium text-[var(--ink)] transition-all hover:bg-[rgba(59,63,60,0.06)] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="w-full rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[var(--ink)] transition-all hover:bg-[#f4f5f7] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                 >
                   全部关闭
                 </button>

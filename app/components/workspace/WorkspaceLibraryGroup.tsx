@@ -14,10 +14,10 @@ export function WorkspaceLibraryGroup({
   children: ReactNode;
 }) {
   return (
-    <section className="px-1 py-1">
+    <section className="px-0 py-1.5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-faint)]">
             {title}
           </p>
           {description && (
@@ -29,7 +29,7 @@ export function WorkspaceLibraryGroup({
         {actions}
       </div>
 
-      <div className="mt-2 space-y-1 border-l border-[rgba(59,63,60,0.1)] pl-3">
+      <div className="mt-2 space-y-1 border-t border-[#dddddd] pt-2">
         {children}
       </div>
     </section>
