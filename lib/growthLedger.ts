@@ -26,6 +26,7 @@ type GrowthLedgerStored = {
 
 export type GrowthLedger = GrowthLedgerStored & {
   counts: Record<GrowthAbility, number>;
+  rawCounts: Record<GrowthAbility, number>;
   total: number;
 };
 
@@ -171,16 +172,22 @@ function normalizeStoredLedger(value: unknown): GrowthLedgerStored | null {
 }
 
 function toView(stored: GrowthLedgerStored): GrowthLedger {
+  const rawCounts = {
+    thinking: stored.awardedBookIds.thinking.length,
+    expression: stored.awardedBookIds.expression.length,
+    decision: stored.awardedBookIds.decision.length,
+  };
   const counts = {
-    thinking: Math.min(stored.awardedBookIds.thinking.length, GROWTH_ABILITY_MAX),
-    expression: Math.min(stored.awardedBookIds.expression.length, GROWTH_ABILITY_MAX),
-    decision: Math.min(stored.awardedBookIds.decision.length, GROWTH_ABILITY_MAX),
+    thinking: Math.min(rawCounts.thinking, GROWTH_ABILITY_MAX),
+    expression: Math.min(rawCounts.expression, GROWTH_ABILITY_MAX),
+    decision: Math.min(rawCounts.decision, GROWTH_ABILITY_MAX),
   };
 
   return {
     ...stored,
     counts,
-    total: counts.thinking + counts.expression + counts.decision,
+    rawCounts,
+    total: rawCounts.thinking + rawCounts.expression + rawCounts.decision,
   };
 }
 
@@ -306,7 +313,7 @@ export function awardGrowth(
 
   const current = loadGrowthLedger();
   const awardedBookIds = current.awardedBookIds[ability];
-  if (current.counts[ability] >= GROWTH_ABILITY_MAX || awardedBookIds.includes(source.bookId)) {
+  if (awardedBookIds.includes(source.bookId)) {
     return { ledger: current, changed: false, event: null };
   }
 

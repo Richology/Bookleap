@@ -1062,7 +1062,7 @@ export default function Home() {
       setGrowthLedger(thinkingGrowth.ledger);
       enqueueGuidanceToast({
         id: `growth-thinking-${buildDecisionBookId(record.title)}`,
-        message: `思考力 +1\n来自《${record.title}》的分析完成`,
+        message: `思考力印记 +1\n来自《${record.title}》的分析完成`,
         priority: TOAST_PRIORITY.INFO,
         durationMs: 4500,
       });
@@ -1867,7 +1867,7 @@ export default function Home() {
       setGrowthLedger(thinkingGrowth.ledger);
       enqueueGuidanceToast({
         id: `growth-thinking-${buildDecisionBookId(record.title)}`,
-        message: `思考力 +1\n来自《${record.title}》的分析完成`,
+        message: `思考力印记 +1\n来自《${record.title}》的分析完成`,
         priority: TOAST_PRIORITY.INFO,
         durationMs: 4500,
       });
@@ -3344,7 +3344,7 @@ export default function Home() {
                       setGrowthLedger(decisionGrowth.ledger);
                       enqueueGuidanceToast({
                         id: `growth-decision-${currentBookId}`,
-                        message: `决策力 +1\n来自《${currentBookDisplayTitle}》的 3 题训练完成`,
+                        message: `决策力印记 +1\n来自《${currentBookDisplayTitle}》的 3 题训练完成`,
                         priority: TOAST_PRIORITY.INFO,
                         durationMs: 4500,
                       });
@@ -3714,7 +3714,7 @@ export default function Home() {
               setGrowthLedger(expressionGrowth.ledger);
               setActiveToast({
                 id: `growth-expression-${currentBookId}`,
-                message: `表达力 +1\n来自《${currentBookDisplayTitle}》的海报导出`,
+                message: `表达力印记 +1\n来自《${currentBookDisplayTitle}》的海报导出`,
                 priority: TOAST_PRIORITY.INFO,
                 durationMs: 4500,
               });
