@@ -24,8 +24,8 @@ function CircularProgress({
   const safeValue = Math.min(Math.max(value, 0), max);
   const [animatedValue, setAnimatedValue] = useState(0);
   const percent = Math.round((animatedValue / max) * 100);
-  const size = 70;
-  const stroke = 7;
+  const size = 58;
+  const stroke = 5.5;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference - (percent / 100) * circumference;
@@ -58,14 +58,14 @@ function CircularProgress({
   }, [safeValue]);
 
   return (
-    <div className="relative flex h-[74px] w-[74px] shrink-0 items-center justify-center">
-      <svg className="h-[74px] w-[74px] -rotate-90" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+    <div className="relative flex h-[62px] w-[62px] shrink-0 items-center justify-center">
+      <svg className="h-[62px] w-[62px] -rotate-90" viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(47,51,51,0.09)"
+          stroke="rgba(24,29,38,0.09)"
           strokeWidth={stroke}
         />
         <circle
@@ -82,7 +82,7 @@ function CircularProgress({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[18px] font-semibold leading-none text-[var(--ink)]">
+        <span className="text-[16px] font-semibold leading-none text-[var(--ink)]">
           {percent}%
         </span>
       </div>
@@ -99,11 +99,11 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
     : "完成分析、导出海报或 3 题训练后，能力会开始留下印记。";
 
   return (
-    <section className="rounded-[16px] border border-[rgba(59,63,60,0.07)] bg-[rgba(255,255,255,0.5)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+    <section className="border-y border-[#dddddd] bg-transparent py-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <p className="archive-kicker">能力账本</p>
-          <h3 className="font-editorial mt-2 text-[1.45rem] font-semibold leading-[1.05] tracking-[-0.03em] text-[var(--ink)] sm:text-[1.58rem]">
+          <h3 className="mt-2 text-[1.12rem] font-semibold leading-[1.18] tracking-[0] text-[var(--ink)] sm:text-[1.18rem]">
             {headline}
           </h3>
           <p className="mt-2 text-xs leading-5 text-[var(--ink-faint)]">
@@ -111,13 +111,13 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
           </p>
         </div>
 
-        <div className="shrink-0 rounded-[10px] border border-[rgba(59,63,60,0.06)] bg-[rgba(255,255,255,0.86)] px-3 py-2 text-right">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">累计印记</p>
+        <div className="shrink-0 rounded-[8px] border border-[#dddddd] bg-[#fbfbfa] px-3 py-2 text-right shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
+          <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--ink-faint)]">累计印记</p>
           <p className="mt-1 text-lg font-semibold text-[var(--ink)]">{ledger.total}</p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-2.5">
+      <div className="mt-4 border-t border-[#dddddd]">
         {GROWTH_ABILITIES.map((ability) => {
           const meta = GROWTH_ABILITY_META[ability];
           const count = ledger.counts[ability];
@@ -128,13 +128,13 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
           return (
             <div
               key={ability}
-              className={`rounded-[16px] border px-3.5 py-3 ${
+              className={`border-b px-0 py-3 transition-colors ${
                 stage === "evolved"
-                  ? "border-[rgba(58,111,82,0.12)] bg-[linear-gradient(180deg,rgba(236,243,238,0.92)_0%,rgba(255,255,255,0.96)_100%)]"
-                  : "border-[rgba(59,63,60,0.05)] bg-[rgba(255,255,255,0.82)]"
+                  ? "border-[#dddddd] bg-[#eef1ef]/65"
+                  : "border-[#dddddd] bg-transparent"
               }`}
             >
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-2.5 px-1">
                 <CircularProgress
                   value={safeCount}
                   max={GROWTH_ABILITY_MAX}
@@ -143,9 +143,9 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-[12px] font-medium text-[var(--ink)]">{meta.label}</p>
+                    <p className="text-[12px] font-semibold text-[var(--ink)]">{meta.label}</p>
                     <span
-                      className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium text-[var(--ink)]"
+                      className="shrink-0 rounded-full border border-[rgba(24,29,38,0.08)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink)]"
                       style={{ background: stageMeta.accent }}
                     >
                       {stageMeta.label}
@@ -156,7 +156,7 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
                   </p>
                   <div className="mt-2 flex items-end justify-between gap-3">
                     <div className="flex items-baseline gap-1">
-                      <p className="font-editorial text-[1.15rem] leading-none text-[var(--ink)]">
+                      <p className="text-[1.05rem] font-semibold leading-none text-[var(--ink)]">
                         {safeCount}
                       </p>
                       <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
@@ -174,10 +174,10 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
         })}
       </div>
 
-      <div className="mt-2.5 rounded-[14px] border border-[rgba(59,63,60,0.05)] bg-[rgba(255,255,255,0.82)] px-3 py-3 text-xs leading-6 text-[var(--ink-soft)]">
+      <div className="pt-3 text-xs leading-6 text-[var(--ink-soft)]">
         {ledger.lastEvent ? (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+            <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--ink-faint)]">
               最近成长
             </p>
             <p className="mt-1 break-words text-[13px] text-[var(--ink)]">

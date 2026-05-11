@@ -883,7 +883,7 @@ export default function Home() {
   }, [handleOpenWorkspaceSearch, handleToggleFullscreen, isWorkspaceSearchOpen]);
 
   const workspaceMemoryCards = useMemo<WorkspaceMemoryCard[]>(() => {
-    return recentHistory
+    const historyCards = recentHistory
       .filter((record) => {
         const quote = pickWorkspaceQuote(record);
         return !!record.title && !!quote;
@@ -900,6 +900,23 @@ export default function Home() {
         return aScore - bScore;
       })
       .slice(0, 2);
+
+    if (historyCards.length >= 2) {
+      return historyCards;
+    }
+
+    const usedTitles = new Set(historyCards.map((card) => card.title));
+    const starterCards = starterBooks
+      .filter((book) => !usedTitles.has(book.title))
+      .map((book) => ({
+        id: `starter-memory-${book.id}`,
+        title: book.title,
+        author: book.author,
+        quote: book.posterContent.highlight,
+      }))
+      .filter((card) => !!card.quote);
+
+    return [...historyCards, ...starterCards].slice(0, 2);
   }, [recentHistory, workspaceCardSeed]);
   const currentWorkspaceTab = useMemo<WorkspaceTab | null>(() => {
     if (!bookTitle) return null;
@@ -2337,17 +2354,17 @@ export default function Home() {
 
     const cardClassName = (() => {
       const base =
-        "group flex w-full min-h-[228px] flex-col gap-3 rounded-[20px] p-5 transition-all duration-200";
+        "group flex w-full min-h-[228px] flex-col gap-3 rounded-[10px] border border-[#dddddd] p-5 transition-all duration-200 shadow-[0_1px_2px_rgba(24,29,38,0.04)]";
       const restingTone = isMapCard
-        ? "archive-callout"
-        : "bg-[var(--paper)]";
+        ? "bg-[#eef1ef]"
+        : "bg-[#fbfbfa]";
       if (isLoadingCard)
         return `${base} ${restingTone} cursor-default`;
       if (isExpanded)
         return `${base} ${restingTone} scale-[1.003] cursor-pointer`;
       if (sectionHasExpanded)
         return `${base} ${restingTone} opacity-38 cursor-pointer`;
-      return `${base} ${restingTone} cursor-pointer hover:bg-[var(--surface-high)] active:scale-[0.99]`;
+      return `${base} ${restingTone} cursor-pointer hover:border-[#9297a0] hover:bg-[#f8fafc] active:scale-[0.99]`;
     })();
 
     return (
@@ -2358,12 +2375,12 @@ export default function Home() {
         }}
         className={cardClassName}
       >
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 border-b border-[#dddddd] pb-3">
           <p className={`archive-kicker select-none ${isMapCard ? "text-[var(--accent)]" : ""}`}>
             {label}
           </p>
           {!isLoadingCard && (
-            <span className="text-lg text-[var(--ink-faint)] transition-colors group-hover:text-[var(--accent)]">
+            <span className="text-sm text-[var(--ink-faint)] transition-colors group-hover:text-[var(--accent)]">
               ↗
             </span>
           )}
@@ -2391,8 +2408,8 @@ export default function Home() {
                 <div
                   className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 ${
                     isMapCard
-                      ? "bg-[linear-gradient(180deg,rgba(211,231,219,0)_0%,rgba(211,231,219,0.88)_100%)]"
-                      : "bg-[linear-gradient(180deg,rgba(255,255,255,0)_0%,rgba(255,255,255,0.94)_100%)]"
+                      ? "bg-[linear-gradient(180deg,rgba(238,241,239,0)_0%,rgba(238,241,239,0.94)_100%)]"
+                      : "bg-[linear-gradient(180deg,rgba(251,251,250,0)_0%,rgba(251,251,250,0.96)_100%)]"
                   }`}
                 />
               )}
@@ -2925,9 +2942,15 @@ export default function Home() {
   };
 
   const workspacePanelClass =
-    "rounded-[14px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.5)] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]";
+    "border-t border-[#dddddd] bg-transparent";
   const workspaceRailPanelClass =
-    "rounded-[14px] border border-[rgba(59,63,60,0.08)] bg-[rgba(245,246,242,0.84)] shadow-[inset_0_1px_0_rgba(255,255,255,0.42)]";
+    "rounded-[12px] border border-[#dddddd] bg-[#fbfbfa] shadow-[0_1px_2px_rgba(24,29,38,0.04)]";
+  const searchResultClass = (isActiveResult: boolean) =>
+    `group w-full rounded-[10px] border px-3.5 py-3 text-left transition-all ${
+      isActiveResult
+        ? "border-[#9297a0] bg-[#eef1ef]"
+        : "border-transparent bg-transparent hover:border-[#dddddd] hover:bg-[#f8fafc]"
+    }`;
 
   const librarySidebar = (
     <WorkspaceLibrarySidebar
@@ -2942,10 +2965,10 @@ export default function Home() {
         className="hidden"
       />
 
-      <section className={`${workspacePanelClass} relative overflow-hidden p-3.5`}>
+      <section className={`${workspacePanelClass} relative overflow-hidden px-0 py-3.5`}>
         {isStarterLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[14px] bg-[rgba(252,252,250,0.95)] backdrop-blur-sm">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[12px] bg-[rgba(242,243,239,0.92)]">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[12px] bg-[rgba(251,251,250,0.96)] backdrop-blur-sm">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dddddd] bg-[#f8fafc]">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-70" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--ink)]" />
@@ -2962,14 +2985,14 @@ export default function Home() {
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`rounded-[12px] border border-dashed px-4 py-4 text-left transition-all ${
+          className={`rounded-[10px] border border-dashed px-4 py-4 text-left transition-all ${
             isDragging
-              ? "border-[rgba(58,111,82,0.52)] bg-[rgba(255,255,255,0.92)]"
-              : "cursor-pointer border-[rgba(59,63,60,0.12)] bg-[rgba(244,245,241,0.9)] hover:border-[rgba(58,111,82,0.26)] hover:bg-[rgba(255,255,255,0.92)]"
+              ? "border-[#9297a0] bg-[#fbfbfa]"
+              : "cursor-pointer border-[#dddddd] bg-[#f8fafc] hover:border-[#9297a0] hover:bg-[#fbfbfa]"
           }`}
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.78)] text-[var(--ink-soft)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-[#dddddd] bg-[#fbfbfa] text-[var(--ink-soft)]">
               <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 4v8" />
                 <path d="M6.8 7.2 10 4l3.2 3.2" />
@@ -2993,7 +3016,7 @@ export default function Home() {
         <div className="mt-3 flex items-center gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-[10px] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white shadow-[0_8px_18px_rgba(58,111,82,0.16)] transition-all hover:brightness-[0.96]"
+            className="rounded-[10px] bg-[#181d26] px-3 py-2 text-sm font-medium text-[#fbfbfa] transition-all hover:bg-[#0d1218] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
           >
             + 上传书籍
           </button>
@@ -3078,6 +3101,10 @@ export default function Home() {
           onActivateTab={activateWorkspaceTab}
           onCloseTab={closeWorkspaceTab}
           onCloseAllTabs={closeAllWorkspaceTabs}
+          isLibraryCollapsed={isLibraryCollapsed}
+          onExpandLibrary={() => setIsLibraryCollapsed(false)}
+          isGrowthCollapsed={isGrowthPanelCollapsed}
+          onExpandGrowth={() => setIsGrowthPanelCollapsed(false)}
         />
       )}
       scrollContainerRef={readerScrollContainerRef}
@@ -3091,15 +3118,15 @@ export default function Home() {
         const isAzw3Unsupported = analysisErrorCode === "AZW3_UNSUPPORTED";
 
         const bannerClass = isError
-          ? "bg-red-50/80 border-red-200/60 text-red-600"
+          ? "border-red-200/70 bg-red-50/80 text-red-600"
           : isSuccess
-          ? "bg-emerald-50/80 border-emerald-200/60 text-emerald-700"
+          ? "bg-[#eef1ef] border-[rgba(10,46,14,0.18)] text-[var(--accent)]"
           : isAnalyzing
           ? "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-soft)]"
           : "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-faint)]";
 
         return (
-          <div className={`m-4 rounded-[12px] border px-4 py-3 text-sm shadow-[0_8px_20px_rgba(33,37,35,0.035)] transition-all duration-300 md:m-5 md:px-5 ${bannerClass}`}>
+          <div className={`m-4 rounded-[10px] border px-4 py-3 text-sm transition-all duration-300 md:m-5 md:px-5 ${bannerClass}`}>
             <div className="flex items-center gap-2.5">
               <span className="flex items-center gap-2.5">
                 {isAnalyzing && (
@@ -3109,14 +3136,14 @@ export default function Home() {
                   </span>
                 )}
                 {isSuccess && (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                    <svg className="h-2.5 w-2.5 text-emerald-600" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border border-[rgba(10,46,14,0.18)] bg-[#fbfbfa]">
+                    <svg className="h-2.5 w-2.5 text-[var(--accent)]" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M2.5 6.5L5 9l4.5-6" />
                     </svg>
                   </span>
                 )}
                 {isError && (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border border-red-200 bg-red-50">
                     <svg className="h-2.5 w-2.5 text-red-500" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="6" cy="6" r="4.5" />
                       <path d="M6 4v2.5" />
@@ -3129,17 +3156,17 @@ export default function Home() {
             </div>
 
             {isAzw3Unsupported && (
-              <div className="mt-3 pl-6 text-[13px] leading-6 text-red-500/90">
+              <div className="mt-3 border-t border-red-200/70 pt-3 text-[13px] leading-6 text-red-500/90">
                 <p>这不代表我们已经确认它带有版权保护，也可能只是当前 AZW3 结构暂不兼容。</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="rounded-full border border-red-200 bg-white/85 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-white"
+                    className="rounded-[9px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
                   >
                     重新上传
                   </button>
-                  <span className="text-xs text-red-400">
+                  <span className="text-xs text-red-500/75">
                     建议优先换成 EPUB，或尝试 TXT / PDF
                   </span>
                 </div>
@@ -3159,14 +3186,14 @@ export default function Home() {
           </div>
 
           {workspaceMemoryCards.length > 0 && (
-            <div className="mt-16 grid w-full max-w-5xl grid-cols-1 gap-5 xl:grid-cols-2">
+            <div className="mt-14 grid w-full max-w-5xl grid-cols-1 gap-5 xl:grid-cols-2">
               {workspaceMemoryCards.map((card, index) => (
                 <div
                   key={card.id}
-                  className="rounded-[22px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.72)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]"
+                  className="rounded-[12px] border border-[#dddddd] bg-[#fbfbfa] p-5 shadow-[0_1px_2px_rgba(24,29,38,0.04)]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[rgba(58,111,82,0.14)] bg-[rgba(241,249,244,0.96)] text-[var(--accent)]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#dddddd] bg-[#f8fafc] text-[var(--accent)]">
                       {index === 0 ? (
                         <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M4.5 5.5h11" />
@@ -3190,9 +3217,9 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="mt-5 rounded-[16px] bg-[rgba(246,247,243,0.88)] px-4 py-4">
-                    <div className="border-l-2 border-[rgba(58,111,82,0.72)] pl-3">
-                      <p className="text-[18px] italic leading-8 text-[var(--ink)]">
+                  <div className="mt-4 bg-[#fbfbfa] px-3 py-4">
+                    <div className="border-y border-[#dddddd] py-4">
+                      <p className="text-[17px] italic leading-8 text-[var(--ink)]">
                         {card.quote}
                       </p>
                     </div>
@@ -3212,15 +3239,15 @@ export default function Home() {
               <>
                 <WorkspaceModeSwitch viewMode={viewMode} onChange={handleModeChange} />
                 {currentFileTypeLabel && (
-                  <span className="rounded-full border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.75)] px-3 py-1 text-[11px] font-medium text-[var(--ink-faint)]">
+                  <span className="rounded-full border border-[#dddddd] bg-[#f8fafc] px-3 py-1 text-[11px] font-medium text-[var(--ink-faint)]">
                     {currentFileTypeLabel}
                   </span>
                 )}
               </>
             )}
             cover={(
-              <div className="archive-stack">
-                <div className="overflow-hidden rounded-[16px] border border-[rgba(59,63,60,0.08)] bg-[rgba(239,240,234,0.96)] shadow-[0_8px_20px_rgba(34,38,36,0.08)]">
+              <div>
+                <div className="overflow-hidden rounded-[8px] border border-[#dddddd] bg-[#f8fafc] shadow-[0_1px_2px_rgba(24,29,38,0.06)]">
                   {currentBookCover ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -3343,7 +3370,7 @@ export default function Home() {
                   onTouchEnd={handleImmersiveTouchEnd}
                 >
                   <div className="mb-5 flex items-center justify-center">
-                    <div className="flex items-center gap-2 rounded-[999px] border border-[rgba(59,63,60,0.07)] bg-[rgba(242,243,239,0.92)] px-4 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
+                    <div className="flex items-center gap-2 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-3.5 py-1.5">
                       <span className="text-[11px] font-semibold text-[var(--ink)] tabular-nums">
                         {safeImmersiveIndex + 1}
                       </span>
@@ -3359,7 +3386,7 @@ export default function Home() {
 
                   <div
                     key={safeImmersiveIndex}
-                    className={`rounded-[18px] border border-[rgba(59,63,60,0.08)] bg-[rgba(255,255,255,0.84)] p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] md:p-10 ${
+                    className={`rounded-[10px] border border-[#dddddd] bg-[#fbfbfa] px-8 py-9 shadow-[0_1px_2px_rgba(24,29,38,0.04)] md:px-12 md:py-11 ${
                       slideDir === "left"
                         ? "animate-slide-from-right"
                         : slideDir === "right"
@@ -3367,7 +3394,7 @@ export default function Home() {
                         : ""
                     }`}
                   >
-                    <div className="mb-6 flex items-center justify-between">
+                    <div className="mb-6 flex items-center justify-between border-b border-[#dddddd] pb-3">
                       <p className="archive-kicker">
                         {currentImmersiveCard.label}
                       </p>
@@ -3399,7 +3426,7 @@ export default function Home() {
                   <div className="mt-5 hidden items-center justify-between gap-4 md:flex">
                     <button
                       onClick={() => navigateImmersive("prev")}
-                      className="flex items-center gap-1.5 rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(244,245,241,0.92)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-white hover:text-[var(--ink)] active:scale-[0.97] select-none"
+                      className="flex items-center gap-1.5 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:border-[#9297a0] hover:bg-[#fbfbfa] hover:text-[var(--ink)] active:scale-[0.97] select-none"
                     >
                       ← 上一篇
                     </button>
@@ -3424,7 +3451,7 @@ export default function Home() {
 
                     <button
                       onClick={() => navigateImmersive("next")}
-                      className="flex items-center gap-1.5 rounded-[10px] border border-[rgba(59,63,60,0.08)] bg-[rgba(244,245,241,0.92)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-white hover:text-[var(--ink)] active:scale-[0.97] select-none"
+                      className="flex items-center gap-1.5 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:border-[#9297a0] hover:bg-[#fbfbfa] hover:text-[var(--ink)] active:scale-[0.97] select-none"
                     >
                       下一篇 →
                     </button>
@@ -3432,13 +3459,13 @@ export default function Home() {
 
                   <div className="h-16 md:hidden" />
                   <div
-                    className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--ghost-border)] bg-[var(--surface)]/92 px-4 py-3 backdrop-blur-md md:hidden"
+                    className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#dddddd] bg-[#fbfbfa] px-4 py-3 md:hidden"
                     style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
                   >
                     <div className="mx-auto flex max-w-xl items-center justify-between">
                       <button
                         onClick={() => navigateImmersive("prev")}
-                        className="flex items-center gap-1.5 rounded-[11px] border border-[rgba(59,63,60,0.06)] bg-[var(--paper)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
+                        className="flex items-center gap-1.5 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
                       >
                         ← 上一篇
                       </button>
@@ -3463,7 +3490,7 @@ export default function Home() {
 
                       <button
                         onClick={() => navigateImmersive("next")}
-                        className="flex items-center gap-1.5 rounded-[11px] border border-[rgba(59,63,60,0.06)] bg-[var(--paper)] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
+                        className="flex items-center gap-1.5 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
                       >
                         下一篇 →
                       </button>
@@ -3480,7 +3507,7 @@ export default function Home() {
                       <p className="archive-kicker">
                         阅读前
                       </p>
-                      <div className="h-px flex-1 bg-[rgba(119,124,123,0.16)]" />
+                      <div className="h-px flex-1 bg-[#dddddd]" />
                     </div>
                     <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
                       {beforeReadingCards}
@@ -3494,7 +3521,7 @@ export default function Home() {
                       <p className="archive-kicker">
                         阅读后
                       </p>
-                      <div className="h-px flex-1 bg-[rgba(119,124,123,0.16)]" />
+                      <div className="h-px flex-1 bg-[#dddddd]" />
                     </div>
                     <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
                       {afterReadingCards}
@@ -3525,13 +3552,13 @@ export default function Home() {
           {recentGrowthLabel}
         </p>
         <div className="mt-3 grid grid-cols-2 gap-2.5">
-          <div className="rounded-[12px] border border-[rgba(59,63,60,0.06)] bg-[rgba(255,255,255,0.84)] px-3 py-3">
+          <div className="rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-3 py-3">
             <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">模块进度</p>
             <p className="mt-2 text-lg font-semibold text-[var(--ink)]">
               {bookTitle ? `${completedAnalysisSteps}/${visibleAnalysisSteps.length}` : "0/6"}
             </p>
           </div>
-          <div className="rounded-[12px] border border-[rgba(59,63,60,0.06)] bg-[rgba(255,255,255,0.84)] px-3 py-3">
+          <div className="rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-3 py-3">
             <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">训练进度</p>
             <p className="mt-2 text-lg font-semibold text-[var(--ink)]">
               {bookTitle ? `${addictionState.decision_training_progress}/3` : "0/3"}
@@ -3541,7 +3568,7 @@ export default function Home() {
       </section>
 
       {isLiteMode && !isLiteUnlocked && (
-        <section className="rounded-[14px] bg-[var(--accent-soft)] px-4 py-4">
+        <section className="rounded-[10px] border border-[rgba(10,46,14,0.18)] bg-[var(--accent-soft)] px-4 py-4">
           <p className="text-sm leading-6 text-[var(--accent)]">
             <strong>{currentFileTypeLabel || "当前文件"} 简化分析模式</strong>
             ：当前仅提供基础摘要与阅读引导。为了获得效果更佳的深度结构化分析，建议优先上传 EPUB 或 AZW3。
@@ -3550,7 +3577,7 @@ export default function Home() {
       )}
 
       {decisionError && (
-        <section className="rounded-[14px] bg-[var(--accent-soft)] px-4 py-4">
+        <section className="rounded-[10px] border border-[rgba(10,46,14,0.18)] bg-[var(--accent-soft)] px-4 py-4">
           <p className="text-sm leading-6 text-[var(--accent)]">{decisionError}</p>
         </section>
       )}
@@ -3579,41 +3606,41 @@ export default function Home() {
       {/* ── Payment modal ── */}
       {isPaywallModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(24,29,38,0.34)] px-6 backdrop-blur-[2px]"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsPaywallModalOpen(false);
           }}
         >
-          <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl p-7 flex flex-col items-center gap-5">
+          <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-[12px] border border-[#9297a0] bg-[#fbfbfa] p-7 shadow-[0_18px_44px_rgba(24,29,38,0.18)]">
             <div className="w-full">
-              <p className="text-lg font-semibold text-gray-900 mb-1">
+              <p className="mb-1 text-lg font-semibold text-[var(--ink)]">
                 支付解锁完整版分析
               </p>
               <p className="text-sm text-[var(--ink-soft)]">
                 请使用微信扫码支付 ¥9.9
               </p>
             </div>
-            <div className="rounded-lg border border-[var(--ghost-border)] p-3 bg-[var(--surface-low)]">
+            <div className="rounded-[10px] border border-[#dddddd] bg-[#f8fafc] p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/wechat-pay-qrcode.jpg"
                 alt="微信支付二维码"
-                className="w-44 h-44 object-contain"
+                className="h-44 w-44 object-contain"
               />
             </div>
-            <p className="text-xs text-[var(--ink-faint)] text-center">
+            <p className="text-center text-xs text-[var(--ink-faint)]">
               支付完成后，点击下方按钮继续
             </p>
-            <div className="w-full flex flex-col gap-2">
+            <div className="flex w-full flex-col gap-2">
               <button
                 onClick={handleUnlock}
-                className="w-full rounded-lg bg-[var(--ink)] py-3 text-sm font-medium text-[#faf7f6] hover:opacity-92 transition active:scale-[0.98]"
+                className="w-full rounded-[10px] bg-[#181d26] py-3 text-sm font-medium text-[#fbfbfa] transition hover:bg-[#0d1218] active:scale-[0.98]"
               >
                 我已支付，继续解锁
               </button>
               <button
                 onClick={() => setIsPaywallModalOpen(false)}
-                className="w-full rounded-lg py-2.5 text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
+                className="w-full rounded-[10px] border border-[#dddddd] bg-[#f8fafc] py-2.5 text-sm text-[var(--ink-soft)] transition hover:border-[#9297a0] hover:text-[var(--ink)]"
               >
                 暂不解锁
               </button>
@@ -3752,17 +3779,17 @@ export default function Home() {
 
       {isWorkspaceSearchOpen && (
         <div
-          className="fixed inset-0 z-[70] flex items-start justify-center bg-[rgba(30,33,31,0.42)] px-4 pt-[9vh] backdrop-blur-[2px] md:px-8"
+          className="fixed inset-0 z-[70] flex items-start justify-center bg-[rgba(24,29,38,0.34)] px-4 pt-[9vh] backdrop-blur-[2px] md:px-8"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setIsWorkspaceSearchOpen(false);
             }
           }}
         >
-          <div className="w-full max-w-5xl rounded-[24px] border border-[rgba(59,63,60,0.14)] bg-[rgba(252,252,250,0.98)] p-3 shadow-[0_28px_80px_rgba(17,20,18,0.22)]">
-            <div className="flex items-center gap-3">
-              <div className="flex min-w-0 flex-1 items-center gap-4 rounded-[18px] border-2 border-[#9fc4f4] bg-white px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                <svg className="h-8 w-8 shrink-0 text-black md:h-9 md:w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[12px] border border-[#9297a0] bg-[#fbfbfa] p-3 shadow-[0_18px_44px_rgba(24,29,38,0.18)]">
+            <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border border-[#dddddd] bg-[#f8fafc] px-4 py-3 focus-within:border-[#9297a0]">
+                <svg className="h-5 w-5 shrink-0 text-[var(--ink-soft)] md:h-5 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="10.8" cy="10.8" r="6.8" />
                   <path d="m16 16 4.1 4.1" />
                 </svg>
@@ -3790,7 +3817,7 @@ export default function Home() {
                     }
                   }}
                   placeholder="搜索书名、作者、观点或行动建议..."
-                  className="min-w-0 flex-1 bg-transparent text-[1.55rem] font-medium text-[var(--ink)] outline-none placeholder:text-[rgba(47,51,51,0.52)] md:text-[2rem]"
+                  className="min-w-0 flex-1 bg-transparent text-[1rem] font-medium text-[var(--ink)] outline-none placeholder:text-[var(--ink-faint)] md:text-[1.08rem]"
                 />
               </div>
               <button
@@ -3802,10 +3829,10 @@ export default function Home() {
                   }
                 }}
                 disabled={combinedWorkspaceSearchResults.length === 0}
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-black text-white transition-all hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-35 md:h-20 md:w-20"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-[#181d26] text-[#fbfbfa] transition-all hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-35 md:h-12 md:w-12"
                 aria-label="打开第一个搜索结果"
               >
-                <svg className="h-8 w-8 md:h-10 md:w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg className="h-5 w-5 md:h-5 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M5 12h14" />
                   <path d="m13 6 6 6-6 6" />
                 </svg>
@@ -3813,16 +3840,16 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setIsWorkspaceSearchOpen(false)}
-                className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-black transition-all hover:bg-[rgba(59,63,60,0.08)]"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#dddddd] bg-[#f8fafc] text-[var(--ink-soft)] transition-all hover:border-[#9297a0] hover:text-[var(--ink)]"
                 aria-label="关闭搜索"
               >
-                <svg className="h-6 w-6" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
                   <path d="M5 5l10 10M15 5 5 15" />
                 </svg>
               </button>
             </div>
 
-            <div className="mt-3 max-h-[46vh] overflow-y-auto px-1 pb-1">
+            <div className="mt-3 max-h-[46vh] overflow-y-auto border-t border-[#dddddd] px-1 pb-1 pt-3">
               {workspaceBookSearchResults.length > 0 ||
               workspaceLibraryContentSearchResults.length > 0 ||
               workspaceSearchResults.length > 0 ? (
@@ -3831,7 +3858,7 @@ export default function Home() {
                     <section>
                       <div className="mb-2 flex items-center gap-2 px-3">
                         <p className="archive-kicker">书库</p>
-                        <span className="h-px flex-1 bg-[rgba(59,63,60,0.08)]" />
+                        <span className="h-px flex-1 bg-[#dddddd]" />
                       </div>
                       <div className="space-y-1.5">
                         {workspaceBookSearchResults.map((result) => {
@@ -3846,13 +3873,11 @@ export default function Home() {
                                 if (resultIndex >= 0) setWorkspaceSearchActiveIndex(resultIndex);
                               }}
                               onClick={() => handleSelectWorkspaceBookSearchResult(result)}
-                              className={`group flex w-full items-center justify-between gap-4 rounded-[16px] px-4 py-3 text-left transition-all ${
-                                isActiveResult ? "bg-[rgba(232,238,231,0.96)]" : "hover:bg-[rgba(242,243,239,0.92)]"
-                              }`}
+                              className={`${searchResultClass(isActiveResult)} flex items-center justify-between gap-4`}
                             >
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="rounded-full bg-[rgba(58,111,82,0.1)] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
+                                  <span className="rounded-full border border-[rgba(10,46,14,0.18)] bg-[#fbfbfa] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
                                     {result.badge}
                                   </span>
                                   <p className="truncate text-sm font-semibold text-[var(--ink)]">
@@ -3864,7 +3889,7 @@ export default function Home() {
                                 </p>
                               </div>
                               {isActiveResult ? (
-                                <span className="shrink-0 rounded-md border border-[rgba(59,63,60,0.12)] bg-white/75 px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-faint)]">
+                                <span className="shrink-0 rounded-[6px] border border-[#dddddd] bg-[#fbfbfa] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-faint)]">
                                   Enter
                                 </span>
                               ) : (
@@ -3883,7 +3908,7 @@ export default function Home() {
                     <section>
                       <div className="mb-2 flex items-center gap-2 px-3">
                         <p className="archive-kicker">书库内容</p>
-                        <span className="h-px flex-1 bg-[rgba(59,63,60,0.08)]" />
+                        <span className="h-px flex-1 bg-[#dddddd]" />
                       </div>
                       <div className="space-y-1.5">
                         {workspaceLibraryContentSearchResults.map((result) => {
@@ -3898,19 +3923,17 @@ export default function Home() {
                                 if (resultIndex >= 0) setWorkspaceSearchActiveIndex(resultIndex);
                               }}
                               onClick={() => handleSelectWorkspaceLibraryContentSearchResult(result)}
-                              className={`group w-full rounded-[16px] px-4 py-3 text-left transition-all ${
-                                isActiveResult ? "bg-[rgba(232,238,231,0.96)]" : "hover:bg-[rgba(242,243,239,0.92)]"
-                              }`}
+                              className={searchResultClass(isActiveResult)}
                             >
                               <div className="flex min-w-0 items-center gap-2">
-                                <span className="rounded-full bg-[rgba(58,111,82,0.1)] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
+                                <span className="rounded-full border border-[rgba(10,46,14,0.18)] bg-[#fbfbfa] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
                                   {result.label}
                                 </span>
                                 <p className="truncate text-sm font-semibold text-[var(--ink)]">
                                   《{renderHighlightedSearchText(result.bookTitle, workspaceSearchTokens)}》
                                 </p>
                                 {isActiveResult ? (
-                                  <span className="ml-auto shrink-0 rounded-md border border-[rgba(59,63,60,0.12)] bg-white/75 px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-faint)]">
+                                  <span className="ml-auto shrink-0 rounded-[6px] border border-[#dddddd] bg-[#fbfbfa] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-faint)]">
                                     Enter
                                   </span>
                                 ) : (
@@ -3933,7 +3956,7 @@ export default function Home() {
                     <section>
                       <div className="mb-2 flex items-center gap-2 px-3">
                         <p className="archive-kicker">当前书内容</p>
-                        <span className="h-px flex-1 bg-[rgba(59,63,60,0.08)]" />
+                        <span className="h-px flex-1 bg-[#dddddd]" />
                       </div>
                       <div className="space-y-1.5">
                         {workspaceSearchResults.map((result) => {
@@ -3948,12 +3971,10 @@ export default function Home() {
                                 if (resultIndex >= 0) setWorkspaceSearchActiveIndex(resultIndex);
                               }}
                               onClick={() => handleSelectWorkspaceSearchResult(result)}
-                              className={`w-full rounded-[16px] px-4 py-3 text-left transition-all ${
-                                isActiveResult ? "bg-[rgba(232,238,231,0.96)]" : "hover:bg-[rgba(242,243,239,0.92)]"
-                              }`}
+                              className={searchResultClass(isActiveResult)}
                             >
                               <div className="flex items-center gap-2">
-                                <span className="rounded-full bg-[rgba(58,111,82,0.1)] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
+                                <span className="rounded-full border border-[rgba(10,46,14,0.18)] bg-[#fbfbfa] px-2.5 py-1 text-[10px] font-semibold text-[var(--accent)]">
                                   {result.label}
                                 </span>
                                 <p className="truncate text-sm font-semibold text-[var(--ink)]">
@@ -3984,13 +4005,13 @@ export default function Home() {
 
       {/* ── Background analysis progress indicator ── */}
       {bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2.5 rounded-lg bg-[var(--ink)]/92 backdrop-blur-sm px-4 py-2.5 shadow-[var(--shadow-paper-strong)] text-[#faf7f6] text-xs">
+        <div className="fixed right-4 top-4 z-50 flex items-center gap-2.5 rounded-[12px] border border-[#dddddd] bg-[#fbfbfa] px-4 py-2.5 text-xs text-[var(--ink-soft)] shadow-[0_8px_24px_rgba(24,29,38,0.12)]">
           <span className="relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-40" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
           </span>
           <span className="max-w-[180px] truncate">《{bgAnalysisStatus.title}》{bgAnalysisStatus.step}</span>
-          <span className="text-white/60">{bgAnalysisStatus.stepsCompleted}/{bgAnalysisStatus.totalSteps}</span>
+          <span className="rounded-[6px] border border-[#dddddd] bg-[#f8fafc] px-1.5 py-0.5 text-[var(--ink-faint)]">{bgAnalysisStatus.stepsCompleted}/{bgAnalysisStatus.totalSteps}</span>
         </div>
       )}
 

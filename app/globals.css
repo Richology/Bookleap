@@ -55,6 +55,27 @@ body {
   border-color: rgba(47, 51, 51, 0.08);
 }
 
+.workspace-theme {
+  --paper: #fbfbfa;
+  --surface-low: #f8fafc;
+  --surface-high: #e0e2e6;
+  --ink: #181d26;
+  --ink-soft: #41454d;
+  --ink-faint: #7b8088;
+  --accent: #0a2e0e;
+  --accent-soft: rgba(168, 216, 196, 0.28);
+  --ghost-border: rgba(24, 29, 38, 0.1);
+  --workspace-canvas: #f4f5f7;
+  --workspace-paper: #fbfbfa;
+  --workspace-soft: #f8fafc;
+  --workspace-line: #dddddd;
+  --workspace-line-strong: #9297a0;
+  --workspace-ink: #181d26;
+  --workspace-muted: #7b8088;
+  --shadow-paper: 0 1px 2px rgba(24, 29, 38, 0.04);
+  --shadow-paper-strong: 0 12px 28px rgba(24, 29, 38, 0.08);
+}
+
 [class*="border-[var(--ghost-border)]"] {
   border-color: var(--ghost-border) !important;
 }
