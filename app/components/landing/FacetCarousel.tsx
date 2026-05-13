@@ -59,18 +59,50 @@ export function FacetCarousel({
   const containerRotation = rotation;
 
   return (
-    <div
-      className="relative mx-auto w-full max-w-[960px] select-none"
-      style={{
-        perspective: "1200px",
-        height: 240,
-        opacity: visible ? 1 : 0,
-        transform: visible ? "none" : "scale(0.96)",
-        transition: "opacity 0.7s ease, transform 0.7s ease",
-      }}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
-    >
+    <>
+      <div
+        className="no-scrollbar -mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-3 md:hidden"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "none" : "translateY(18px)",
+          transition: "opacity 0.5s ease, transform 0.5s ease",
+        }}
+      >
+        {items.map((item, i) => (
+          <article
+            key={item.title}
+            className={`min-w-[78vw] snap-center rounded-[18px] px-5 py-5 ${
+              i === 2 ? "archive-callout" : "bg-[var(--paper)]"
+            }`}
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <span className="rounded-sm bg-[rgba(58,111,82,0.12)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                {item.title}
+              </span>
+              <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </div>
+            <p className="text-sm leading-7 text-[var(--ink-soft)]">
+              {item.detail}
+            </p>
+            <div className="mt-6 h-px w-10 bg-[rgba(58,111,82,0.22)]" />
+          </article>
+        ))}
+      </div>
+
+      <div
+        className="relative mx-auto hidden w-full max-w-[960px] select-none md:block"
+        style={{
+          perspective: "1200px",
+          height: 240,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "none" : "scale(0.96)",
+          transition: "opacity 0.7s ease, transform 0.7s ease",
+        }}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+      >
       <div
         style={{
           position: "absolute",
@@ -210,6 +242,7 @@ export function FacetCarousel({
             "linear-gradient(270deg, var(--surface-low) 0%, transparent 100%)",
         }}
       />
-    </div>
+      </div>
+    </>
   );
 }
