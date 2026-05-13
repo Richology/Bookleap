@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * Wraps any section with scroll-driven fade-in / fade-out.
@@ -16,36 +16,36 @@ export function ScrollSection({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const fadeIn = vh * 0.32;
-      const fadeOut = vh * 0.28;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      {
+        threshold: 0.18,
+        rootMargin: "0px 0px -8% 0px",
+      }
+    );
 
-      const enterT = Math.min(1, Math.max(0, (vh - rect.top) / fadeIn));
-      const exitT = Math.min(1, Math.max(0, rect.bottom / fadeOut));
-      const opacity = Math.min(enterT, exitT);
-      const translateY = (1 - enterT) * 40;
-
-      el.style.opacity = String(opacity);
-      el.style.transform = `translateY(${translateY}px)`;
-    };
-
-    window.addEventListener("scroll", update, { passive: true });
-    update();
-    return () => window.removeEventListener("scroll", update);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   return (
     <div
       ref={ref}
       className={className}
-      style={{ willChange: "opacity, transform" }}
+      style={{
+        willChange: "opacity, transform",
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? "translateY(0)" : "translateY(28px)",
+        transition: "opacity 520ms ease, transform 520ms ease",
+      }}
     >
       {children}
     </div>

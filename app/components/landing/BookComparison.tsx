@@ -249,6 +249,7 @@ const BOOKS: BookData[] = [
 
 const N = BOOKS.length;
 const PANEL_MAX_WIDTH = 500; // px, desktop panel cap
+const DESKTOP_SCROLL_QUERY = "(min-width: 1024px)";
 
 /* ── Readable dense text (left side) ─────────────────────────────────────────── */
 function DenseWall({ fragments }: { fragments: string[] }) {
@@ -277,6 +278,74 @@ function DenseWall({ fragments }: { fragments: string[] }) {
   );
 }
 
+function MobileComparison() {
+  return (
+    <div className="lg:hidden px-6 py-10">
+      <div className="mx-auto max-w-[640px]">
+        <p className="mb-5 text-center text-[1.05rem] font-semibold uppercase tracking-[0.16em] text-[var(--ink)]">
+          Before / After
+        </p>
+        <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-2">
+          {BOOKS.slice(0, 4).map((book) => {
+            const featuredCard = book.cards[0];
+
+            return (
+              <article
+                key={book.title}
+                className="min-w-[82vw] max-w-[340px] snap-center rounded-[24px] bg-[var(--surface-low)] p-4"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="mb-2 font-editorial text-xs italic text-[var(--ink-faint)]">
+                      原书
+                    </p>
+                    <div className="relative aspect-square overflow-hidden rounded-xl bg-[#eae8e5]">
+                      <DenseWall fragments={book.rawFragments.slice(0, 6)} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 font-editorial text-xs italic text-[var(--ink-faint)]">
+                      书跃
+                    </p>
+                    <div className="flex aspect-square flex-col rounded-xl bg-[var(--paper)] p-2 shadow-[var(--shadow-paper)]">
+                      <div className="rounded-[12px] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,246,241,0.98)_100%)] p-2">
+                        <div className="mb-1 flex items-center gap-1.5">
+                          <span className="text-[10px] opacity-80">{featuredCard.icon}</span>
+                          <span className="font-editorial text-[10px] font-semibold text-[var(--ink)]">
+                            {featuredCard.title}
+                          </span>
+                        </div>
+                        <p className="text-[8px] leading-[11px] text-[var(--ink-soft)]">
+                          {featuredCard.desc}
+                        </p>
+                      </div>
+                      <div className="mt-2 grid flex-1 grid-cols-2 gap-1.5">
+                        {book.cards.slice(1, 5).map((card) => (
+                          <div
+                            key={card.title}
+                            className="rounded-lg bg-[var(--surface-low)] p-1.5 text-left"
+                          >
+                            <span className="font-editorial text-[9px] font-semibold text-[var(--ink)]">
+                              {card.icon} {card.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-center text-xs leading-5 text-[var(--accent)]">
+                  《{book.title}》· {book.author}
+                </p>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /*
  * JS-controlled position: absolute → fixed → absolute
  * Doesn't depend on CSS sticky (which breaks with parent overflow).
@@ -293,12 +362,31 @@ export function BookComparison() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [sectionOpacity, setSectionOpacity] = useState(0);
   const [contentKey, setContentKey] = useState(0);
+  const [isScrollSceneEnabled, setIsScrollSceneEnabled] = useState(false);
   const prevIndexRef = useRef(0);
   const [pinState, setPinState] = useState<"before" | "fixed" | "after">(
     "before",
   );
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia(DESKTOP_SCROLL_QUERY);
+    const update = () => setIsScrollSceneEnabled(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener?.("change", update);
+    mediaQuery.addListener?.(update);
+
+    return () => {
+      mediaQuery.removeEventListener?.("change", update);
+      mediaQuery.removeListener?.(update);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isScrollSceneEnabled) {
+      return;
+    }
+
     const onScroll = () => {
       const el = wrapperRef.current;
       if (!el) return;
@@ -341,7 +429,7 @@ export function BookComparison() {
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [isScrollSceneEnabled]);
 
   const scrollToBook = (index: number) => {
     const el = wrapperRef.current;
@@ -364,20 +452,22 @@ export function BookComparison() {
         : { position: "absolute", bottom: 0, left: 0, right: 0 };
 
   return (
-    <div
-      ref={wrapperRef}
-      id="comparison"
-      style={{ height: `${WRAPPER_VH}vh`, position: "relative" }}
-    >
+    <section id="comparison">
+      <MobileComparison />
       <div
-        className="flex h-screen flex-col items-center justify-center overflow-hidden"
-        style={{
-          ...contentPositionStyle,
-          opacity: sectionOpacity,
-          backgroundColor: "var(--surface)",
-        }}
+        ref={wrapperRef}
+        className="hidden lg:block"
+        style={{ height: `${WRAPPER_VH}vh`, position: "relative" }}
       >
-        <div className="mx-auto w-full max-w-[1560px] px-6 md:px-10">
+        <div
+          className="flex h-screen flex-col items-center justify-center overflow-hidden"
+          style={{
+            ...contentPositionStyle,
+            opacity: sectionOpacity,
+            backgroundColor: "var(--surface)",
+          }}
+        >
+          <div className="mx-auto w-full max-w-[1560px] px-6 md:px-10">
           {/* ── Header ──────────────────── */}
           <p className="mb-8 text-center text-[1.5rem] font-semibold uppercase tracking-[0.18em] text-[var(--ink)] md:mb-10 md:text-[1.75rem]">
             Before / After
@@ -525,83 +615,9 @@ export function BookComparison() {
             </div>
           </div>
 
-          {/* ── Mobile fallback (below lg) ────────────────── */}
-          <div className="mt-6 lg:hidden">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Mobile left */}
-              <div className="flex flex-col items-center">
-                <p className="mb-2 font-editorial text-xs italic text-[var(--ink-faint)]">原书</p>
-                <div
-                  key={`ml-${contentKey}`}
-                  className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#eae8e5]"
-                  style={{ animation: "fadeSlideIn 0.4s ease-out both" }}
-                >
-                  <DenseWall fragments={book.rawFragments} />
-                </div>
-                <p className="mt-2 text-center text-xs text-[var(--accent)]">
-                  《{book.title}》· {book.author}
-                </p>
-              </div>
-              {/* Mobile right */}
-              <div className="flex flex-col items-center">
-                <p className="mb-2 font-editorial text-xs italic text-[var(--ink-faint)]">书跃</p>
-                <div
-                  key={`mr-${contentKey}`}
-                  className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--paper)] shadow-[var(--shadow-paper)]"
-                  style={{ animation: "fadeSlideIn 0.4s ease-out 0.06s both" }}
-                >
-                  <div className="flex h-full flex-col px-2 py-2">
-                    <div className="rounded-[12px] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,246,241,0.98)_100%)] p-2 shadow-[0_10px_18px_rgba(47,51,51,0.05)]">
-                      <div className="mb-1 flex items-center gap-1.5">
-                        <span className="text-[10px] opacity-80">{featuredCard.icon}</span>
-                        <span className="font-editorial text-[10px] font-semibold text-[var(--ink)]">
-                          {featuredCard.title}
-                        </span>
-                      </div>
-                      <p className="text-[8px] leading-[11px] text-[var(--ink-soft)]">
-                        {featuredCard.desc}
-                      </p>
-                    </div>
-                    <div className="mt-2 grid flex-1 auto-rows-fr grid-cols-2 gap-1.5">
-                      {secondaryCards.map((card, ci) => {
-                        const shouldSpan =
-                          secondaryCards.length % 2 === 1 && ci === secondaryCards.length - 1;
-
-                        return (
-                          <div
-                            key={card.title}
-                            className={`rounded-lg bg-[var(--surface-low)] p-1.5 text-left transition-all ${
-                              shouldSpan ? "col-span-2 flex flex-col justify-center text-center" : ""
-                            }`}
-                          >
-                            <span
-                              className={`font-editorial text-[9px] font-semibold text-[var(--ink)] ${
-                                shouldSpan ? "block text-center" : ""
-                              }`}
-                            >
-                              {card.icon} {card.title}
-                            </span>
-                            <p
-                              className={`mt-0.5 text-[7.5px] leading-[10px] text-[var(--ink-soft)] ${
-                                shouldSpan ? "mx-auto max-w-[84%]" : ""
-                              }`}
-                            >
-                              {card.desc}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-2 text-center text-xs text-[var(--accent)]">
-                  6 张卡片 · 30 秒
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
