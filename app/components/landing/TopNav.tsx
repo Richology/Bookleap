@@ -9,7 +9,11 @@ const NAV_ITEMS = [
   { label: "常见问题", anchor: "#faq" },
 ];
 
-export function TopNav() {
+type TopNavProps = {
+  homeHref?: string;
+};
+
+export function TopNav({ homeHref = "/" }: TopNavProps) {
   const [scrolled, setScrolled] = useState(
     () => typeof window !== "undefined" && window.scrollY > 20
   );
@@ -51,7 +55,7 @@ export function TopNav() {
       <div className="mx-auto flex max-w-[1540px] items-center justify-between px-6 py-4 md:px-10">
         <div className="flex min-w-0 items-center gap-4">
           <Link
-            href="/"
+            href={homeHref}
             className="flex items-baseline gap-2 font-editorial text-[1.7rem] font-semibold tracking-tight text-[var(--ink)]"
           >
             书跃 · BookLeap

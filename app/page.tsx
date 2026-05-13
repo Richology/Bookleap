@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
 import { BookLeapCTA } from "./components/landing/BookLeapCTA";
@@ -8,7 +9,6 @@ import { FAQ } from "./components/landing/FAQ";
 import { NeedAHand } from "./components/landing/NeedAHand";
 import { ScrollSection } from "./components/landing/ScrollSection";
 import { Testimonials } from "./components/landing/Testimonials";
-import { TopNav } from "./components/landing/TopNav";
 import { WorkbenchStory } from "./components/landing/WorkbenchStory";
 
 const ANALYSIS_FACETS = [
@@ -47,20 +47,76 @@ const HERO_FEATURES = [
   { title: "海报分享", detail: "生成适合分享的读书海报" },
 ];
 
-export default function LandingPage() {
-  const [heroCardsRevealed, setHeroCardsRevealed] = useState(0);
+const NAV_ITEMS = [
+  { label: "产品介绍", anchor: "#comparison" },
+  { label: "用户评价", anchor: "#testimonials" },
+  { label: "常见问题", anchor: "#faq" },
+];
+
+function HomeV2Nav() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-[#faf9f8]/92 backdrop-blur-xl"
+          : "bg-[#faf9f8]/82 backdrop-blur-md"
+      }`}
+    >
+      <div className="mx-auto flex max-w-[1540px] items-center justify-between px-6 py-4 md:px-10">
+        <div className="flex min-w-0 items-center gap-4">
+          <Link
+            href="/"
+            className="flex items-baseline gap-3 font-editorial text-[1.6rem] font-semibold tracking-tight text-[var(--ink)]"
+          >
+            书跃 · BookLeap
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-5 md:gap-8">
+          <div className="hidden items-center gap-8 md:flex">
+            {NAV_ITEMS.map((item) => (
+              <a
+                key={item.anchor}
+                href={item.anchor}
+                className="font-editorial text-[1.02rem] text-[var(--ink-soft)] transition-colors hover:text-[var(--accent)]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .querySelector(item.anchor)
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+          <Link
+            href="/workspace"
+            className="rounded-md bg-[var(--ink)] px-4 py-2 text-[13px] font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.97]"
+          >
+            进入工作台
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+export default function HomeV2Page() {
   const [heroTextPhase, setHeroTextPhase] = useState(0);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     timers.push(setTimeout(() => setHeroTextPhase(1), 120));
     timers.push(setTimeout(() => setHeroTextPhase(2), 1450));
-    timers.push(setTimeout(() => setHeroTextPhase(3), 1750));
-    const CARD_START = 1750;
-    const CARD_GAP = 120;
-    for (let i = 1; i <= ANALYSIS_FACETS.length; i++) {
-      timers.push(setTimeout(() => setHeroCardsRevealed(i), CARD_START + (i - 1) * CARD_GAP));
-    }
     return () => timers.forEach(clearTimeout);
   }, []);
 
@@ -86,16 +142,14 @@ export default function LandingPage() {
 
   return (
     <>
-      <TopNav />
+      <HomeV2Nav />
 
       <main className="archive-atmosphere relative overflow-x-clip text-[var(--ink)]">
-        <div className="pointer-events-none absolute -left-40 top-24 h-[360px] w-[360px] rounded-full bg-[rgba(58,111,82,0.08)] blur-3xl" />
-        <div className="pointer-events-none absolute right-[-160px] top-[220px] h-[440px] w-[440px] rounded-full bg-[rgba(119,124,123,0.1)] blur-3xl" />
-        <section className="px-6 pb-16 pt-28 md:px-10 md:pb-24 md:pt-32">
-          <div className="mx-auto grid max-w-[1540px] gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(460px,0.95fr)] lg:items-center">
-            <div className="max-w-[760px]">
+        <section className="relative min-h-[calc(100vh-72px)] px-6 pb-16 pt-24 md:px-10 md:pb-20 md:pt-28">
+          <div className="relative mx-auto flex min-h-[calc(100vh-144px)] max-w-[1540px] flex-col items-center justify-center text-center">
+            <div className="max-w-[980px]">
               <h1
-                className="font-editorial text-[2.8rem] font-semibold leading-[1.04] tracking-[-0.05em] text-[var(--ink)] sm:text-[3.55rem] lg:text-[4.55rem]"
+                className="font-editorial text-[2.45rem] font-semibold leading-[1.06] text-[var(--ink)] sm:text-[4rem] lg:text-[5.4rem]"
                 aria-label="让一本好书 变成一次清醒的决策"
               >
                 {HERO_TITLE_LINES.map((line, lineIndex) => {
@@ -127,7 +181,7 @@ export default function LandingPage() {
                 })}
               </h1>
               <p
-                className="mt-8 max-w-[620px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.05rem]"
+                className="mx-auto mt-7 max-w-[660px] text-base leading-8 text-[var(--ink-soft)] md:text-[1.08rem]"
                 style={{
                   opacity: heroTextPhase >= 2 ? 1 : 0,
                   transform: heroTextPhase >= 2 ? "none" : "translateY(16px)",
@@ -138,7 +192,7 @@ export default function LandingPage() {
                 上传一本电子书，30 秒获取 6 张结构化的内容精华卡片
               </p>
               <div
-                className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center"
+                className="mt-8 flex flex-col items-center gap-4"
                 style={{
                   opacity: heroTextPhase >= 2 ? 1 : 0,
                   transform: heroTextPhase >= 2 ? "none" : "translateY(18px) scale(0.95)",
@@ -147,91 +201,11 @@ export default function LandingPage() {
               >
                 <BookLeapCTA href="/workspace">上传一本书，开始体验</BookLeapCTA>
               </div>
-
-              <div
-                className="mt-14 max-w-[660px] pt-6"
-                style={{
-                  opacity: heroTextPhase >= 3 ? 1 : 0,
-                  transform: heroTextPhase >= 3 ? "none" : "translateY(12px)",
-                  transition: "opacity 0.6s ease, transform 0.6s ease",
-                }}
-              >
-                <div className="rounded-[20px] bg-[var(--surface-low)] px-4 py-2.5 shadow-[var(--shadow-paper)]">
-                  <div className="grid gap-0 sm:grid-cols-3">
-                    {["无需注册", "本地存储", "30 秒出结果"].map((item, index) => (
-                      <div
-                        key={item}
-                        className={`flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium text-[var(--ink)] ${
-                          index > 0 ? "border-t border-[var(--ghost-border)] sm:border-l sm:border-t-0" : ""
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
 
-            <div className="archive-stack rounded-[30px] bg-[var(--surface-low)] p-4 md:p-8 lg:pl-10">
-              <div className="grid gap-4 rounded-[26px] bg-[var(--paper-muted)] p-4 md:grid-cols-[minmax(0,1fr)_220px] md:p-7">
-                <div className="archive-sheet flex min-h-[420px] flex-col rounded-[22px] p-6 md:p-8">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="archive-kicker">Curated Reading Object</p>
-                    <span className="text-[11px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-                      EPUB / AZW3 / TXT / PDF
-                    </span>
-                  </div>
-                  <div className="mt-10 space-y-4">
-                    <div className="h-[2px] w-14 bg-[var(--accent)]" />
-                    <div className="h-3 w-[72%] rounded-full bg-[rgba(47,51,51,0.08)]" />
-                    <div className="h-3 w-[88%] rounded-full bg-[rgba(47,51,51,0.08)]" />
-                    <div className="h-3 w-[64%] rounded-full bg-[rgba(47,51,51,0.08)]" />
-                  </div>
-                  <div className="mt-auto grid gap-3 pt-10 sm:grid-cols-3">
-                    {ANALYSIS_FACETS.slice(0, 3).map((item, index) => (
-                      <div
-                        key={item.title}
-                        className={`rounded-[18px] p-4 ${
-                          index === 0 ? "archive-callout" : "bg-[var(--surface-low)]"
-                        }`}
-                      >
-                        <p className="archive-kicker">0{index + 1}</p>
-                        <p className="mt-3 text-sm font-medium text-[var(--ink)]">{item.title}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  
-                  {ANALYSIS_FACETS.map((item, index) => (
-                    <div
-                      key={item.title}
-                      className={`flex items-center justify-between rounded-[16px] px-4 py-3.5 transition-all duration-500 ${
-                        index === 2
-                          ? "archive-callout text-[var(--ink)]"
-                          : "bg-[var(--paper)] text-[var(--ink-soft)]"
-                      }`}
-                      style={{
-                        opacity: index < heroCardsRevealed ? 1 : 0,
-                        transform: index < heroCardsRevealed ? "none" : "translateY(12px)",
-                      }}
-                    >
-                      <span className="text-sm font-medium">{item.title}</span>
-                      <span className="text-[11px] uppercase tracking-[0.14em] opacity-60">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
-        {/* ── 六维分析：3D 圆柱旋转展示 ── */}
         <section
           ref={facetsRef}
           className="px-6 py-8 md:px-10 md:py-12"
@@ -305,9 +279,13 @@ export default function LandingPage() {
                   现在就把一本书，整理进你的工作台
                 </p>
               </div>
-              <BookLeapCTA href="/workspace" tone="paper">
+              <a
+                href="/workspace"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-white/92 active:scale-[0.98]"
+              >
                 立即开始
-              </BookLeapCTA>
+                <span aria-hidden>↗</span>
+              </a>
             </div>
           </section>
         </ScrollSection>
