@@ -193,6 +193,7 @@ const STARTER_LOADING_STEPS = [
   { text: "正在生成认知卡片…", duration: 900 },
   { text: "正在整理分析结果…", duration: 600 },
 ] as const;
+const BLOB_UPLOAD_TIMEOUT_MS = 15000;
 const DECISION_STEP_LABELS = [
   "正在生成第 1 题（职场场景）…",
   "正在生成第 2 题（个人成长）…",
@@ -592,7 +593,7 @@ function getUploadFailureMessage(): string {
 
   return isLocalRuntimeHost(window.location.hostname)
     ? "本地上传服务暂时不可用，请检查本地服务后重试。"
-    : "上传服务暂时不可用，请稍后重试。";
+    : "上传请求没有完成。请检查网络后重试；如果文件较大，可以稍后再试。";
 }
 
 function getBlobUploadContentType(filename: string): string | undefined {
@@ -604,6 +605,54 @@ function getBlobUploadContentType(filename: string): string | undefined {
   if (fileType === "azw3") return "application/octet-stream";
 
   return undefined;
+}
+
+async function uploadBookDirectly(file: File): Promise<Response> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/analyze", {
+    method: "POST",
+    body: formData,
+  });
+
+  if ([413, 502, 503, 504].includes(response.status)) {
+    throw new Error(`直接上传被网关拒绝: ${response.status}`);
+  }
+
+  return response;
+}
+
+async function uploadBookViaBlob(file: File): Promise<Response> {
+  const { upload } = await import("@vercel/blob/client");
+  const explicitContentType = getBlobUploadContentType(file.name);
+  const blob = await withTimeout(
+    upload(file.name, file, {
+      access: "public",
+      handleUploadUrl: "/api/upload",
+      contentType: explicitContentType,
+    }),
+    BLOB_UPLOAD_TIMEOUT_MS,
+    "Blob 上传超时"
+  );
+
+  return fetch("/api/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileUrl: blob.url,
+      filename: file.name,
+    }),
+  });
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(label)), timeoutMs);
+    }),
+  ]);
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -2107,39 +2156,22 @@ export default function Home() {
 
       let res: Response;
       try {
-        const { upload } = await import("@vercel/blob/client");
-        const explicitContentType = getBlobUploadContentType(fileToAnalyze.name);
-        const blob = await upload(fileToAnalyze.name, fileToAnalyze, {
-          access: "public",
-          handleUploadUrl: "/api/upload",
-          contentType: explicitContentType,
-        });
-        setMessage("上传成功，正在解析章节...");
-        res = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fileUrl: blob.url,
-            filename: fileToAnalyze.name,
-          }),
-        });
-      } catch (uploadError) {
-        console.error("Blob 上传失败:", uploadError);
-        if (!isLocalRuntimeHost(window.location.hostname)) {
+        setMessage("正在上传并解析章节...");
+        res = await uploadBookDirectly(fileToAnalyze);
+      } catch (directUploadError) {
+        console.error("直接上传失败，尝试 Blob 上传:", directUploadError);
+        try {
+          setMessage("上传通道较慢，正在切换上传方式...");
+          res = await uploadBookViaBlob(fileToAnalyze);
+          setMessage("上传成功，正在解析章节...");
+        } catch (blobUploadError) {
+          console.error("Blob 上传失败:", blobUploadError);
           setAnalysisErrorCode("UPLOAD_INIT_FAILED");
           setMessage(getUploadFailureMessage());
           resetAnalysisLoadingStates();
           setBgAnalysisStatus({ active: false });
           return;
         }
-
-        setMessage("正在上传并解析章节...");
-        const formData = new FormData();
-        formData.append("file", fileToAnalyze);
-        res = await fetch("/api/analyze", {
-          method: "POST",
-          body: formData,
-        });
       }
       const rawResponse = await res.text();
       let data: { success?: boolean; error?: string; errorCode?: string; title?: string; bookSummary?: string; chapters?: Chapter[]; mode?: string };

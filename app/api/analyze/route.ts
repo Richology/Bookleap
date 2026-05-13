@@ -73,7 +73,6 @@ export async function POST(request: Request) {
 
     const fileType = getFileTypeFromName(filename);
     const isEpub = fileType === "epub";
-    const isPdf = fileType === "pdf";
     const isAzw3 = fileType === "azw3";
     const isTxt = fileType === "txt";
 
@@ -197,11 +196,9 @@ function parseEpub(
     epub.on("end", async () => {
       try {
         const metadataTitle = epub.metadata?.title || "未知书名";
-
-        const flowItems = epub.flow?.slice(0, 8) || [];
         const chapters: ChapterItem[] = [];
 
-        for (const item of flowItems) {
+        for (const item of epub.flow || []) {
           if (!item.id) {
             continue;
           }
@@ -209,12 +206,28 @@ function parseEpub(
           const chapterId = item.id;
           const rawText = await getChapterText(epub, chapterId);
           const cleanText = cleanHtmlText(rawText).slice(0, 3000);
+          const chapterTitle =
+            extractHeadingFromHtml(rawText) ||
+            item.title?.trim() ||
+            "未命名章节";
+
+          if (isFrontMatterChapter(chapterId, chapterTitle)) {
+            continue;
+          }
+
+          if (cleanText.length < 80) {
+            continue;
+          }
 
           chapters.push({
             id: chapterId,
-            title: item.title || "未命名章节",
-            text: cleanText || "该章节未提取到正文内容",
+            title: chapterTitle,
+            text: cleanText,
           });
+
+          if (chapters.length >= 8) {
+            break;
+          }
         }
 
         resolve({
@@ -463,17 +476,56 @@ function extractHeadingFromHtml(html: string): string | null {
   const headingMatch = html.match(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/i);
   if (!headingMatch?.[1]) return null;
 
-  const heading = cleanHtmlText(headingMatch[1]).slice(0, 40).trim();
+  const heading = cleanHtmlText(headingMatch[1]).slice(0, 80).trim();
   return heading || null;
 }
 
 function cleanHtmlText(html: string): string {
-  return html
+  return decodeHtmlEntities(html
     .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim());
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (match, hex) => {
+      const codePoint = Number.parseInt(hex, 16);
+      if (!Number.isFinite(codePoint)) return match;
+      try {
+        return String.fromCodePoint(codePoint);
+      } catch {
+        return match;
+      }
+    })
+    .replace(/&#(\d+);/g, (match, decimal) => {
+      const codePoint = Number.parseInt(decimal, 10);
+      if (!Number.isFinite(codePoint)) return match;
+      try {
+        return String.fromCodePoint(codePoint);
+      } catch {
+        return match;
+      }
+    })
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+function isFrontMatterChapter(chapterId: string, title: string): boolean {
+  const normalizedId = chapterId.toLowerCase();
+  const normalizedTitle = title.toLowerCase();
+
+  if (/^(cover|halftitle|titlepage|copyright|content|toc|index|preface|foreword|acknowledg|contributor|contributors|about)/i.test(normalizedId)) {
+    return true;
+  }
+
+  if (normalizedId.startsWith("fm-")) {
+    return true;
+  }
+
+  return /^(cover|halftitle|titlepage|copyright|contents?|contributors?|index|preface|foreword)$/i.test(normalizedTitle);
 }
