@@ -6,6 +6,7 @@ export function WorkspaceBookItem({
   title,
   subtitle,
   badge,
+  coverUrl,
   tone = "default",
   onClick,
   onDelete,
@@ -13,6 +14,7 @@ export function WorkspaceBookItem({
   title: string;
   subtitle?: string;
   badge?: string;
+  coverUrl?: string;
   tone?: ItemTone;
   onClick: () => void;
   onDelete?: () => void;
@@ -29,15 +31,28 @@ export function WorkspaceBookItem({
       onClick={onClick}
       className={`group flex cursor-pointer items-start justify-between gap-3 rounded-[7px] border px-2.5 py-2 transition-all ${toneClass}`}
     >
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium text-[var(--ink)]">
-          {title}
-        </p>
-        {subtitle && (
-          <p className="mt-0.5 truncate text-[11px] text-[var(--ink-faint)]">
-            {subtitle}
-          </p>
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
+        {coverUrl && (
+          <div className="h-9 w-[27px] shrink-0 overflow-hidden rounded-[3px] border border-[#dddddd] bg-[#f8fafc] shadow-[0_1px_1px_rgba(24,29,38,0.05)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverUrl}
+              alt=""
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          </div>
         )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-medium text-[var(--ink)]">
+            {title}
+          </p>
+          {subtitle && (
+            <p className="mt-0.5 truncate text-[11px] text-[var(--ink-faint)]">
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">

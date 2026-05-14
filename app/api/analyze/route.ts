@@ -16,6 +16,17 @@ type ChapterItem = {
   text: string;
 };
 
+type EpubManifestItem = {
+  id?: string;
+  href?: string;
+  title?: string;
+  "media-type"?: string;
+  mediaType?: string;
+  properties?: string;
+};
+
+const MAX_INLINE_COVER_BYTES = 1.2 * 1024 * 1024;
+
 export async function POST(request: Request) {
   try {
     const contentType = request.headers.get("content-type") || "";
@@ -108,6 +119,7 @@ export async function POST(request: Request) {
         mode: "full",
         filename,
         title: epubData.title,
+        coverImage: epubData.coverImage,
         bookSummary,
         chapters: epubData.chapters,
       });
@@ -185,7 +197,7 @@ export async function POST(request: Request) {
 
 function parseEpub(
   filePath: string
-): Promise<{ title: string; chapters: ChapterItem[] }> {
+): Promise<{ title: string; coverImage: string; chapters: ChapterItem[] }> {
   return new Promise((resolve, reject) => {
     const epub = new Epub(filePath);
 
@@ -196,6 +208,7 @@ function parseEpub(
     epub.on("end", async () => {
       try {
         const metadataTitle = epub.metadata?.title || "未知书名";
+        const coverImage = await getEpubCoverDataUrl(epub);
         const chapters: ChapterItem[] = [];
 
         for (const item of epub.flow || []) {
@@ -232,6 +245,7 @@ function parseEpub(
 
         resolve({
           title: metadataTitle,
+          coverImage,
           chapters,
         });
       } catch (err) {
@@ -240,6 +254,86 @@ function parseEpub(
     });
 
     epub.parse();
+  });
+}
+
+async function getEpubCoverDataUrl(epub: Epub): Promise<string> {
+  const coverId = typeof epub.metadata?.cover === "string"
+    ? epub.metadata.cover.trim()
+    : "";
+  const manifest = epub.manifest as Record<string, EpubManifestItem>;
+  const manifestEntries = Object.entries(manifest);
+  const candidateIds = new Set<string>();
+
+  if (coverId && manifest[coverId]) {
+    candidateIds.add(coverId);
+  }
+
+  manifestEntries.forEach(([id, item]) => {
+    const properties = item.properties || "";
+    if (properties.split(/\s+/).includes("cover-image")) {
+      candidateIds.add(id);
+    }
+  });
+
+  manifestEntries.forEach(([id, item]) => {
+    const haystack = `${id} ${item.href ?? ""} ${item.title ?? ""}`.toLowerCase();
+    if (isImageManifestItem(item) && isLikelyCoverImageName(haystack)) {
+      candidateIds.add(id);
+    }
+  });
+
+  manifestEntries.forEach(([id, item]) => {
+    if (isImageManifestItem(item)) {
+      candidateIds.add(id);
+    }
+  });
+
+  for (const id of candidateIds) {
+    try {
+      const result = await getImageData(epub, id);
+      if (!result?.data.length || result.data.byteLength > MAX_INLINE_COVER_BYTES) {
+        continue;
+      }
+
+      return `data:${result.mimeType};base64,${result.data.toString("base64")}`;
+    } catch {
+      // Try the next candidate. EPUB cover metadata is inconsistent across publishers.
+    }
+  }
+
+  return "";
+}
+
+function isImageManifestItem(item: EpubManifestItem): boolean {
+  const mediaType = (item["media-type"] || item.mediaType || "").toLowerCase();
+  const href = item.href?.toLowerCase() || "";
+
+  return mediaType.startsWith("image/") || /\.(jpe?g|png|gif|webp|svg)$/i.test(href);
+}
+
+function isLikelyCoverImageName(value: string): boolean {
+  return (
+    value.includes("cover") ||
+    value.includes("front") ||
+    value.includes("titlepage") ||
+    value.includes("封面")
+  );
+}
+
+function getImageData(
+  epub: Epub,
+  imageId: string
+): Promise<{ data: Buffer; mimeType: string } | null> {
+  return new Promise((resolve) => {
+    epub.getImage(imageId, (err, data, mimeType) => {
+      if (err || !data || !mimeType) {
+        resolve(null);
+        return;
+      }
+
+      resolve({ data, mimeType });
+    });
   });
 }
 

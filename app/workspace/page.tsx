@@ -92,6 +92,7 @@ type Chapter = {
 
 type BgAnalysisData = {
   title: string;
+  coverImage: string;
   bookSummary: string;
   chapters: Chapter[];
   readingGuide: string;
@@ -222,6 +223,7 @@ type HistoryRecord = {
   ideaSourceTracing: string;
   bookRecommendation: string;
   workspaceQuote?: string;
+  coverImage?: string;
   posterContent?: PosterContent | null;
   isStarterBook?: boolean;
   starterBookId?: string;
@@ -682,6 +684,7 @@ export default function Home() {
   const [ideaSourceTracing, setIdeaSourceTracing] = useState("");
   const [workspaceQuote, setWorkspaceQuote] = useState("");
   const [bookSummary, setBookSummary] = useState("");
+  const [bookCoverImage, setBookCoverImage] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingBookSummary, setIsLoadingBookSummary] = useState(false);
@@ -767,12 +770,18 @@ export default function Home() {
   const currentStarterBook = currentStarterBookId
     ? starterBooksById[currentStarterBookId] ?? null
     : null;
+  const currentHistoryRecord = useMemo(
+    () => recentHistory.find((record) => record.title === bookTitle) ?? null,
+    [bookTitle, recentHistory]
+  );
   const starterCover = currentStarterBook?.coverImage ?? "";
   const currentBookAuthor = currentStarterBook?.author ?? "";
+  const historyCover = currentHistoryRecord?.coverImage ?? "";
+  const localCover = starterCover || bookCoverImage || historyCover;
 
   const [fetchedCover, setFetchedCover] = useState("");
   useEffect(() => {
-    if (starterCover || !bookTitle) {
+    if (localCover || !bookTitle) {
       setFetchedCover("");
       return;
     }
@@ -836,13 +845,9 @@ export default function Home() {
     })();
 
     return () => { cancelled = true; };
-  }, [bookTitle, starterCover]);
+  }, [bookTitle, localCover]);
 
-  const currentBookCover = starterCover || fetchedCover;
-  const currentHistoryRecord = useMemo(
-    () => recentHistory.find((record) => record.title === bookTitle) ?? null,
-    [bookTitle, recentHistory]
-  );
+  const currentBookCover = localCover || fetchedCover;
   const selectedFileType = selectedFile ? getFileTypeFromName(selectedFile.name) : null;
   const currentFileTypeLabel = selectedFileType
     ? getFileTypeLabel(selectedFileType)
@@ -1093,6 +1098,7 @@ export default function Home() {
       ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(workspaceQuote, { title: bookTitle }),
+      coverImage: currentStarterBook?.coverImage || bookCoverImage || currentHistoryRecord?.coverImage || "",
       posterContent: posterContent ?? null,
       isStarterBook: !!currentStarterBook,
       starterBookId: currentStarterBook?.id,
@@ -1351,6 +1357,7 @@ export default function Home() {
     setIdeaSourceTracing("");
     setIsLoadingIdeaSourceTracing(false);
     setWorkspaceQuote("");
+    setBookCoverImage("");
     setChapters([]);
     setIsLiteMode(false);
     setIsLiteUnlocked(false);
@@ -1375,6 +1382,7 @@ export default function Home() {
   /** Apply completed background analysis results to display state */
   const applyBgAnalysisToDisplay = useCallback((bg: BgAnalysisData) => {
     setBookTitle(bg.title);
+    setBookCoverImage(bg.coverImage);
     setBookSummary(bg.bookSummary);
     setChapters(bg.chapters);
     setReadingGuide(bg.readingGuide);
@@ -1414,6 +1422,7 @@ export default function Home() {
     setCriticalExamination(record.viewValidation);
     setIdeaSourceTracing(record.ideaSourceTracing);
     setWorkspaceQuote(pickWorkspaceQuote(record));
+    setBookCoverImage(record.coverImage ?? "");
     setPosterContent(record.posterContent ?? null);
     setCurrentStarterBookId(record.isStarterBook ? record.starterBookId ?? null : null);
     setIsLiteMode(record.mode === "lite");
@@ -1870,6 +1879,7 @@ export default function Home() {
     resetAllState();
     setSelectedFile(null);
     setCurrentStarterBookId(starterBook.id);
+    setBookCoverImage(starterBook.coverImage);
     setBookTitle(starterBook.title);
     setBookSummary(starterBook.analysis.summary);
     setReadingGuide(starterBook.analysis.readingGuide);
@@ -1900,6 +1910,8 @@ export default function Home() {
       ideaSourceTracing: starterBook.analysis.ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }),
+      coverImage: starterBook.coverImage,
+      isStarterBook: true,
       starterBookId: starterBook.id,
       author: starterBook.author,
     };
@@ -2140,7 +2152,7 @@ export default function Home() {
 
       // Initialize background analysis tracker
       const bg: BgAnalysisData = {
-        title: "", bookSummary: "", chapters: [], readingGuide: "",
+        title: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
         ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
         fileType: getFileTypeFromName(fileToAnalyze.name) ?? "epub",
@@ -2174,7 +2186,7 @@ export default function Home() {
         }
       }
       const rawResponse = await res.text();
-      let data: { success?: boolean; error?: string; errorCode?: string; title?: string; bookSummary?: string; chapters?: Chapter[]; mode?: string };
+      let data: { success?: boolean; error?: string; errorCode?: string; title?: string; coverImage?: string; bookSummary?: string; chapters?: Chapter[]; mode?: string };
       try {
         data = rawResponse ? JSON.parse(rawResponse) : {};
       } catch {
@@ -2198,11 +2210,13 @@ export default function Home() {
       }
       setAnalysisErrorCode(null);
       const title = cleanBookTitle(data.title || "");
+      const coverImage = data.coverImage || "";
       const bkSummary = data.bookSummary || "";
       const chaps: Chapter[] = data.chapters || [];
       const liteMode = data.mode === "lite";
 
       bg.title = title;
+      bg.coverImage = coverImage;
       bg.bookSummary = bkSummary;
       bg.chapters = chaps;
       bg.liteMode = liteMode;
@@ -2214,6 +2228,7 @@ export default function Home() {
 
       // Show initial results immediately
       setBookTitle(title);
+      setBookCoverImage(coverImage);
       setBookSummary(bkSummary);
       setChapters(chaps);
       setIsLiteMode(liteMode);
@@ -3079,6 +3094,7 @@ export default function Home() {
                 key={book.id}
                 title={book.title}
                 subtitle={book.author}
+                coverUrl={book.coverImage}
                 tone={isCurrentStarter ? "current" : "gifted"}
                 onClick={() => void handleSelectStarterBook(book.id)}
               />
@@ -3095,6 +3111,7 @@ export default function Home() {
             title={bookTitle}
             subtitle={currentBookAuthor || "当前书籍"}
             badge={inProgressLabel}
+            coverUrl={currentBookCover}
             tone="current"
             onClick={() => {
               immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3121,6 +3138,7 @@ export default function Home() {
                 key={`history-${record.id}`}
                 title={record.title}
                 subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
+                coverUrl={record.coverImage || (record.starterBookId ? starterBooksById[record.starterBookId]?.coverImage : "")}
                 tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
                 onClick={() => openHistoryRecord(record)}
                 onDelete={() => deleteHistoryRecord(record.id)}
