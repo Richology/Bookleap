@@ -91,6 +91,7 @@ type Chapter = {
 
 type BgAnalysisData = {
   title: string;
+  author: string;
   coverImage: string;
   bookSummary: string;
   chapters: Chapter[];
@@ -694,6 +695,7 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [analysisErrorCode, setAnalysisErrorCode] = useState<string | null>(null);
   const [bookTitle, setBookTitle] = useState("");
+  const [bookAuthor, setBookAuthor] = useState("");
   const [readingGuide, setReadingGuide] = useState("");
   const [viewMap, setViewMap] = useState("");
   const [actionExtraction, setActionExtraction] = useState("");
@@ -791,12 +793,84 @@ export default function Home() {
     () => recentHistory.find((record) => record.title === bookTitle) ?? null,
     [bookTitle, recentHistory]
   );
+  const [fetchedAuthor, setFetchedAuthor] = useState("");
   const starterCover = currentStarterBook?.coverImage ?? "";
-  const currentBookAuthor = currentStarterBook?.author ?? "";
+  const currentBookAuthor =
+    currentStarterBook?.author ||
+    currentHistoryRecord?.author ||
+    bookAuthor ||
+    fetchedAuthor ||
+    "";
   const historyCover = currentHistoryRecord?.coverImage ?? "";
   const localCover = starterCover || bookCoverImage || historyCover;
 
   const [fetchedCover, setFetchedCover] = useState("");
+  useEffect(() => {
+    if (!bookTitle || currentStarterBook?.author || currentHistoryRecord?.author || bookAuthor) {
+      setFetchedAuthor("");
+      return;
+    }
+
+    let cancelled = false;
+
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+    const isTitleMatch = (returned: string, query: string) => {
+      const a = normalize(returned);
+      const b = normalize(query);
+      return a.includes(b) || b.includes(a);
+    };
+
+    const joinAuthors = (authors: unknown): string => {
+      if (!Array.isArray(authors)) return "";
+      return authors
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .join(" / ");
+    };
+
+    const fetchAuthor = async () => {
+      try {
+        const googleRes = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookTitle)}&maxResults=3`
+        );
+        if (googleRes.ok) {
+          const data = await googleRes.json();
+          const items = data.items ?? [];
+          const matched = items.find((item: { volumeInfo?: { title?: string; authors?: unknown } }) =>
+            item.volumeInfo?.title && isTitleMatch(item.volumeInfo.title, bookTitle)
+          ) ?? items[0];
+          const authors = joinAuthors(matched?.volumeInfo?.authors);
+          if (authors && !cancelled) {
+            setFetchedAuthor(authors);
+            return;
+          }
+        }
+      } catch { /* ignore */ }
+
+      try {
+        const openLibraryRes = await fetch(
+          `https://openlibrary.org/search.json?title=${encodeURIComponent(bookTitle)}&limit=3&fields=title,author_name`
+        );
+        if (!openLibraryRes.ok) return;
+        const data = await openLibraryRes.json();
+        const docs = data.docs ?? [];
+        const matched = docs.find((doc: { title?: string; author_name?: unknown }) =>
+          doc.title && isTitleMatch(doc.title, bookTitle)
+        ) ?? docs[0];
+        const authors = joinAuthors(matched?.author_name);
+        if (authors && !cancelled) setFetchedAuthor(authors);
+      } catch { /* ignore */ }
+    };
+
+    setFetchedAuthor("");
+    void fetchAuthor();
+
+    return () => { cancelled = true; };
+  }, [bookAuthor, bookTitle, currentHistoryRecord?.author, currentStarterBook?.author]);
+
   useEffect(() => {
     if (localCover || !bookTitle) {
       setFetchedCover("");
@@ -1135,7 +1209,7 @@ export default function Home() {
       posterContent: posterContent ?? null,
       isStarterBook: !!currentStarterBook,
       starterBookId: currentStarterBook?.id,
-      author: currentStarterBook?.author,
+      author: currentStarterBook?.author || bookAuthor || currentHistoryRecord?.author || undefined,
     };
     const prev = loadHistory().filter((r) => r.id !== record.id);
     const next = [record, ...prev];
@@ -1374,6 +1448,7 @@ export default function Home() {
 
   const resetAllState = useCallback(() => {
     setBookTitle("");
+    setBookAuthor("");
     setBookSummary("");
     setIsLoadingBookSummary(false);
     setReadingGuide("");
@@ -1411,6 +1486,7 @@ export default function Home() {
   /** Apply completed background analysis results to display state */
   const applyBgAnalysisToDisplay = useCallback((bg: BgAnalysisData) => {
     setBookTitle(bg.title);
+    setBookAuthor(bg.author);
     setBookCoverImage(bg.coverImage);
     setBookSummary(bg.bookSummary);
     setChapters(bg.chapters);
@@ -1444,6 +1520,7 @@ export default function Home() {
 
     setSelectedFile(null);
     setBookTitle(record.title);
+    setBookAuthor(record.author || "");
     setBookSummary(record.bookSummary);
     setReadingGuide(record.readingGuide);
     setViewMap(record.viewMap);
@@ -1884,6 +1961,7 @@ export default function Home() {
     setCurrentStarterBookId(starterBook.id);
     setBookCoverImage(starterBook.coverImage);
     setBookTitle(starterBook.title);
+    setBookAuthor(starterBook.author);
     setBookSummary(starterBook.analysis.summary);
     setReadingGuide(starterBook.analysis.readingGuide);
     setViewMap(starterBook.analysis.viewMap);
@@ -2156,7 +2234,7 @@ export default function Home() {
 
       // Initialize background analysis tracker
       const bg: BgAnalysisData = {
-        title: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
+        title: "", author: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
         ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
         fileType: getFileTypeFromName(fileToAnalyze.name) ?? "epub",
@@ -2190,7 +2268,7 @@ export default function Home() {
         }
       }
       const rawResponse = await res.text();
-      let data: { success?: boolean; error?: string; errorCode?: string; title?: string; coverImage?: string; bookSummary?: string; chapters?: Chapter[]; mode?: string };
+      let data: { success?: boolean; error?: string; errorCode?: string; title?: string; author?: string; coverImage?: string; bookSummary?: string; chapters?: Chapter[]; mode?: string };
       try {
         data = rawResponse ? JSON.parse(rawResponse) : {};
       } catch {
@@ -2214,12 +2292,14 @@ export default function Home() {
       }
       setAnalysisErrorCode(null);
       const title = cleanBookTitle(data.title || "");
+      const author = (data.author || "").replace(/\s+/g, " ").trim();
       const coverImage = data.coverImage || "";
       const bkSummary = data.bookSummary || "";
       const chaps: Chapter[] = data.chapters || [];
       const liteMode = data.mode === "lite";
 
       bg.title = title;
+      bg.author = author;
       bg.coverImage = coverImage;
       bg.bookSummary = bkSummary;
       bg.chapters = chaps;
@@ -2232,6 +2312,7 @@ export default function Home() {
 
       // Show initial results immediately
       setBookTitle(title);
+      setBookAuthor(author);
       setBookCoverImage(coverImage);
       setBookSummary(bkSummary);
       setChapters(chaps);
