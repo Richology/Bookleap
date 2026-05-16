@@ -28,7 +28,7 @@ export function WorkspaceReaderHeader({
 
           {subtitle && (
             <p className="mt-1.5 text-[13px] font-medium text-[var(--ink-soft)] md:text-[14px]">
-              {subtitle}
+              作者：{subtitle}
             </p>
           )}
         </div>

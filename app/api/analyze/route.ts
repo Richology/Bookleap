@@ -16,6 +16,13 @@ type ChapterItem = {
   text: string;
 };
 
+type ParsedBookData = {
+  title: string;
+  author: string;
+  coverImage?: string;
+  chapters: ChapterItem[];
+};
+
 type EpubManifestItem = {
   id?: string;
   href?: string;
@@ -119,6 +126,7 @@ export async function POST(request: Request) {
         mode: "full",
         filename,
         title: epubData.title,
+        author: epubData.author,
         coverImage: epubData.coverImage,
         bookSummary,
         chapters: epubData.chapters,
@@ -126,7 +134,7 @@ export async function POST(request: Request) {
     }
 
     if (isAzw3) {
-      let azw3Data: { title: string; chapters: ChapterItem[] };
+      let azw3Data: ParsedBookData;
 
       try {
         azw3Data = await parseAzw3(buffer, filename);
@@ -153,6 +161,7 @@ export async function POST(request: Request) {
         mode: "full",
         filename,
         title: azw3Data.title,
+        author: azw3Data.author,
         bookSummary,
         chapters: azw3Data.chapters,
       });
@@ -168,6 +177,7 @@ export async function POST(request: Request) {
         mode: "lite",
         filename,
         title: txtTitle,
+        author: "",
         bookSummary: "",
         chapters: txtChapters,
       });
@@ -182,6 +192,7 @@ export async function POST(request: Request) {
       mode: "lite",
       filename,
       title: pdfTitle,
+      author: "",
       bookSummary: "",
       chapters: pdfChapters,
     });
@@ -197,7 +208,7 @@ export async function POST(request: Request) {
 
 function parseEpub(
   filePath: string
-): Promise<{ title: string; coverImage: string; chapters: ChapterItem[] }> {
+): Promise<ParsedBookData & { coverImage: string }> {
   return new Promise((resolve, reject) => {
     const epub = new Epub(filePath);
 
@@ -208,6 +219,7 @@ function parseEpub(
     epub.on("end", async () => {
       try {
         const metadataTitle = epub.metadata?.title || "未知书名";
+        const metadataAuthor = normalizeMetadataText(epub.metadata?.creator || epub.metadata?.author);
         const coverImage = await getEpubCoverDataUrl(epub);
         const chapters: ChapterItem[] = [];
 
@@ -245,6 +257,7 @@ function parseEpub(
 
         resolve({
           title: metadataTitle,
+          author: metadataAuthor,
           coverImage,
           chapters,
         });
@@ -255,6 +268,25 @@ function parseEpub(
 
     epub.parse();
   });
+}
+
+function normalizeMetadataText(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeMetadataText(item))
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (typeof value === "string") {
+    return value.replace(/\s+/g, " ").trim();
+  }
+
+  if (value && typeof value === "object" && "text" in value) {
+    return normalizeMetadataText((value as { text?: unknown }).text);
+  }
+
+  return "";
 }
 
 async function getEpubCoverDataUrl(epub: Epub): Promise<string> {
@@ -340,12 +372,13 @@ function getImageData(
 async function parseAzw3(
   buffer: Buffer,
   filename: string
-): Promise<{ title: string; chapters: ChapterItem[] }> {
+): Promise<ParsedBookData> {
   const kf8 = await initKf8File(new Uint8Array(buffer));
 
   try {
     const metadata = kf8.getMetadata();
     const title = metadata?.title?.trim() || stripSupportedFileExtension(filename);
+    const author = normalizeMetadataText(metadata?.author);
     const tocTitleById = new Map<string, string>();
     const walkToc = (items: Array<{ label: string; href: string; children?: Array<{ label: string; href: string; children?: unknown[] }> }>) => {
       items.forEach((item) => {
@@ -383,7 +416,7 @@ async function parseAzw3(
       throw new Error("未提取到可用章节");
     }
 
-    return { title, chapters };
+    return { title, author, chapters };
   } finally {
     kf8.destroy();
   }
