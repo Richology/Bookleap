@@ -35,14 +35,14 @@ export function WorkspaceTabs({
           <div
             key={tab.id}
             className={`group relative flex min-w-[180px] max-w-[320px] shrink-0 items-stretch ${
-              isActive ? "-mb-px after:absolute after:inset-x-0 after:bottom-[-1px] after:h-px after:bg-[#fbfbfa] after:content-['']" : ""
+              isActive ? "-mb-px after:absolute after:inset-x-0 after:bottom-[-1px] after:h-px after:bg-[#fbfcfd] after:content-['']" : ""
             }`}
           >
             <div
               className={`flex min-w-0 flex-1 items-center gap-2 transition-all ${
                 isActive
-                  ? "rounded-t-[10px] border border-[#dddddd] border-b-[#fbfbfa] bg-[#fbfbfa]"
-                  : "rounded-t-[10px] border border-transparent bg-transparent hover:border-[#dddddd] hover:border-b-transparent hover:bg-[#fbfbfa]"
+                  ? "rounded-t-[10px] border border-[#dfe4e8] border-b-[#fbfcfd] bg-[#fbfcfd]"
+                  : "rounded-t-[10px] border border-transparent bg-transparent hover:border-[#dfe4e8] hover:border-b-transparent hover:bg-[#fbfcfd]"
               }`}
             >
               <button

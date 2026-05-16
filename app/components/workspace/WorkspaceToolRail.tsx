@@ -91,12 +91,12 @@ export function WorkspaceToolRail({
       className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
         action.active
           ? "border-[#9297a0] bg-[#eef1ef] text-[var(--accent)]"
-          : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dddddd] hover:bg-[#fbfbfa] hover:text-[var(--ink)]"
+          : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
       } ${action.disabled ? "cursor-not-allowed opacity-40" : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"}`}
       aria-label={action.label}
     >
       <ToolIcon id={action.id} />
-      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfbfa] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
+      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
         {action.title}
       </span>
     </button>
@@ -106,27 +106,27 @@ export function WorkspaceToolRail({
     <div className="flex flex-col items-center gap-2">
       <Link
         href="/"
-        className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dddddd] bg-[#fbfbfa] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+        className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
         aria-label="返回首页"
       >
         <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
           <path d="M11.5 4.5L6 10l5.5 5.5" />
           <path d="M6.5 10H15" />
         </svg>
-        <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfbfa] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
+        <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
           返回首页
         </span>
       </Link>
 
       {utilityActions.length > 0 && (
-        <div className="relative z-20 overflow-visible rounded-[10px] border border-[#dddddd] bg-[#fbfbfa] p-1 shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
+        <div className="relative z-20 overflow-visible rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] p-1 shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
           <div className="flex flex-col gap-1">
             {utilityActions.map(renderActionButton)}
           </div>
         </div>
       )}
 
-      <div className="relative z-20 overflow-visible rounded-[10px] border border-[#dddddd] bg-[#fbfbfa] p-1 shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
+      <div className="relative z-20 overflow-visible rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] p-1 shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
         <div className="flex flex-col gap-1">
           {actions.map(renderActionButton)}
         </div>

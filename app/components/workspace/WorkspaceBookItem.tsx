@@ -21,19 +21,19 @@ export function WorkspaceBookItem({
 }) {
   const toneClass =
     tone === "current"
-      ? "border-[#9297a0] bg-[#eef1ef] shadow-[inset_0_0_0_1px_rgba(146,151,160,0.14)]"
+      ? "border-transparent bg-[#e5ece8] text-[var(--ink)]"
       : tone === "gifted"
-      ? "border-[#dddddd] bg-[#fbfbfa] hover:border-[#9297a0] hover:bg-[#fbfbfa]"
-      : "border-transparent bg-transparent hover:border-[#dddddd] hover:bg-[#fbfbfa]";
+      ? "border-transparent bg-transparent hover:bg-[#e7ebed]"
+      : "border-transparent bg-transparent hover:bg-[#e7ebed]";
 
   return (
     <div
       onClick={onClick}
-      className={`group flex cursor-pointer items-start justify-between gap-3 rounded-[7px] border px-2.5 py-2 transition-all ${toneClass}`}
+      className={`group flex min-h-12 cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-2.5 py-2 transition-all ${toneClass}`}
     >
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         {coverUrl && (
-          <div className="h-9 w-[27px] shrink-0 overflow-hidden rounded-[3px] border border-[#dddddd] bg-[#f8fafc] shadow-[0_1px_1px_rgba(24,29,38,0.05)]">
+          <div className="h-9 w-[27px] shrink-0 overflow-hidden rounded-[4px] border border-[rgba(24,29,38,0.1)] bg-[#eef1f2] shadow-[0_1px_1px_rgba(24,29,38,0.04)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={coverUrl}
@@ -59,8 +59,8 @@ export function WorkspaceBookItem({
         {badge && (
           <span className={`rounded-[6px] px-1.5 py-0.5 text-[10px] font-medium ${
             tone === "current"
-              ? "border border-[rgba(10,46,14,0.18)] bg-[#fbfbfa] text-[var(--accent)]"
-              : "border border-[#dddddd] bg-[#fbfbfa] text-[var(--ink-soft)]"
+              ? "border border-[rgba(10,46,14,0.14)] bg-[#f7f8f9] text-[var(--accent)]"
+              : "border border-[rgba(24,29,38,0.08)] bg-[#f7f8f9] text-[var(--ink-soft)]"
           }`}>
             {badge}
           </span>
@@ -71,7 +71,7 @@ export function WorkspaceBookItem({
               e.stopPropagation();
               onDelete();
             }}
-            className="rounded-[7px] p-1 text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#edf0f2] hover:text-[var(--ink)] focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+            className="rounded-[7px] p-1 text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#dfe5e7] hover:text-[var(--ink)] focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label={`删除 ${title}`}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">

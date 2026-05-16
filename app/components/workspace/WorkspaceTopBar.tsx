@@ -31,6 +31,7 @@ export function WorkspaceTopBar({
   onExpandLibrary,
   isGrowthCollapsed,
   onExpandGrowth,
+  hasGrowthUpdate,
 }: {
   tabs: WorkspaceTabItem[];
   activeTabId: string | null;
@@ -41,6 +42,7 @@ export function WorkspaceTopBar({
   onExpandLibrary: () => void;
   isGrowthCollapsed: boolean;
   onExpandGrowth: () => void;
+  hasGrowthUpdate?: boolean;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -63,13 +65,13 @@ export function WorkspaceTopBar({
   }, [isMenuOpen]);
 
   return (
-    <div className="border-b border-[#dddddd] bg-[#f8fafc] px-2 pt-2 md:px-3">
+    <div className="border-b border-[#dfe4e8] bg-[#f8fafc] px-2 pt-2 md:px-3">
       <div className="flex items-end justify-between gap-2">
         {isLibraryCollapsed && (
           <button
             type="button"
             onClick={onExpandLibrary}
-            className="mb-px flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+            className="mb-px flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="展开书库栏"
             title="展开书库栏 · ["
           >
@@ -90,7 +92,7 @@ export function WorkspaceTopBar({
           <button
             type="button"
             onClick={() => setIsMenuOpen((prev) => !prev)}
-            className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-transparent text-[var(--ink-soft)] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+            className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-transparent text-[var(--ink-soft)] transition-all hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="展开标签页菜单"
             aria-expanded={isMenuOpen}
           >
@@ -103,17 +105,24 @@ export function WorkspaceTopBar({
             <button
               type="button"
               onClick={onExpandGrowth}
-              className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfbfa] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-              aria-label="展开成长区"
+              className={`relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
+                hasGrowthUpdate
+                  ? "border-[rgba(10,46,14,0.16)] bg-[rgba(168,216,196,0.28)] text-[var(--accent)] shadow-[0_0_0_3px_rgba(168,216,196,0.14)] hover:bg-[rgba(168,216,196,0.38)]"
+                  : "border-transparent bg-transparent text-[#4f555d] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
+              }`}
+              aria-label={hasGrowthUpdate ? "展开成长区，有新的成长记录" : "展开成长区"}
               title="展开成长区 · ]"
             >
               <SidebarToggleIcon side="right" />
+              {hasGrowthUpdate && (
+                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] ring-[3px] ring-[#f8fafc]" />
+              )}
             </button>
           )}
 
           {isMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-[10px] border border-[#9297a0] bg-[#fbfbfa] shadow-[0_10px_26px_rgba(24,29,38,0.12)]">
-              <div className="border-b border-[#dddddd] px-4 py-3">
+            <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-[10px] border border-[#9297a0] bg-[#fbfcfd] shadow-[0_10px_26px_rgba(24,29,38,0.12)]">
+              <div className="border-b border-[#dfe4e8] px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-faint)]">
                   已打开标签页
                 </p>
@@ -132,7 +141,7 @@ export function WorkspaceTopBar({
                       className={`flex items-center justify-between gap-3 rounded-[9px] border px-3 py-2.5 transition-all ${
                         isActive
                           ? "border-[#9297a0] bg-[#eef1ef]"
-                          : "border-transparent hover:border-[#dddddd] hover:bg-[#f4f5f7]"
+                          : "border-transparent hover:border-[#dfe4e8] hover:bg-[#f4f5f7]"
                       }`}
                     >
                       <button
@@ -158,7 +167,7 @@ export function WorkspaceTopBar({
                           </svg>
                         </button>
                       ) : (
-                        <span className="shrink-0 rounded-full border border-[#dddddd] bg-[#fbfbfa] px-2 py-1 text-[10px] font-medium text-[var(--ink-faint)]">
+                        <span className="shrink-0 rounded-full border border-[#dfe4e8] bg-[#fbfcfd] px-2 py-1 text-[10px] font-medium text-[var(--ink-faint)]">
                           当前
                         </span>
                       )}
@@ -167,7 +176,7 @@ export function WorkspaceTopBar({
                 })}
               </div>
 
-              <div className="border-t border-[#dddddd] px-3 py-3">
+              <div className="border-t border-[#dfe4e8] px-3 py-3">
                 <button
                   onClick={() => {
                     onCloseAllTabs();
