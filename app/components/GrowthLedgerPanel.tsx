@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   formatGrowthEvent,
@@ -23,6 +23,7 @@ function CircularProgress({
 }) {
   const safeValue = Math.min(Math.max(value, 0), max);
   const [animatedValue, setAnimatedValue] = useState(0);
+  const animatedValueRef = useRef(0);
   const percent = Math.round((animatedValue / max) * 100);
   const size = 58;
   const stroke = 5.5;
@@ -34,7 +35,7 @@ function CircularProgress({
     let frameId = 0;
     let startTime: number | null = null;
     const duration = 900;
-    const startValue = animatedValue;
+    const startValue = animatedValueRef.current;
     const delta = safeValue - startValue;
 
     const animate = (timestamp: number) => {
@@ -45,7 +46,9 @@ function CircularProgress({
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setAnimatedValue(startValue + delta * eased);
+      const nextValue = startValue + delta * eased;
+      animatedValueRef.current = nextValue;
+      setAnimatedValue(nextValue);
 
       if (progress < 1) {
         frameId = window.requestAnimationFrame(animate);
@@ -99,7 +102,7 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
     : "完成分析、导出海报或 3 题训练后，能力会开始留下印记。";
 
   return (
-    <section className="border-b border-[#dddddd] bg-transparent py-3">
+    <section className="border-b border-[rgba(24,29,38,0.08)] bg-transparent px-1 py-3">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
           <p className="archive-kicker">能力账本</p>
@@ -111,13 +114,13 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
           </p>
         </div>
 
-        <div className="shrink-0 rounded-[8px] border border-[#dddddd] bg-[#fbfbfa] px-3 py-2 text-right shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
+        <div className="shrink-0 rounded-[10px] border border-[rgba(24,29,38,0.08)] bg-[#f7f8f9] px-3 py-2 text-right">
           <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--ink-faint)]">累计印记</p>
           <p className="mt-1 text-lg font-semibold text-[var(--ink)]">{ledger.total}</p>
         </div>
       </div>
 
-      <div className="mt-4 border-t border-[#dddddd]">
+      <div className="mt-4 border-t border-[rgba(24,29,38,0.08)]">
         {GROWTH_ABILITIES.map((ability) => {
           const meta = GROWTH_ABILITY_META[ability];
           const count = ledger.counts[ability];
@@ -130,8 +133,8 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
               key={ability}
               className={`border-b px-0 py-3 transition-colors ${
                 stage === "evolved"
-                  ? "border-[#dddddd] bg-[#eef1ef]/65"
-                  : "border-[#dddddd] bg-transparent"
+                  ? "border-[rgba(24,29,38,0.08)] bg-[rgba(168,216,196,0.22)]"
+                  : "border-[rgba(24,29,38,0.08)] bg-transparent"
               }`}
             >
               <div className="flex items-center gap-2.5 px-1">

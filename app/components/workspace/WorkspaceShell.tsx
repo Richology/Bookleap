@@ -24,8 +24,8 @@ export function WorkspaceShell({
 
   return (
     <main className="workspace-theme relative min-h-screen overflow-x-clip bg-[var(--workspace-canvas)] text-[var(--ink)] xl:h-screen xl:overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#dddddd]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[140px] bg-[linear-gradient(180deg,rgba(251,251,250,0.76)_0%,rgba(251,251,250,0)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#dfe4e8]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[140px] bg-[linear-gradient(180deg,rgba(251,252,253,0.76)_0%,rgba(251,252,253,0)_100%)]" />
       <div className="pointer-events-none absolute left-[-80px] top-24 h-[240px] w-[240px] rounded-full bg-transparent blur-3xl" />
       <div className="pointer-events-none absolute right-[-120px] top-[260px] h-[320px] w-[320px] rounded-full bg-transparent blur-3xl" />
 
