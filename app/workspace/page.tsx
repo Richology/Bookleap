@@ -3264,6 +3264,40 @@ export default function Home() {
           );
         }
 
+        if (isSuccess) {
+          if (viewMode !== "overview") return null;
+
+          return (
+            <div className="analysis-complete-cue mx-4 mt-3 mb-0 flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(24,29,38,0.08)] px-1 pb-3 text-sm md:mx-5 md:px-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="analysis-complete-check flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[#fbfcfd] shadow-[0_8px_18px_rgba(10,46,14,0.16)]">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 7.3 5.8 10 11 4" />
+                  </svg>
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold text-[var(--ink)] md:text-[15px]">
+                    解析完成
+                  </p>
+                  <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--ink-soft)]">
+                    精华总览已生成，从下方卡片开始阅读
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  cardSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="rounded-full border border-[rgba(10,46,14,0.14)] bg-[rgba(168,216,196,0.18)] px-3 py-1.5 text-[12px] font-semibold text-[var(--accent)] transition-all hover:bg-[rgba(168,216,196,0.28)] active:scale-[0.98]"
+              >
+                查看精华 ↓
+              </button>
+            </div>
+          );
+        }
+
         return (
           <div className={`m-4 rounded-[10px] border px-4 py-3 text-sm transition-all duration-300 md:m-5 md:px-5 ${bannerClass}`}>
             <div className="flex items-center gap-2.5">
