@@ -8,6 +8,7 @@ export function WorkspaceBookItem({
   badge,
   coverUrl,
   tone = "default",
+  variant = "card",
   onClick,
   onDelete,
 }: {
@@ -16,6 +17,7 @@ export function WorkspaceBookItem({
   badge?: string;
   coverUrl?: string;
   tone?: ItemTone;
+  variant?: "card" | "flat";
   onClick: () => void;
   onDelete?: () => void;
 }) {
@@ -25,11 +27,15 @@ export function WorkspaceBookItem({
       : tone === "gifted"
       ? "border-transparent bg-transparent hover:bg-[#e7ebed]"
       : "border-transparent bg-transparent hover:bg-[#e7ebed]";
+  const rootClass =
+    variant === "flat"
+      ? "group flex min-h-12 cursor-pointer items-start justify-between gap-3 rounded-[9px] px-2.5 py-2 transition-all"
+      : "group flex min-h-12 cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-2.5 py-2 transition-all";
 
   return (
     <div
       onClick={onClick}
-      className={`group flex min-h-12 cursor-pointer items-start justify-between gap-3 rounded-[10px] border px-2.5 py-2 transition-all ${toneClass}`}
+      className={`${rootClass} ${toneClass}`}
     >
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         {coverUrl && (

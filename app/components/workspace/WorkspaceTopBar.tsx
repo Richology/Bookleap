@@ -65,13 +65,13 @@ export function WorkspaceTopBar({
   }, [isMenuOpen]);
 
   return (
-    <div className="border-b border-[#dfe4e8] bg-[#f8fafc] px-2 pt-2 md:px-3">
-      <div className="flex items-end justify-between gap-2">
+    <div className="border-b border-[#dfe4e8] bg-[#f8fafc] px-2 py-1 md:px-3">
+      <div className="flex items-center justify-between gap-2">
         {isLibraryCollapsed && (
           <button
             type="button"
             onClick={onExpandLibrary}
-            className="mb-px flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="展开书库栏"
             title="展开书库栏 · ["
           >
@@ -88,7 +88,7 @@ export function WorkspaceTopBar({
           />
         </div>
 
-        <div ref={menuRef} className="relative flex shrink-0 items-start gap-1 self-start">
+        <div ref={menuRef} className="relative flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => setIsMenuOpen((prev) => !prev)}
