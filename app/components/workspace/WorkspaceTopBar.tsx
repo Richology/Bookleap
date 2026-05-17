@@ -126,9 +126,6 @@ export function WorkspaceTopBar({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-faint)]">
                   已打开标签页
                 </p>
-                <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
-                  当前共有 {tabs.length} 本书
-                </p>
               </div>
 
               <div className="max-h-[280px] overflow-y-auto px-2 pb-2">
