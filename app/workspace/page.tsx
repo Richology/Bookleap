@@ -3354,7 +3354,34 @@ export default function Home() {
         );
       })()}
 
-      {!bookTitle ? (
+      {!bookTitle && isAnalyzing ? (
+        <div className="flex min-h-[300px] items-center justify-center px-6 py-8">
+          <div className="w-full max-w-3xl text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#eef7f1] text-[var(--accent)]">
+              <span className="analysis-progress-orb relative flex h-5 w-5 items-center justify-center rounded-full">
+                <span className="absolute h-4 w-4 rounded-full bg-[rgba(10,46,14,0.12)]" />
+                <span className="relative h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(10,46,14,0.4)]" />
+              </span>
+            </div>
+            <p className="mt-4 text-[15px] font-semibold text-[var(--ink)]">
+              正在准备阅读工作台
+            </p>
+            <p className="mt-1 text-[12px] font-medium text-[var(--ink-faint)]">
+              解析完成后，精华卡片会在这里逐步展开
+            </p>
+
+            <div className="mx-auto mt-7 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="space-y-2.5 rounded-[10px] bg-[#f8fafc] px-4 py-3">
+                  <div className="analysis-card-line h-2 w-2/3 rounded-full bg-[rgba(10,46,14,0.12)]" />
+                  <div className="analysis-card-line h-2 w-full rounded-full bg-[rgba(10,46,14,0.08)]" />
+                  <div className="analysis-card-line h-2 w-4/5 rounded-full bg-[rgba(10,46,14,0.08)]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : !bookTitle ? (
         <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
           <div className="max-w-2xl text-center">
             <p className="archive-kicker">Workspace</p>
