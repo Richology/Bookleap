@@ -121,27 +121,27 @@ export function WorkspaceTopBar({
           )}
 
           {isMenuOpen && (
-            <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-[10px] border border-[#9297a0] bg-[#fbfcfd] shadow-[0_10px_26px_rgba(24,29,38,0.12)]">
-              <div className="border-b border-[#dfe4e8] px-4 py-3">
+            <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] overflow-hidden rounded-[12px] border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd] shadow-[0_14px_34px_rgba(24,29,38,0.12)]">
+              <div className="px-4 pb-2.5 pt-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-faint)]">
                   已打开标签页
                 </p>
-                <p className="mt-1.5 text-[14px] font-medium text-[var(--ink)]">
+                <p className="mt-1 text-[14px] font-semibold text-[var(--ink)]">
                   当前共有 {tabs.length} 本书
                 </p>
               </div>
 
-              <div className="max-h-[280px] overflow-y-auto px-2 py-2">
+              <div className="max-h-[280px] overflow-y-auto px-2 pb-2">
                 {tabs.map((tab) => {
                   const isActive = tab.id === activeTabId;
 
                   return (
                     <div
                       key={tab.id}
-                      className={`flex items-center justify-between gap-3 rounded-[9px] border px-3 py-2.5 transition-all ${
+                      className={`group flex items-center justify-between gap-2 rounded-[8px] px-3 py-2.5 transition-all ${
                         isActive
-                          ? "border-[#9297a0] bg-[#eef1ef]"
-                          : "border-transparent hover:border-[#dfe4e8] hover:bg-[#f4f5f7]"
+                          ? "bg-[#eef1ef]"
+                          : "hover:bg-[#f4f5f7]"
                       }`}
                     >
                       <button
@@ -159,7 +159,7 @@ export function WorkspaceTopBar({
                       {tab.closable ? (
                         <button
                           onClick={() => onCloseTab(tab.id)}
-                          className="shrink-0 rounded-[7px] p-1.5 text-[var(--ink-faint)] transition-all hover:bg-[#edf0f2] hover:text-[var(--ink)]"
+                          className="shrink-0 rounded-[7px] p-1.5 text-[var(--ink-faint)] opacity-70 transition-all hover:bg-[#e7ebed] hover:text-[var(--ink)] group-hover:opacity-100"
                           aria-label={`关闭 ${tab.title}`}
                         >
                           <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -167,7 +167,7 @@ export function WorkspaceTopBar({
                           </svg>
                         </button>
                       ) : (
-                        <span className="shrink-0 rounded-full border border-[#dfe4e8] bg-[#fbfcfd] px-2 py-1 text-[10px] font-medium text-[var(--ink-faint)]">
+                        <span className="shrink-0 px-1 text-[10px] font-medium text-[var(--ink-faint)]">
                           当前
                         </span>
                       )}
@@ -176,14 +176,14 @@ export function WorkspaceTopBar({
                 })}
               </div>
 
-              <div className="border-t border-[#dfe4e8] px-3 py-3">
+              <div className="border-t border-[rgba(24,29,38,0.08)] px-2 py-2">
                 <button
                   onClick={() => {
                     onCloseAllTabs();
                     setIsMenuOpen(false);
                   }}
                   disabled={closableTabs.length === 0}
-                  className="w-full rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[var(--ink)] transition-all hover:bg-[#f4f5f7] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                  className="w-full rounded-[8px] px-3 py-2.5 text-left text-[13px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f4f5f7] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                 >
                   全部关闭
                 </button>
