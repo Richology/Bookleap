@@ -2923,8 +2923,8 @@ export default function Home() {
   const hasPendingStarterBooks = experiencedStarterIds.length < starterBooks.length;
   const fullHistoryRecords = recentHistory
     .filter((record) => hasPendingStarterBooks ? !record.isStarterBook : true);
-  const visibleHistoryRecords = fullHistoryRecords.slice(0, 6);
-  const expandedHistoryRecords = fullHistoryRecords.slice(6);
+  const visibleHistoryRecords = fullHistoryRecords.slice(0, 3);
+  const expandedHistoryRecords = fullHistoryRecords.slice(3);
   const inProgressLabel = visibleAnalysisSteps.length > 0
     ? `${completedAnalysisSteps}/${visibleAnalysisSteps.length}`
     : "准备中";
@@ -3120,10 +3120,24 @@ export default function Home() {
                   subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
                   coverUrl={record.coverImage || (record.starterBookId ? starterBooksById[record.starterBookId]?.coverImage : "")}
                   tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
+                  variant="flat"
                   onClick={() => openHistoryRecord(record)}
                   onDelete={() => deleteHistoryRecord(record.id)}
                 />
               ))}
+
+              {!showFullHistory && expandedHistoryRecords.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullHistory(true)}
+                  className="mx-auto mt-1 flex h-7 w-9 items-center justify-center rounded-full text-[var(--ink-faint)] transition-all hover:bg-[#e7ebed] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                  aria-label="展开上传历史"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m5.5 7.5 4.5 4.5 4.5-4.5" />
+                  </svg>
+                </button>
+              )}
 
               {expandedHistoryRecords.length > 0 && (
                 <div
@@ -3148,6 +3162,7 @@ export default function Home() {
                             subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
                             coverUrl={record.coverImage || (record.starterBookId ? starterBooksById[record.starterBookId]?.coverImage : "")}
                             tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
+                            variant="flat"
                             onClick={() => openHistoryRecord(record)}
                             onDelete={() => deleteHistoryRecord(record.id)}
                           />
@@ -3268,7 +3283,7 @@ export default function Home() {
           if (viewMode !== "overview") return null;
 
           return (
-            <div className="analysis-complete-cue mx-4 mt-3 mb-0 flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(24,29,38,0.08)] px-1 pb-3 text-sm md:mx-5 md:px-0">
+            <div className="analysis-complete-cue mx-4 mt-3 mb-0 flex items-center gap-3 border-b border-[rgba(24,29,38,0.08)] px-1 pb-3 text-sm md:mx-5 md:px-0">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="analysis-complete-check flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[#fbfcfd] shadow-[0_8px_18px_rgba(10,46,14,0.16)]">
                   <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -3284,16 +3299,6 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  cardSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="rounded-full border border-[rgba(10,46,14,0.14)] bg-[rgba(168,216,196,0.18)] px-3 py-1.5 text-[12px] font-semibold text-[var(--accent)] transition-all hover:bg-[rgba(168,216,196,0.28)] active:scale-[0.98]"
-              >
-                查看精华 ↓
-              </button>
             </div>
           );
         }
