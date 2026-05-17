@@ -527,6 +527,102 @@ select {
   animation: status-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes analysis-progress-sheen {
+  0%   { transform: translateX(-58%); opacity: 0; }
+  16%  { opacity: 0.85; }
+  58%  { opacity: 0.55; }
+  100% { transform: translateX(58%); opacity: 0; }
+}
+
+@keyframes analysis-progress-orb {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(10, 46, 14, 0.20); }
+  50%      { box-shadow: 0 0 0 8px rgba(10, 46, 14, 0.06); }
+}
+
+@keyframes analysis-step-active {
+  0%, 100% { opacity: 0.55; transform: scaleX(0.72); }
+  50%      { opacity: 1; transform: scaleX(1); }
+}
+
+.analysis-progress-banner {
+  isolation: isolate;
+}
+
+.analysis-progress-sheen {
+  background:
+    linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.72) 43%, rgba(139, 214, 170, 0.34) 50%, transparent 62%);
+  animation: analysis-progress-sheen 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.analysis-progress-orb {
+  animation: analysis-progress-orb 1.7s ease-out infinite;
+}
+
+.analysis-progress-fill {
+  position: relative;
+}
+
+.analysis-progress-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+  transform: translateX(-100%);
+  animation: analysis-progress-sheen 1.45s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.analysis-step-active {
+  transform-origin: center;
+  animation: analysis-step-active 1.1s ease-in-out infinite;
+}
+
+@keyframes analysis-card-sheen {
+  0%   { transform: translateX(-82%); opacity: 0; }
+  20%  { opacity: 0.8; }
+  100% { transform: translateX(82%); opacity: 0; }
+}
+
+@keyframes analysis-card-line {
+  0%, 100% { opacity: 0.58; transform: scaleX(0.86); }
+  50%      { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes analysis-card-ready {
+  from { opacity: 0.72; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.analysis-card-sheen {
+  background: linear-gradient(108deg, transparent 0%, rgba(255, 255, 255, 0.68) 45%, rgba(139, 214, 170, 0.28) 52%, transparent 64%);
+  animation: analysis-card-sheen 2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.analysis-card-line {
+  transform-origin: left;
+  animation: analysis-card-line 1.35s ease-in-out infinite;
+}
+
+.analysis-overview-card-active {
+  isolation: isolate;
+}
+
+.analysis-overview-card-active::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 11px;
+  border: 1px solid rgba(10, 46, 14, 0.10);
+  pointer-events: none;
+}
+
+.analysis-overview-card-ready {
+  animation: analysis-card-ready 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.analysis-overview-card-pending {
+  opacity: 0.72;
+}
+
 /* ── Custom shadows (Tailwind v4 utility extension) ─────────────────────────── */
 .shadow-card {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);

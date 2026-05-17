@@ -3189,6 +3189,12 @@ export default function Home() {
           message.includes("请先选择");
         const isSuccess = message === "分析完成" && !isAnalyzing;
         const isAzw3Unsupported = analysisErrorCode === "AZW3_UNSUPPORTED";
+        const totalAnalysisSteps = visibleAnalysisSteps.length || 6;
+        const activeAnalysisStep = visibleAnalysisSteps.find((step) => step.loading);
+        const analysisProgressPercent = Math.min(
+          100,
+          Math.max(isAnalyzing ? 8 : 0, Math.round((completedAnalysisSteps / totalAnalysisSteps) * 100))
+        );
 
         const bannerClass = isError
           ? "border-red-200/70 bg-red-50/80 text-red-600"
@@ -3197,6 +3203,66 @@ export default function Home() {
           : isAnalyzing
           ? "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-soft)]"
           : "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-faint)]";
+
+        if (isAnalyzing) {
+          return (
+            <div className="analysis-progress-banner relative m-4 overflow-hidden rounded-[14px] border border-[rgba(10,46,14,0.22)] bg-[#eef7f1] px-4 py-3 text-sm text-[var(--ink)] shadow-[0_12px_30px_rgba(10,46,14,0.10)] transition-all duration-300 md:m-5 md:px-5">
+              <div className="analysis-progress-sheen pointer-events-none absolute inset-0" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(10,46,14,0.36),transparent)]" />
+
+              <div className="relative flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="analysis-progress-orb relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] border border-[rgba(10,46,14,0.22)] bg-[#fbfcfd] text-[var(--accent)]">
+                      <span className="absolute h-3.5 w-3.5 rounded-full bg-[rgba(10,46,14,0.16)]" />
+                      <span className="relative h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(10,46,14,0.55)]" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-semibold text-[var(--ink)] md:text-[15px]">
+                        {message}
+                      </p>
+                      <p className="mt-0.5 truncate text-[12px] font-medium text-[var(--ink-soft)]">
+                        {bookTitle ? `《${bookTitle}》` : "新书"} · {activeAnalysisStep ? activeAnalysisStep.label : "正在建立章节结构"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-[rgba(10,46,14,0.18)] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)] tabular-nums">
+                      {completedAnalysisSteps}/{totalAnalysisSteps}
+                    </span>
+                    <span className="hidden text-[11px] font-medium text-[var(--ink-faint)] tabular-nums sm:inline">
+                      {analysisProgressPercent}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="relative h-2.5 overflow-hidden rounded-full bg-[rgba(10,46,14,0.10)]">
+                  <div
+                    className="analysis-progress-fill h-full rounded-full bg-[linear-gradient(90deg,#0a2e0e_0%,#2f8f58_58%,#8bd6aa_100%)] shadow-[0_0_18px_rgba(47,143,88,0.42)] transition-[width] duration-500 ease-out"
+                    style={{ width: `${analysisProgressPercent}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-6 gap-1.5">
+                  {visibleAnalysisSteps.map((step) => (
+                    <span
+                      key={step.key}
+                      className={`h-1 rounded-full transition-all duration-300 ${
+                        step.done
+                          ? "bg-[var(--accent)]"
+                          : step.loading
+                          ? "analysis-step-active bg-[#74c991]"
+                          : "bg-[rgba(10,46,14,0.12)]"
+                      }`}
+                      title={step.label}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        }
 
         return (
           <div className={`m-4 rounded-[10px] border px-4 py-3 text-sm transition-all duration-300 md:m-5 md:px-5 ${bannerClass}`}>
@@ -3440,7 +3506,13 @@ export default function Home() {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {overviewCardList.map((card, index) => {
                     const isReady = !card.isLoading && !!card.content.trim();
+                    const isPending = !card.isLoading && !isReady;
                     const excerpt = createOverviewExcerpt(card.content);
+                    const cardStateClass = isReady
+                      ? "analysis-overview-card-ready border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[#f8fafc] active:scale-[0.99]"
+                      : card.isLoading
+                      ? "analysis-overview-card-active border-[rgba(10,46,14,0.28)] bg-[#eef7f1] shadow-[0_10px_26px_rgba(10,46,14,0.10)]"
+                      : "analysis-overview-card-pending cursor-default border-[rgba(24,29,38,0.06)] bg-[#f8fafc]";
 
                     return (
                       <button
@@ -3450,12 +3522,11 @@ export default function Home() {
                           if (isReady) openOverviewCard(card.key);
                         }}
                         disabled={!isReady}
-                        className={`group flex min-h-[182px] flex-col rounded-[12px] border p-4 text-left transition-all ${
-                          isReady
-                            ? "border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[#f8fafc] active:scale-[0.99]"
-                            : "cursor-default border-[rgba(24,29,38,0.08)] bg-[#f8fafc]"
-                        }`}
+                        className={`group relative flex min-h-[182px] flex-col overflow-hidden rounded-[12px] border p-4 text-left transition-all ${cardStateClass}`}
                       >
+                        {card.isLoading && (
+                          <span className="analysis-card-sheen pointer-events-none absolute inset-0" />
+                        )}
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -3477,11 +3548,20 @@ export default function Home() {
 
                         {card.isLoading ? (
                           <div className="mt-4 space-y-2.5">
-                            <div className="h-2 w-3/4 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
-                            <div className="h-2 w-full animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
-                            <div className="h-2 w-5/6 animate-pulse rounded-full bg-[rgba(119,124,123,0.12)]" />
-                            <p className="pt-1 text-[11px] text-[var(--ink-faint)]">
+                            <div className="analysis-card-line h-2 w-3/4 rounded-full bg-[rgba(10,46,14,0.14)]" />
+                            <div className="analysis-card-line h-2 w-full rounded-full bg-[rgba(10,46,14,0.12)]" />
+                            <div className="analysis-card-line h-2 w-5/6 rounded-full bg-[rgba(10,46,14,0.10)]" />
+                            <p className="pt-1 text-[11px] font-medium text-[var(--accent)]">
                               {card.loadingText}
+                            </p>
+                          </div>
+                        ) : isPending ? (
+                          <div className="mt-4 space-y-2.5">
+                            <div className="h-2 w-2/3 rounded-full bg-[rgba(119,124,123,0.10)]" />
+                            <div className="h-2 w-full rounded-full bg-[rgba(119,124,123,0.08)]" />
+                            <div className="h-2 w-4/5 rounded-full bg-[rgba(119,124,123,0.08)]" />
+                            <p className="pt-1 text-[11px] text-[var(--ink-faint)]">
+                              等待生成
                             </p>
                           </div>
                         ) : (
