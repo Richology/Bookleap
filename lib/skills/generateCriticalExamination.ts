@@ -22,8 +22,9 @@ function normalizeBoundarySection(markdown: string): string {
   const after = nextSectionStart === -1 ? "" : markdown.slice(nextSectionStart);
 
   const normalizedSection = section
-    .replace(/\n{0,2}适用场景[：:]\s*/g, "\n\n适用场景：\n")
-    .replace(/\n{0,2}不适用场景[：:]\s*/g, "\n\n不适用场景：\n")
+    .replace(/(?:^|\n)\s*(?:[-*+]\s*)?不\s*\n+\s*适用场景[：:]\s*/g, "\n\n不适用场景：\n")
+    .replace(/(?:^|\n)\s*不适用场景[：:]\s*/g, "\n\n不适用场景：\n")
+    .replace(/(?:^|\n)\s*适用场景[：:]\s*/g, "\n\n适用场景：\n")
     .replace(/^\s*\d+\.\s+/gm, "- ")
     .replace(/^\s*-\s+/gm, "- ")
     .replace(/\n{3,}/g, "\n\n")
