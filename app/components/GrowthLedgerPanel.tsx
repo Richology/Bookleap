@@ -118,7 +118,7 @@ function CircularProgress({
       });
 
     const run = async () => {
-      await animateSegment(0, max, 340);
+      await animateSegment(0, max, 620);
       if (cancelled) return;
       await new Promise((resolve) => window.setTimeout(resolve, 80));
       if (cancelled) return;
