@@ -1583,6 +1583,8 @@ export default function Home() {
     setIsLoadingViewValidation(false);
     setIsLoadingIdeaSourceTracing(false);
     setIsLoading(false);
+    setIsStarterLoading(false);
+    setStarterLoadingStep(STARTER_LOADING_STEPS[0].text);
 
     setSelectedFile(null);
     setBookTitle(record.title);
@@ -2203,6 +2205,19 @@ export default function Home() {
     }
   }, [applyStarterBook, enqueueGuidanceToast, isStarterLoading, resetDragState, resetReaderScrollPosition]);
 
+  const openStarterBook = useCallback((starterBookId: string) => {
+    const starterRecord = recentHistory.find(
+      (record) => record.isStarterBook && record.starterBookId === starterBookId
+    );
+
+    if (starterRecord) {
+      openHistoryRecord(starterRecord);
+      return;
+    }
+
+    void handleSelectStarterBook(starterBookId);
+  }, [handleSelectStarterBook, openHistoryRecord, recentHistory]);
+
   const activateWorkspaceTab = useCallback((tabId: string) => {
     const tab = openTabs.find((item) => item.id === tabId);
     if (!tab) return;
@@ -2210,7 +2225,7 @@ export default function Home() {
     setActiveTabId(tab.id);
 
     if (tab.source === "starter" && tab.starterBookId) {
-      void handleSelectStarterBook(tab.starterBookId);
+      openStarterBook(tab.starterBookId);
       return;
     }
 
@@ -2220,7 +2235,7 @@ export default function Home() {
         openHistoryRecord(record);
       }
     }
-  }, [handleSelectStarterBook, openHistoryRecord, openTabs, recentHistory]);
+  }, [openHistoryRecord, openStarterBook, openTabs, recentHistory]);
 
   const closeWorkspaceTab = useCallback((tabId: string) => {
     if (isAnalyzing) return;
@@ -3158,7 +3173,7 @@ export default function Home() {
                   subtitle={book.author}
                   coverUrl={book.coverImage}
                   tone={isCurrentStarter ? "current" : "gifted"}
-                  onClick={() => void handleSelectStarterBook(book.id)}
+                  onClick={() => openStarterBook(book.id)}
                 />
               );
             })}
@@ -3645,11 +3660,6 @@ export default function Home() {
               <section className="mx-auto max-w-6xl">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <p className="archive-kicker">精华总览</p>
-                  {currentFileTypeLabel && (
-                    <span className="rounded-full border border-[rgba(24,29,38,0.08)] bg-[#f8fafc] px-3 py-1 text-[11px] font-medium text-[var(--ink-faint)]">
-                      {currentFileTypeLabel}
-                    </span>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">

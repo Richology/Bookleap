@@ -82,32 +82,56 @@ function CircularProgress({
 
   useEffect(() => {
     let frameId = 0;
-    let startTime: number | null = null;
-    const duration = 900;
-    const startValue = animatedValueRef.current;
-    const delta = safeValue - startValue;
+    let cancelled = false;
+    animatedValueRef.current = 0;
 
-    const animate = (timestamp: number) => {
-      if (startTime === null) {
-        startTime = timestamp;
-      }
+    const animateSegment = (from: number, to: number, duration: number) =>
+      new Promise<void>((resolve) => {
+        let startTime: number | null = null;
 
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const nextValue = startValue + delta * eased;
-      animatedValueRef.current = nextValue;
-      setAnimatedValue(nextValue);
+        const animate = (timestamp: number) => {
+          if (cancelled) {
+            resolve();
+            return;
+          }
 
-      if (progress < 1) {
+          if (startTime === null) {
+            startTime = timestamp;
+          }
+
+          const elapsed = timestamp - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const nextValue = from + (to - from) * eased;
+          animatedValueRef.current = nextValue;
+          setAnimatedValue(nextValue);
+
+          if (progress < 1) {
+            frameId = window.requestAnimationFrame(animate);
+            return;
+          }
+
+          resolve();
+        };
+
         frameId = window.requestAnimationFrame(animate);
-      }
+      });
+
+    const run = async () => {
+      await animateSegment(0, max, 340);
+      if (cancelled) return;
+      await new Promise((resolve) => window.setTimeout(resolve, 80));
+      if (cancelled) return;
+      await animateSegment(max, safeValue, 520);
     };
 
-    frameId = window.requestAnimationFrame(animate);
+    void run();
 
-    return () => window.cancelAnimationFrame(frameId);
-  }, [safeValue]);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [max, safeValue]);
 
   return (
     <div className="relative flex h-[62px] w-[62px] shrink-0 items-center justify-center">
