@@ -396,6 +396,12 @@ function isTextInputTarget(target: EventTarget | null) {
   );
 }
 
+function isInteractiveShortcutTarget(target: EventTarget | null) {
+  const element = target as HTMLElement | null;
+  if (!element) return false;
+  return Boolean(element.closest("input, textarea, select, button, a, [role='button'], [contenteditable='true']"));
+}
+
 function renderHighlightedSearchText(text: string, tokens: string[]) {
   if (tokens.length === 0) return text;
 
@@ -978,6 +984,14 @@ export default function Home() {
     (selectedFile ? stripSupportedFileExtension(selectedFile.name) : "") ||
     currentStarterBook?.title ||
     "未知书名";
+  const isUploadShortcutBlocked =
+    isWorkspaceSearchOpen ||
+    isExportModalOpen ||
+    isPaywallModalOpen ||
+    isPosterModalOpen ||
+    isUpgradeModalOpen ||
+    isDisclaimerModalOpen ||
+    isDecisionPanelOpen;
 
   useEffect(() => {
     if (!hasAcceptedWorkspaceDisclaimer()) {
@@ -1004,6 +1018,10 @@ export default function Home() {
     setWorkspaceSearchQuery("");
     setWorkspaceSearchActiveIndex(0);
     setIsWorkspaceSearchOpen(true);
+  }, []);
+
+  const handleOpenUploadPicker = useCallback(() => {
+    fileInputRef.current?.click();
   }, []);
 
   const handleToggleFullscreen = useCallback(() => {
@@ -1057,23 +1075,35 @@ export default function Home() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const isTyping = isTextInputTarget(event.target);
+      const isShortcutInInteractiveTarget = isInteractiveShortcutTarget(event.target);
+      const isPlainKey = !event.metaKey && !event.ctrlKey && !event.altKey;
 
-      if (event.key.toLowerCase() === "k" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (
+        (event.key === " " || event.code === "Space") &&
+        isPlainKey &&
+        !isShortcutInInteractiveTarget &&
+        !isUploadShortcutBlocked
+      ) {
+        event.preventDefault();
+        handleOpenUploadPicker();
+      }
+
+      if (event.key.toLowerCase() === "k" && !isTyping && isPlainKey) {
         event.preventDefault();
         handleOpenWorkspaceSearch();
       }
 
-      if (event.key.toLowerCase() === "f" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key.toLowerCase() === "f" && !isTyping && isPlainKey) {
         event.preventDefault();
         handleToggleFullscreen();
       }
 
-      if (event.key === "[" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key === "[" && !isTyping && isPlainKey) {
         event.preventDefault();
         setIsLibraryCollapsed((prev) => !prev);
       }
 
-      if (event.key === "]" && !isTyping && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key === "]" && !isTyping && isPlainKey) {
         event.preventDefault();
         handleToggleGrowthInspector();
       }
@@ -1081,7 +1111,13 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleOpenWorkspaceSearch, handleToggleFullscreen, handleToggleGrowthInspector, isWorkspaceSearchOpen]);
+  }, [
+    handleOpenUploadPicker,
+    handleOpenWorkspaceSearch,
+    handleToggleFullscreen,
+    handleToggleGrowthInspector,
+    isUploadShortcutBlocked,
+  ]);
 
   const workspaceMemoryCards = useMemo<WorkspaceMemoryCard[]>(() => {
     const historyCards = recentHistory
@@ -1654,6 +1690,12 @@ export default function Home() {
     }
 
     processFile(e.dataTransfer.files?.[0]);
+  };
+
+  const handleUploadPanelKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    handleOpenUploadPicker();
   };
 
   const fetchIdeaSourceTracing = async (
@@ -3049,43 +3091,54 @@ export default function Home() {
         )}
 
         <div
-          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          aria-label={selectedFile ? "重新选择书籍文件" : "上传书籍文件"}
+          onClick={handleOpenUploadPicker}
+          onKeyDown={handleUploadPanelKeyDown}
           onDragOver={handleDragOver}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`rounded-[13px] border px-3 py-3 text-left transition-all ${
+          className={`group rounded-[13px] border px-4 py-4 text-left outline-none transition-all ${
             isDragging
-              ? "border-[#9297a0] bg-[#fbfcfd]"
-              : "cursor-pointer border-transparent bg-[#eef1f2] hover:bg-[#e7ebed]"
+              ? "border-[#9297a0] bg-[#fbfcfd] shadow-[0_10px_28px_rgba(24,29,38,0.08)]"
+              : "cursor-pointer border-transparent bg-[#eef1f2] hover:bg-[#e7ebed] focus-visible:border-[#9297a0] focus-visible:bg-[#fbfcfd] focus-visible:ring-2 focus-visible:ring-[#9297a0]/25"
           }`}
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[rgba(24,29,38,0.08)] bg-[#f7f8f9] text-[var(--ink-soft)]">
-              <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex items-start gap-3.5">
+            <svg
+              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ink-soft)]"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
                 <path d="M10 4v8" />
                 <path d="M6.8 7.2 10 4l3.2 3.2" />
                 <path d="M4.8 15.2h10.4" />
-              </svg>
-            </div>
-            <div className="min-w-0">
+            </svg>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-[var(--ink)]">
                 {selectedFile ? selectedFile.name : "把新书放进书库"}
               </p>
               <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
                 {selectedFile ? "已开始自动解析，点击可重新选择" : "EPUB / AZW3 解析更完整；TXT / PDF 简化分析，最大 50MB"}
               </p>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="min-w-0 text-[11px] leading-4 text-[var(--ink-faint)]">
+                  {isDragging ? "松开即可添加到书库" : "拖拽文件到这里，或点击选择"}
+                </p>
+                <span className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[9px] bg-[var(--accent)] px-3 text-xs font-medium text-[#fbfcfd] shadow-[0_4px_12px_rgba(10,46,14,0.16)] transition group-hover:bg-[#123f1a]">
+                  <span className="text-base leading-none">+</span>
+                  上传书籍
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full rounded-[11px] bg-[var(--accent)] px-3 py-2 text-sm font-medium text-[#fbfcfd] transition-all hover:bg-[#123f1a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-          >
-            + 上传书籍
-          </button>
         </div>
 
       </section>

@@ -9,8 +9,57 @@ import {
   GROWTH_ABILITY_META,
   GROWTH_STAGE_META,
   getGrowthStage,
+  type GrowthStage,
   type GrowthLedger,
 } from "@/lib/growthLedger";
+
+function StageIcon({ stage }: { stage: GrowthStage }) {
+  const iconClass = "h-3.5 w-3.5";
+
+  if (stage === "dormant") {
+    return (
+      <svg className={iconClass} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M6.7 8.4V6.2a3.3 3.3 0 0 1 6.6 0v2.2" />
+        <rect x="5" y="8.1" width="10" height="7.8" rx="2.2" />
+        <path d="M10 11.1v1.8" />
+      </svg>
+    );
+  }
+
+  if (stage === "light") {
+    return (
+      <svg className={iconClass} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M10 3.7l1.2 3.4 3.4 1.2-3.4 1.2L10 12.9 8.8 9.5 5.4 8.3l3.4-1.2L10 3.7Z" />
+        <path d="M15 12.6l.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5.5-1.4Z" />
+      </svg>
+    );
+  }
+
+  if (stage === "steady") {
+    return (
+      <svg className={iconClass} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="10" cy="10" r="6.4" />
+        <path d="M6.9 10.2 9 12.2l4-4.4" />
+      </svg>
+    );
+  }
+
+  if (stage === "formed") {
+    return (
+      <svg className={iconClass} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M10 3.3 15.2 5v4.2c0 3.3-2 5.7-5.2 7.5-3.2-1.8-5.2-4.2-5.2-7.5V5L10 3.3Z" />
+        <path d="M7.2 10.2 9.2 12l3.8-4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className={iconClass} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 3.2l1.9 3.8 4.1.6-3 3 .7 4.2-3.7-2-3.7 2 .7-4.2-3-3 4.1-.6L10 3.2Z" />
+      <path d="M10 6.8v3.5" />
+    </svg>
+  );
+}
 
 function CircularProgress({
   value,
@@ -96,7 +145,6 @@ function CircularProgress({
 export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
   const activeAbilities = GROWTH_ABILITIES.filter((ability) => ledger.counts[ability] > 0).length;
   const hasGrowth = ledger.total > 0;
-  const headline = hasGrowth ? "成长正在发生" : "等待第一条成长印记";
   const summary = hasGrowth
     ? `已点亮 ${activeAbilities} 项能力`
     : "完成分析、导出海报或 3 题训练后，能力会开始留下印记。";
@@ -105,9 +153,8 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
     <section className="border-b border-[rgba(24,29,38,0.08)] bg-transparent px-1 py-3">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
         <div className="min-w-0">
-          <p className="archive-kicker">能力账本</p>
-          <h3 className="mt-2 text-[1.12rem] font-semibold leading-[1.18] tracking-[0] text-[var(--ink)] sm:text-[1.18rem]">
-            {headline}
+          <h3 className="text-[1.12rem] font-semibold leading-[1.18] tracking-[0] text-[var(--ink)] sm:text-[1.18rem]">
+            能力账本
           </h3>
           <p className="mt-2 text-xs leading-5 text-[var(--ink-faint)]">
             {summary}
@@ -127,47 +174,45 @@ export function GrowthLedgerPanel({ ledger }: { ledger: GrowthLedger }) {
           const safeCount = Math.min(count, GROWTH_ABILITY_MAX);
           const stage = getGrowthStage(safeCount);
           const stageMeta = GROWTH_STAGE_META[stage];
+          const progressAccent = safeCount === 0 ? "rgba(24,29,38,0.16)" : meta.ring;
 
           return (
             <div
               key={ability}
-              className={`border-b px-0 py-3 transition-colors ${
-                stage === "evolved"
-                  ? "border-[rgba(24,29,38,0.08)] bg-[rgba(168,216,196,0.22)]"
-                  : "border-[rgba(24,29,38,0.08)] bg-transparent"
-              }`}
+              className="border-b border-[rgba(24,29,38,0.08)] px-0 py-3 transition-colors"
+              style={{ background: stageMeta.rowBg }}
             >
               <div className="flex items-center gap-2.5 px-1">
                 <CircularProgress
                   value={safeCount}
                   max={GROWTH_ABILITY_MAX}
-                  accent="#2f6f48"
+                  accent={progressAccent}
                 />
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-[12px] font-semibold text-[var(--ink)]">{meta.label}</p>
                     <span
-                      className="shrink-0 rounded-full border border-[rgba(24,29,38,0.08)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink)]"
-                      style={{ background: stageMeta.accent }}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium"
+                      style={{
+                        background: stageMeta.badgeBg,
+                        borderColor: stageMeta.badgeBorder,
+                        color: stageMeta.badgeFg,
+                      }}
                     >
+                      <StageIcon stage={stage} />
                       {stageMeta.label}
                     </span>
                   </div>
                   <p className="mt-1 text-[10px] leading-4 text-[var(--ink-faint)]">
                     {meta.description}
                   </p>
-                  <div className="mt-2 flex items-end justify-between gap-3">
-                    <div className="flex items-baseline gap-1">
-                      <p className="text-[1.05rem] font-semibold leading-none text-[var(--ink)]">
-                        {safeCount}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
-                        / {GROWTH_ABILITY_MAX}
-                      </p>
-                    </div>
-                    <p className="text-[10px] text-[var(--ink-faint)]">
-                      {safeCount === 0 ? "尚未点亮" : `${stageMeta.label}中`}
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <p className="text-[1.05rem] font-semibold leading-none text-[var(--ink)]">
+                      {safeCount}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                      / {GROWTH_ABILITY_MAX}
                     </p>
                   </div>
                 </div>
