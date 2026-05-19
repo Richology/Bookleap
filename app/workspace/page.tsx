@@ -14,6 +14,7 @@ import { PosterPreviewModal } from "../components/poster/PosterPreviewModal";
 import type { PosterContent } from "../components/poster/types";
 import { DecisionTrainingPanel } from "../components/DecisionTrainingPanel";
 import { UpgradeReadingModal } from "../components/UpgradeReadingModal";
+import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal";
 import { Toast } from "../components/Toast";
 import { FabMenu, type FabMenuHandle } from "../components/FabMenu";
 import { WorkspaceBookItem } from "../components/workspace/WorkspaceBookItem";
@@ -165,6 +166,7 @@ const LAST_ANALYZED_BOOK_TITLE_KEY = "bookleap_last_analyzed_book_title";
 const STARTER_MODE_SEEN_KEY = "bookleap_has_seen_starter_mode";
 const STARTER_SELECTED_BOOK_KEY = "bookleap_selected_starter_book";
 const STARTER_EXPERIENCED_KEY = "bookleap_experienced_starter_books";
+const WORKSPACE_DISCLAIMER_ACCEPTED_KEY = "bookleap_workspace_disclaimer_accepted_v1";
 
 /* ── Track which starter books have been experienced ── */
 function getExperiencedStarterBooks(): string[] {
@@ -292,6 +294,22 @@ function hasSeenStarterMode(): boolean {
 function markStarterModeSeen() {
   try {
     localStorage.setItem(STARTER_MODE_SEEN_KEY, "1");
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function hasAcceptedWorkspaceDisclaimer(): boolean {
+  try {
+    return localStorage.getItem(WORKSPACE_DISCLAIMER_ACCEPTED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markWorkspaceDisclaimerAccepted() {
+  try {
+    localStorage.setItem(WORKSPACE_DISCLAIMER_ACCEPTED_KEY, "1");
   } catch {
     // ignore storage failures
   }
@@ -765,6 +783,7 @@ export default function Home() {
   const [isWorkspaceFullscreen, setIsWorkspaceFullscreen] = useState(false);
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isDisclaimerModalOpen, setIsDisclaimerModalOpen] = useState(false);
 
   const resetAnalysisLoadingStates = useCallback(() => {
     setIsLoading(false);
@@ -959,6 +978,17 @@ export default function Home() {
     (selectedFile ? stripSupportedFileExtension(selectedFile.name) : "") ||
     currentStarterBook?.title ||
     "未知书名";
+
+  useEffect(() => {
+    if (!hasAcceptedWorkspaceDisclaimer()) {
+      setIsDisclaimerModalOpen(true);
+    }
+  }, []);
+
+  const handleAcceptWorkspaceDisclaimer = useCallback(() => {
+    markWorkspaceDisclaimerAccepted();
+    setIsDisclaimerModalOpen(false);
+  }, []);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -3877,6 +3907,10 @@ export default function Home() {
         wechatId="iwbr1988"
         qrImageSrc="/contact-avatar.png"
       />
+
+      {isDisclaimerModalOpen && (
+        <WorkspaceDisclaimerModal onAccept={handleAcceptWorkspaceDisclaimer} />
+      )}
 
       {/* ── Payment modal ── */}
       {isPaywallModalOpen && (
