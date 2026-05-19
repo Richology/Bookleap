@@ -32,53 +32,84 @@ export type GrowthLedger = GrowthLedgerStored & {
 
 export const GROWTH_ABILITY_META: Record<
   GrowthAbility,
-  { label: string; description: string; accent: string }
+  { label: string; description: string; accent: string; ring: string }
 > = {
   thinking: {
     label: "思考力",
     description: "完成一次分析",
     accent: "rgba(81,99,90,0.14)",
+    ring: "#2f6f48",
   },
   expression: {
     label: "表达力",
     description: "导出一次海报",
-    accent: "rgba(47,51,51,0.08)",
+    accent: "rgba(87,108,132,0.14)",
+    ring: "#506f94",
   },
   decision: {
     label: "决策力",
     description: "完成一轮训练",
-    accent: "rgba(119,124,123,0.12)",
+    accent: "rgba(156,117,58,0.14)",
+    ring: "#9a713c",
   },
 };
 
 export const GROWTH_STAGE_META: Record<
   GrowthStage,
-  { label: string; description: string; accent: string }
+  {
+    label: string;
+    description: string;
+    accent: string;
+    badgeBg: string;
+    badgeFg: string;
+    badgeBorder: string;
+    rowBg: string;
+  }
 > = {
   dormant: {
     label: "待点亮",
     description: "还没有留下第一条成长印记",
     accent: "rgba(47,51,51,0.06)",
+    badgeBg: "#eef1f2",
+    badgeFg: "#777c7b",
+    badgeBorder: "rgba(24,29,38,0.1)",
+    rowBg: "transparent",
   },
   light: {
     label: "点亮",
     description: "能力开始留下印记",
     accent: "rgba(81,99,90,0.14)",
+    badgeBg: "#e4efe8",
+    badgeFg: "#2f6f48",
+    badgeBorder: "rgba(47,111,72,0.18)",
+    rowBg: "rgba(228,239,232,0.38)",
   },
   steady: {
     label: "稳固",
     description: "能力开始稳定下来",
-    accent: "rgba(81,99,90,0.22)",
+    accent: "rgba(87,108,132,0.18)",
+    badgeBg: "#e4ebf2",
+    badgeFg: "#506f94",
+    badgeBorder: "rgba(80,111,148,0.18)",
+    rowBg: "rgba(228,235,242,0.34)",
   },
   formed: {
     label: "成型",
     description: "能力轮廓越来越清晰",
-    accent: "rgba(47,51,51,0.18)",
+    accent: "rgba(156,117,58,0.2)",
+    badgeBg: "#f1e9dc",
+    badgeFg: "#8a642e",
+    badgeBorder: "rgba(138,100,46,0.2)",
+    rowBg: "rgba(241,233,220,0.32)",
   },
   evolved: {
     label: "进化",
     description: "能力进入高阶状态",
-    accent: "rgba(47,51,51,0.3)",
+    accent: "rgba(47,111,72,0.28)",
+    badgeBg: "#d7eadf",
+    badgeFg: "#1f5c3a",
+    badgeBorder: "rgba(31,92,58,0.22)",
+    rowBg: "rgba(215,234,223,0.46)",
   },
 };
 
