@@ -95,7 +95,6 @@ function renderCover(content: FeynmanHtmlContent): string {
         <p class="eyebrow">BookLeap Feynman Mode</p>
         <h1>${escapeHtml(content.bookTitle)}</h1>
         <p class="subtitle">${author}</p>
-        <p class="cover-note">把 6 张解析卡片，讲成别人能听懂、能复述、能带走的一场小演示。</p>
       </div>
       ${
         coverUrl
@@ -396,8 +395,7 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       font-family: var(--mono-font);
     }
     .chapter-cover .eyebrow,
-    .chapter-cover .subtitle,
-    .chapter-cover .cover-note { color: var(--rose-soft); }
+    .chapter-cover .subtitle { color: var(--rose-soft); }
 
     h1, h2, h3, p, blockquote, figure { margin: 0; }
     h1 {
@@ -426,7 +424,6 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
 
     .subtitle { margin-top: 18px; font-size: 18px; font-weight: 650; }
-    .cover-note { margin-top: 36px; max-width: 34em; font-size: 18px; }
     .cover-art {
       width: min(100%, 340px);
       justify-self: end;
@@ -804,6 +801,35 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       box-shadow: none;
     }
     body.deck-mode .chapter.is-active { display: block; }
+    body.deck-mode .presentation-slide.is-active {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(420px, 0.78fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      column-gap: clamp(48px, 6vw, 120px);
+      align-content: center;
+      align-items: start;
+    }
+    body.deck-mode .presentation-slide .eyebrow {
+      grid-column: 1 / -1;
+    }
+    body.deck-mode .presentation-slide h2 {
+      grid-column: 1;
+      grid-row: 2 / span 2;
+      max-width: 8.8em;
+    }
+    body.deck-mode .presentation-slide .slide-body {
+      grid-column: 2;
+      grid-row: 2;
+      margin-top: 0;
+      max-width: none;
+      font-size: clamp(26px, 2.45vw, 38px);
+      line-height: 1.52;
+    }
+    body.deck-mode .presentation-slide .slide-note {
+      grid-column: 2;
+      grid-row: 3;
+      max-width: none;
+    }
     body.deck-mode .chapter-cover.is-active { display: grid; }
     body.deck-mode .chapter-final.is-active { display: flex; }
     body.deck-mode .chapter.is-active { animation: deck-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
@@ -824,6 +850,8 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       .agenda-grid { grid-template-columns: 1fr; }
       .idea-row { grid-template-columns: 1fr; gap: 10px; }
       body.deck-mode .chapter { padding: 72px 24px 42px; }
+      body.deck-mode .presentation-slide.is-active { display: block; }
+      body.deck-mode .presentation-slide .slide-body { margin-top: 26px; }
     }
 
     @media print {
