@@ -5,6 +5,7 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 type Testimonial = {
   name: string;
   title: string;
+  rating: 4 | 4.5 | 5;
   quote: string;
 };
 
@@ -28,70 +29,85 @@ type OrbitBeam = {
   travel: number;
 };
 
+type OrbitSignalStyle = CSSProperties & {
+  "--orbit-travel": string;
+};
+
 const TESTIMONIALS: Testimonial[] = [
   {
     name: "臧心昊",
     title: "运动博主",
+    rating: 4.5,
     quote:
       "书跃不仅可以快速概括书籍内容，还会给出阅读指南，让你带着问题去阅读，根据书籍的观点给出可执行的行动，打通知识到行动的壁垒。并且它不会一味迎合书籍内容，观点校验功能会提出可能存在的问题与反例，让你多方位思考。",
   },
   {
     name: "华华",
     title: "投资专家",
+    rating: 5,
     quote:
       "我想知道这本书讲什么，但我不想看书；我想看看书中的观点换个角度辩证，是否有失偏颇；我想把书的内容放到实际场景，但我不想被评判对错；我想把喜欢的金句分享给朋友，但希望漂亮又有格调；书跃，6张卡解读，让读书不止是读书…",
   },
   {
     name: "科学怪熊",
     title: "全科老师，素质教育工作者",
+    rating: 5,
     quote:
       "作为一个教育工作者，我会向学生强力推荐这个网站。不同于NotebookLM和ima这样的知识库，书跃展示了一种思维方式，为阅读者提供了地图而非答案。对“AI时代如何读书”这个问题，书跃给出了具有启发性的回答。",
   },
   {
     name: "宇宇",
     title: "社群运营",
+    rating: 4.5,
     quote:
       "以 AI 为匙，解锁书籍的深层价值，书跃值得所有求知者入手！智能拆解全书内容，凝练成 6 张精华知识卡片，脉络清晰、重点突出，既能快速把握书籍精髓，又能轻松落地实践，还能无缝导入知识库，让每一次阅读都有迹可循，认知成长稳步向前。",
   },
   {
     name: "老K",
     title: "产品经理 · 5 年经验",
+    rating: 4,
     quote:
       "以前一本书要读两周，现在 30 秒就能抓到核心。不是替代阅读，而是让我知道该重点读哪里。观点地图特别好用，一眼就能看清整本书的逻辑脉络，省了大量时间。",
   },
   {
     name: "薇薇安",
     title: "创业者 · 教育行业",
+    rating: 5,
     quote:
       "决策训练功能太惊艳了，不只是告诉你书里说了什么，还让你在真实场景里用起来。我把《原则》传上去以后，做了三道决策题，感觉比读完整本书收获还大。",
   },
   {
     name: "浩子",
     title: "咨询顾问 · 战略方向",
+    rating: 4.5,
     quote:
       "我把团队必读的 5 本书都传了上去，导出的知识卡片直接变成了内部培训材料。行动提炼这张卡片特别实用，每本书都能提炼出可以立刻执行的动作清单。",
   },
   {
     name: "小鱼",
     title: "自由职业者 · 写作",
+    rating: 4,
     quote:
       "观点地图帮我快速理清一本书的逻辑脉络，写书评的效率提升了不止一倍。思想溯源功能也很有意思，能看到一本书背后更深层的思考框架。",
   },
   {
     name: "磊哥",
     title: "技术总监 · 互联网",
+    rating: 4.5,
     quote:
       "终于不用再为读不完书焦虑了。6 张卡片就是一本书的精华，随时可以回顾。最喜欢的是沉浸式阅读模式，左右滑动卡片的体验很流畅，像在翻一本精简版的书。",
   },
   {
     name: "文博",
     title: "互联网产品增长专家",
+    rating: 5,
     quote:
       "书跃不只是帮我快速看懂一本书，更能把书里的核心结构、重点观点和后续可执行的方向梳理出来。对我来说，它最大的价值是把这本书里更适合我的内容提炼出来，引导我变成自身的行动。它是适合当下时代的高效率工具。",
   },
   {
     name: "祥仔",
     title: "Builder",
+    rating: 4,
     quote:
       "我是一个很爱读书的人，过去几年每年也能读几十本书，读书是一个很好的事情，但是可惜的是如果要学会书中的内容，一是要花较多的时间去阅读，二是需要有足够多的练习；书跃这款产品提供了一个很好的探索，帮助你从多个维度帮你拆解一本书，既可以作为阅读后的补充和回顾，也可以作为一本新书阅读前的引导；同时，结合书中的内容，书跃提供多个真实的决策点，这是一个非常好的练习方法",
   },
@@ -117,6 +133,7 @@ const RING_SHAPES: RingShape[] = [
   { width: 892, height: 356 },
 ];
 const AUTOPLAY_MS = 4800;
+const STAR_FILLS = [1, 1, 1, 1, 1] as const;
 
 function getOrbitBeam(layout: OrbitLayout, extend = 0): OrbitBeam {
   const distance = Math.sqrt(layout.x ** 2 + layout.y ** 2);
@@ -130,6 +147,51 @@ function getOrbitBeam(layout: OrbitLayout, extend = 0): OrbitBeam {
     pulseWidth,
     travel: Math.max(0, width - pulseWidth),
   };
+}
+
+function StarRating({
+  rating,
+  compact = false,
+  inverted = false,
+}: {
+  rating: Testimonial["rating"];
+  compact?: boolean;
+  inverted?: boolean;
+}) {
+  return (
+    <div
+      aria-label={`${rating} 星好评`}
+      className={`flex items-center ${compact ? "gap-0.5" : "gap-1"}`}
+      title={`${rating} 星好评`}
+    >
+      {STAR_FILLS.map((_, index) => {
+        const fill = Math.max(0, Math.min(1, rating - index));
+
+        return (
+          <span
+            key={index}
+            aria-hidden="true"
+            className={`grid shrink-0 place-items-center overflow-hidden rounded-[2px] ${
+              compact ? "h-[14px] w-[14px]" : "h-[20px] w-[20px]"
+            }`}
+            style={{
+              background: `linear-gradient(90deg, #00b67a 0%, #00b67a ${
+                fill * 100
+              }%, ${inverted ? "rgba(255,255,255,0.24)" : "#d8d9e2"} ${
+                fill * 100
+              }%, ${inverted ? "rgba(255,255,255,0.24)" : "#d8d9e2"} 100%)`,
+            }}
+          >
+            <span
+              className={`leading-none text-white ${compact ? "text-[10px]" : "text-[15px]"}`}
+            >
+              ★
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 export function Testimonials() {
@@ -258,12 +320,12 @@ export function Testimonials() {
 
                 {ambientBeams.map((beam, index) => {
                   const layout = ORBIT_LAYOUT[index];
-                  const pulseStyle = {
+                  const pulseStyle: OrbitSignalStyle = {
                     width: `${beam.pulseWidth}px`,
                     animationDelay: `${0.45 + layout.delay * 7}s`,
                     animationDuration: `${6.6 + layout.ring * 0.75}s`,
-                    ["--orbit-travel" as any]: `${beam.travel}px`,
-                  } as CSSProperties;
+                    "--orbit-travel": `${beam.travel}px`,
+                  };
 
                   return (
                     <div
@@ -342,6 +404,12 @@ export function Testimonials() {
                   }}
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0)_100%)]" />
+                  <div className="relative mb-3 flex items-center justify-between gap-3">
+                    <StarRating rating={activeTestimonial.rating} inverted />
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">
+                      {activeTestimonial.rating.toFixed(1)}
+                    </span>
+                  </div>
                   <p className="relative font-editorial text-[1rem] font-semibold leading-[1.55] tracking-[-0.012em] text-white">
                     {activeTestimonial.quote}
                   </p>
@@ -427,6 +495,9 @@ export function Testimonials() {
                           <p className="mt-0.5 max-w-[118px] text-[9px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
                             {item.title}
                           </p>
+                          <div className="mt-2">
+                            <StarRating rating={item.rating} compact />
+                          </div>
                         </div>
                       </div>
                     </button>
@@ -439,6 +510,12 @@ export function Testimonials() {
           <div className="lg:hidden">
             <article className="relative overflow-hidden rounded-[24px] border border-[var(--ink)] bg-[var(--ink)] px-5 py-4 text-white shadow-[0_22px_48px_rgba(47,51,51,0.18)]">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0)_100%)]" />
+              <div className="relative mb-3 flex items-center justify-between gap-3">
+                <StarRating rating={activeTestimonial.rating} inverted />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">
+                  {activeTestimonial.rating.toFixed(1)}
+                </span>
+              </div>
               <p className="relative font-editorial text-[1.05rem] font-semibold leading-[1.62] tracking-[-0.01em] text-white">
                 {activeTestimonial.quote}
               </p>
@@ -457,10 +534,7 @@ export function Testimonials() {
             </article>
 
             <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
-              {TESTIMONIALS.map((item, index) => {
-                const isActive = index === displayIndex;
-
-                return (
+              {TESTIMONIALS.map((item, index) => (
                   <button
                     key={item.name}
                     type="button"
@@ -475,9 +549,11 @@ export function Testimonials() {
                     <p className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
                       {item.title}
                     </p>
+                    <div className="mt-2">
+                      <StarRating rating={item.rating} compact />
+                    </div>
                   </button>
-                );
-              })}
+              ))}
             </div>
           </div>
         </div>
