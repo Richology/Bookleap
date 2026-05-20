@@ -279,13 +279,9 @@ export default function HomeV2Page() {
                   现在就把一本书，整理进你的工作台
                 </p>
               </div>
-              <a
-                href="/workspace"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3.5 text-sm font-medium text-[var(--ink)] transition-all hover:bg-white/92 active:scale-[0.98]"
-              >
+              <BookLeapCTA href="/workspace" tone="paper">
                 立即开始
-                <span aria-hidden>↗</span>
-              </a>
+              </BookLeapCTA>
             </div>
           </section>
         </ScrollSection>
