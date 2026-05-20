@@ -33,6 +33,11 @@ type OrbitSignalStyle = CSSProperties & {
   "--orbit-travel": string;
 };
 
+type HoverPreviewStyle = CSSProperties & {
+  "--testimonial-fly-x": string;
+  "--testimonial-fly-y": string;
+};
+
 const TESTIMONIALS: Testimonial[] = [
   {
     name: "臧心昊",
@@ -149,6 +154,13 @@ function getOrbitBeam(layout: OrbitLayout, extend = 0): OrbitBeam {
   };
 }
 
+function getHoverPreviewStyle(layout: OrbitLayout): HoverPreviewStyle {
+  return {
+    "--testimonial-fly-x": `${layout.x}px`,
+    "--testimonial-fly-y": `${layout.y}px`,
+  };
+}
+
 function StarRating({
   rating,
   compact = false,
@@ -202,11 +214,15 @@ export function Testimonials() {
   const [isPaused, setIsPaused] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  const isLocked = selectedIndex !== null;
   const isEngaged = hoveredIndex !== null || selectedIndex !== null;
-  const displayIndex = isLocked ? selectedIndex : hoveredIndex ?? autoIndex;
+  const displayIndex = hoveredIndex ?? selectedIndex ?? autoIndex;
   const activeTestimonial = TESTIMONIALS[displayIndex];
   const activeLayout = ORBIT_LAYOUT[displayIndex % ORBIT_LAYOUT.length];
+  const isHoverPreviewing = hoveredIndex !== null;
+  const hoverPreview = isHoverPreviewing ? TESTIMONIALS[hoveredIndex] : null;
+  const hoverPreviewLayout = isHoverPreviewing
+    ? ORBIT_LAYOUT[hoveredIndex % ORBIT_LAYOUT.length]
+    : null;
 
   const handleActivate = (index: number) => {
     setIsPaused(true);
@@ -215,15 +231,15 @@ export function Testimonials() {
   };
 
   const handlePreviewStart = (index: number) => {
-    if (selectedIndex !== null) return;
     setIsPaused(true);
     setHoveredIndex(index);
   };
 
   const handlePreviewEnd = () => {
-    if (selectedIndex !== null) return;
     setHoveredIndex(null);
-    setIsPaused(false);
+    if (selectedIndex === null) {
+      setIsPaused(false);
+    }
   };
 
   useEffect(() => {
@@ -397,10 +413,8 @@ export function Testimonials() {
                   key={displayIndex}
                   className="pointer-events-auto relative w-[420px] max-w-[calc(100%-2.5rem)] overflow-hidden rounded-[26px] border border-[rgba(47,51,51,0.06)] bg-[var(--ink)] px-5 py-3.5 text-white shadow-[0_26px_58px_rgba(47,51,51,0.22)] transition-all duration-500"
                   style={{
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible
-                      ? "scale(1)"
-                      : "translateY(14px) scale(0.97)",
+                    opacity: isVisible && !isHoverPreviewing ? 1 : 0,
+                    transform: isVisible ? "scale(1)" : "translateY(14px) scale(0.97)",
                   }}
                 >
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0)_100%)]" />
@@ -428,9 +442,43 @@ export function Testimonials() {
                 </article>
               </div>
 
+              {hoverPreview && hoverPreviewLayout ? (
+                <div
+                  key={`hover-preview-${hoveredIndex}`}
+                  className="testimonial-hover-card-flight pointer-events-none absolute left-1/2 top-1/2 z-30 w-[420px] max-w-[calc(100%-2.5rem)]"
+                  style={getHoverPreviewStyle(hoverPreviewLayout)}
+                >
+                  <article className="relative overflow-hidden rounded-[26px] border border-[rgba(47,51,51,0.06)] bg-[var(--ink)] px-5 py-3.5 text-white shadow-[0_26px_58px_rgba(47,51,51,0.22)]">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0)_100%)]" />
+                    <div className="relative mb-3 flex items-center justify-between gap-3">
+                      <StarRating rating={hoverPreview.rating} inverted />
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">
+                        {hoverPreview.rating.toFixed(1)}
+                      </span>
+                    </div>
+                    <p className="relative font-editorial text-[1rem] font-semibold leading-[1.55] tracking-[-0.012em] text-white">
+                      {hoverPreview.quote}
+                    </p>
+
+                    <div className="relative mt-3.5 flex items-center gap-3 border-t border-white/10 pt-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(211,231,219,0.22)] text-sm font-semibold text-[var(--accent)] shadow-[0_0_0_6px_rgba(186,221,200,0.08)]">
+                        {hoverPreview.name[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-white">{hoverPreview.name}</p>
+                        <p className="truncate text-[10px] uppercase tracking-[0.12em] text-white/50">
+                          {hoverPreview.title}
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              ) : null}
+
               {TESTIMONIALS.map((item, index) => {
                 const layout = ORBIT_LAYOUT[index % ORBIT_LAYOUT.length];
                 const isActive = index === displayIndex;
+                const isFloatingPreview = isHoverPreviewing && isActive;
 
                 return (
                   <div
@@ -460,8 +508,11 @@ export function Testimonials() {
                       }`}
                       style={{
                         animationDelay: `${layout.delay}s`,
-                        opacity: isEngaged && !isActive ? 0.76 : 1,
-                        transform: isActive ? "scale(1.06) translateY(-2px)" : undefined,
+                        opacity: isFloatingPreview ? 0.16 : isEngaged && !isActive ? 0.76 : 1,
+                        transform:
+                          isActive && !isFloatingPreview
+                            ? "scale(1.06) translateY(-2px)"
+                            : undefined,
                       }}
                     >
                       <span
@@ -535,24 +586,24 @@ export function Testimonials() {
 
             <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto pb-1">
               {TESTIMONIALS.map((item, index) => (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={() => handleActivate(index)}
-                    className={`shrink-0 rounded-full border px-3 py-2 text-left transition-all ${
-                      index === displayIndex
-                        ? "border-[rgba(81,99,90,0.22)] bg-[rgba(211,231,219,0.28)] text-[var(--ink)]"
-                        : "border-[var(--ghost-border)] bg-white text-[var(--ink-soft)]"
-                    }`}
-                  >
-                    <p className="text-[13px] font-semibold">{item.name}</p>
-                    <p className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
-                      {item.title}
-                    </p>
-                    <div className="mt-2">
-                      <StarRating rating={item.rating} compact />
-                    </div>
-                  </button>
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => handleActivate(index)}
+                  className={`shrink-0 rounded-full border px-3 py-2 text-left transition-all ${
+                    index === displayIndex
+                      ? "border-[rgba(81,99,90,0.22)] bg-[rgba(211,231,219,0.28)] text-[var(--ink)]"
+                      : "border-[var(--ghost-border)] bg-white text-[var(--ink-soft)]"
+                  }`}
+                >
+                  <p className="text-[13px] font-semibold">{item.name}</p>
+                  <p className="mt-0.5 text-[9px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                    {item.title}
+                  </p>
+                  <div className="mt-2">
+                    <StarRating rating={item.rating} compact />
+                  </div>
+                </button>
               ))}
             </div>
           </div>
