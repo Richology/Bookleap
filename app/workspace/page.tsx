@@ -13,6 +13,7 @@ import { GrowthLedgerPanel } from "../components/GrowthLedgerPanel";
 import { PosterPreviewModal } from "../components/poster/PosterPreviewModal";
 import type { PosterContent } from "../components/poster/types";
 import { DecisionTrainingPanel } from "../components/DecisionTrainingPanel";
+import { FeynmanPreview } from "../components/FeynmanPreview";
 import { UpgradeReadingModal } from "../components/UpgradeReadingModal";
 import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal";
 import { Toast } from "../components/Toast";
@@ -199,7 +200,8 @@ const STARTER_LOADING_STEPS = [
   { text: "正在生成认知卡片…", duration: 900 },
   { text: "正在整理分析结果…", duration: 600 },
 ] as const;
-const BLOB_UPLOAD_TIMEOUT_MS = 15000;
+const DIRECT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const BLOB_UPLOAD_TIMEOUT_MS = 90000;
 const DECISION_STEP_LABELS = [
   "正在生成第 1 题（职场场景）…",
   "正在生成第 2 题（个人成长）…",
@@ -642,7 +644,7 @@ function getUploadFailureMessage(): string {
 
   return isLocalRuntimeHost(window.location.hostname)
     ? "本地上传服务暂时不可用，请检查本地服务后重试。"
-    : "上传请求没有完成。请检查网络后重试；如果文件较大，可以稍后再试。";
+    : "上传请求没有完成。请检查网络后重试；如果文件较大，请保持页面打开后再试一次。";
 }
 
 function getBlobUploadContentType(filename: string): string | undefined {
@@ -752,6 +754,7 @@ export default function Home() {
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
   const [posterContent, setPosterContent] = useState<PosterContent | null>(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [isFeynmanPreviewOpen, setIsFeynmanPreviewOpen] = useState(false);
   const [decisionScenarios, setDecisionScenarios] = useState<DecisionScenario[]>([]);
   const [isDecisionPanelOpen, setIsDecisionPanelOpen] = useState(false);
   const [isDecisionLoading, setIsDecisionLoading] = useState(false);
@@ -994,6 +997,7 @@ export default function Home() {
     isExportModalOpen ||
     isPaywallModalOpen ||
     isPosterModalOpen ||
+    isFeynmanPreviewOpen ||
     isUpgradeModalOpen ||
     isDisclaimerModalOpen ||
     isDecisionPanelOpen;
@@ -1561,6 +1565,7 @@ export default function Home() {
     setSlideDir(null);
     setIsPosterModalOpen(false);
     setPosterContent(null);
+    setIsFeynmanPreviewOpen(false);
     setIsExportModalOpen(false);
     setExportStatus("idle");
     setDecisionScenarios([]);
@@ -2086,6 +2091,21 @@ export default function Home() {
     }
   };
 
+  const handleOpenFeynmanPreview = () => {
+    const cards = getDecisionCardsInput();
+    if (!hasCompleteDecisionCards(cards)) {
+      enqueueGuidanceToast({
+        id: "feynman-export-incomplete",
+        message: "请先完成 6 个分析模块，再生成费曼分享页",
+        priority: TOAST_PRIORITY.SYSTEM,
+        durationMs: 4200,
+      });
+      return;
+    }
+
+    setIsFeynmanPreviewOpen(true);
+  };
+
   const getDecisionCardsInput = useCallback((): DecisionCardsInput => ({
     summary: bookSummary,
     readingGuide,
@@ -2507,12 +2527,20 @@ export default function Home() {
 
       let res: Response;
       try {
-        setMessage("正在上传并解析章节...");
-        res = await uploadBookDirectly(fileToAnalyze);
+        if (fileToAnalyze.size > DIRECT_UPLOAD_MAX_BYTES && !isLocalRuntimeHost(window.location.hostname)) {
+          setMessage("文件较大，正在使用稳定上传通道...");
+          updateProgress("稳定上传中…");
+          res = await uploadBookViaBlob(fileToAnalyze);
+          setMessage("上传成功，正在解析章节...");
+        } else {
+          setMessage("正在上传并解析章节...");
+          res = await uploadBookDirectly(fileToAnalyze);
+        }
       } catch (directUploadError) {
         console.error("直接上传失败，尝试 Blob 上传:", directUploadError);
         try {
-          setMessage("上传通道较慢，正在切换上传方式...");
+          setMessage("上传通道较慢，正在切换稳定上传方式...");
+          updateProgress("稳定上传中…");
           res = await uploadBookViaBlob(fileToAnalyze);
           setMessage("上传成功，正在解析章节...");
         } catch (blobUploadError) {
@@ -3223,6 +3251,8 @@ export default function Home() {
     isDecisionLoading || isAnalyzing || !trainingUnlocked || !decisionCardsReady;
   const isExportActionDisabled = exportStatus === "exporting" || !canExportBook;
   const isShareActionDisabled = isGeneratingPoster || !canShareBook;
+  const isFeynmanActionDisabled =
+    isAnalyzing || !decisionCardsReady || (isLiteMode && !isLiteUnlocked);
   const topBarTabs = openTabs.map<WorkspaceTabItem>((tab) => ({
     id: tab.id,
     title: tab.title,
@@ -3268,6 +3298,14 @@ export default function Home() {
       title: isGeneratingPoster ? "生成中…" : "分享",
       onClick: handleGeneratePoster,
       disabled: isShareActionDisabled,
+    },
+    {
+      id: "feynman",
+      label: "费曼页",
+      title: "生成分享页",
+      onClick: handleOpenFeynmanPreview,
+      disabled: isFeynmanActionDisabled,
+      active: isFeynmanPreviewOpen,
     },
   ];
   const utilityToolActions = [
@@ -4276,6 +4314,33 @@ export default function Home() {
           />
         );
       })()}
+
+      {isFeynmanPreviewOpen && (
+        <FeynmanPreview
+          bookTitle={currentBookDisplayTitle}
+          author={currentBookAuthor}
+          coverImageUrl={currentBookCover}
+          cards={getDecisionCardsInput()}
+          decisionExercises={decisionScenarios.map((scenario) => ({
+            scene: scenario.scene,
+            question: scenario.question,
+            options: scenario.options,
+            feedback: {
+              A: `${scenario.feedback.A.analysis} ${scenario.feedback.A.upgrade}`.trim(),
+              B: `${scenario.feedback.B.analysis} ${scenario.feedback.B.upgrade}`.trim(),
+            },
+          }))}
+          onClose={() => setIsFeynmanPreviewOpen(false)}
+          onGenerated={() => {
+            enqueueGuidanceToast({
+              id: "feynman-export-download-success",
+              message: "费曼分享页已下载",
+              priority: TOAST_PRIORITY.INFO,
+              durationMs: 4200,
+            });
+          }}
+        />
+      )}
 
       {/* ── Poster preview modal ── */}
       {isPosterModalOpen && posterContent && (
