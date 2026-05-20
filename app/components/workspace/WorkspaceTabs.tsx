@@ -5,6 +5,8 @@ export type WorkspaceTabItem = {
   title: string;
   subtitle?: string;
   closable?: boolean;
+  status?: "analyzing";
+  progressLabel?: string;
 };
 
 export function WorkspaceTabs({
@@ -47,9 +49,22 @@ export function WorkspaceTabs({
                 onClick={() => onActivate(tab.id)}
                 className="min-w-0 flex-1 px-3 py-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#9297a0]"
               >
-                <p className={`truncate text-[13px] font-semibold ${isActive ? "text-[var(--ink)]" : "text-[var(--ink-soft)]"}`}>
-                  {tab.title}
-                </p>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {tab.status === "analyzing" && (
+                    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-35" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
+                    </span>
+                  )}
+                  <span className={`truncate text-[13px] font-semibold ${isActive ? "text-[var(--ink)]" : "text-[var(--ink-soft)]"}`}>
+                    {tab.title}
+                  </span>
+                  {tab.progressLabel && (
+                    <span className="shrink-0 text-[11px] font-medium text-[var(--ink-faint)]">
+                      {tab.progressLabel}
+                    </span>
+                  )}
+                </span>
               </button>
 
               {tab.closable && (
