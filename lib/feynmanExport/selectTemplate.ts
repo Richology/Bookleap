@@ -406,6 +406,82 @@ const TEMPLATE_PROFILES: TemplateProfile[] = [
   },
 ];
 
+const TEMPLATE_COPY_ZH: Record<
+  FeynmanTemplateSlug,
+  { nameZh: string; taglineZh: string; bestForZh: string }
+> = {
+  "editorial-forest": {
+    nameZh: "森林编辑风",
+    taglineZh: "森林绿、灰粉色和温暖奶油纸色组合，像一份安静、克制、带书卷气的编辑型演示稿。",
+    bestForZh: "适合需要被认真阅读和温和讲述的内容：读书分享、研究复盘、团队回顾、项目介绍、课程或计划发布。",
+  },
+  cartesian: {
+    nameZh: "笛卡尔",
+    taglineZh: "温暖中性色搭配经典衬线字体，整体安静、成熟、节奏不急，适合慢慢讲清楚复杂问题。",
+    bestForZh: "适合研究感和判断感较强的内容：投资观点、白皮书、顾问报告、长篇研究、文化内容、创始人反思。",
+  },
+  "soft-editorial": {
+    nameZh: "柔和编辑风",
+    taglineZh: "温暖纸色、柔和鼠尾草绿、腮红粉和浅柠檬色，整体文学、优雅、低压。",
+    bestForZh: "适合文学性、故事性和品牌叙事更强的内容：长文解读、品牌故事、展览介绍、生活方式内容、创始人文章。",
+  },
+  vellum: {
+    nameZh: "深蓝学术风",
+    taglineZh: "深海军蓝底色配暖黄色衬线字和低饱和青绿色点缀，安静、学术、带一点权威感。",
+    bestForZh: "适合需要显得深度、理性、可信的内容：研究综合、白皮书、学术简报、政策简报、顾问交付和长篇观点。",
+  },
+  signal: {
+    nameZh: "信号",
+    taglineZh: "深海军蓝画布、骨白纸面和低调金色点缀，整体稳重、克制，带有机构感和分量感。",
+    bestForZh: "适合严肃、可信、需要权威感的内容：投资汇报、董事会材料、咨询交付、法律或政策简报、研究报告和品牌策略。",
+  },
+  "blue-professional": {
+    nameZh: "蓝色专业风",
+    taglineZh: "奶油纸色背景配高亮钴蓝点缀，干净、现代、专业，信息呈现很清楚。",
+    bestForZh: "适合偏工作场景和实用表达的内容：B2B 演示、咨询交付、顾问更新、投资报告、研究整理和内部复盘。",
+  },
+  "cobalt-grid": {
+    nameZh: "钴蓝网格",
+    taglineZh: "钴蓝字体落在网格纸画布上，配合像素化装饰和细线规则，既有研究感也有设计感。",
+    bestForZh: "适合结构化、知识图谱和研究公告式内容：趋势报告、设计研究、工作室年报、机构能力介绍、建筑或学术演示。",
+  },
+  "biennale-yellow": {
+    nameZh: "双年展黄",
+    taglineZh: "明亮太阳黄、温暖羊皮纸色和深靛蓝衬线字体组合，像艺术展海报或文化机构年展。",
+    bestForZh: "适合文化、文学、展览和出版气质的内容：艺术机构介绍、设计会议、策展提案、文学出版物、工作室回顾。",
+  },
+  "stencil-tablet": {
+    nameZh: "石板模板风",
+    taglineZh: "骨白纸面、镂空标题和大地色系组合，像档案、考古笔记和品牌手册的混合体。",
+    bestForZh: "适合档案感、手工感和厚重图文感的内容：博物馆材料、文化机构演示、建筑品牌、长篇研究、传统工艺和宣言。",
+  },
+  broadside: {
+    nameZh: "大字报",
+    taglineZh: "深色编辑画布配火焰橙点缀和中英文字体体系，像一张有冲击力的报纸头版。",
+    bestForZh: "适合需要有宣言感和舞台感的内容：品牌宣言、文化提案、设计演讲、中英双语演示、创始人愿景和活动发布。",
+  },
+  "bold-poster": {
+    nameZh: "醒目海报",
+    taglineZh: "杂志封面式排版，超大标题字体配单一正红色点缀，表达直接、强势、容易被记住。",
+    bestForZh: "适合结论少但观点很强的内容：品牌宣言、愿景演示、编辑型提案、创意复盘、科技演讲和金句型金融观点。",
+  },
+  "raw-grid": {
+    nameZh: "粗粝网格",
+    taglineZh: "新粗野主义风格，粗边框、错位阴影和粉色、鼠尾草绿、墨色组合，直接、有力量。",
+    bestForZh: "适合行动导向和流程清晰的内容：创业路演、加速器演示、独立产品发布、创作者作品集、数据页、对比表和流程图。",
+  },
+  scatterbrain: {
+    nameZh: "便利贴白板",
+    taglineZh: "像便利贴和白板一样的视觉语言，使用柔和粉彩、手写感字体和轻松的工作坊氛围。",
+    bestForZh: "适合边拆解边讨论的内容：头脑风暴、工作坊、设计思考、创意提案、艺术指导复盘和互动练习。",
+  },
+  capsule: {
+    nameZh: "胶囊卡片",
+    taglineZh: "温暖骨白背景上排列模块化胶囊卡片，配一组轻快粉彩色，现代、轻松、信息块清楚。",
+    bestForZh: "适合轻量、现代、有模块感的内容：生活方式品牌、创作者作品集、DTC 发布、美妆健康、机构介绍和轻快科技演示。",
+  },
+};
+
 function buildContentText(bookTitle: string, author: string, cards: FeynmanCardsInput, content: FeynmanHtmlContent) {
   return [
     bookTitle,
@@ -466,11 +542,15 @@ export function selectFeynmanTemplate(params: {
 
 export function getFeynmanTemplateBySlug(slug: string | undefined): FeynmanTemplateChoice {
   const winner = TEMPLATE_PROFILES.find((profile) => profile.slug === slug) ?? TEMPLATE_PROFILES[0];
+  const zh = TEMPLATE_COPY_ZH[winner.slug as FeynmanTemplateSlug];
   return {
     slug: winner.slug as FeynmanTemplateSlug,
     name: winner.name,
+    nameZh: zh.nameZh,
     tagline: winner.tagline,
+    taglineZh: zh.taglineZh,
     bestFor: winner.bestFor,
+    bestForZh: zh.bestForZh,
     reason: winner.reason,
     mood: winner.mood,
     scheme: winner.scheme,
