@@ -149,7 +149,7 @@ export function WorkspaceTopBar({
                         className="min-w-0 flex-1 text-left"
                       >
                         <p className={`truncate text-[13px] font-medium ${isActive ? "text-[var(--ink)]" : "text-[var(--ink-soft)]"}`}>
-                          {tab.title}
+                          {tab.status === "analyzing" ? `${tab.title} · ${tab.progressLabel ?? "解析中"}` : tab.title}
                         </p>
                       </button>
 

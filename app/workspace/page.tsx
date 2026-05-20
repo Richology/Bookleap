@@ -150,9 +150,10 @@ type WorkspaceCombinedSearchResult =
   | { kind: "currentContent"; id: string; result: WorkspaceSearchResult };
 
 type WorkspaceTab = WorkspaceTabItem & {
-  source: "starter" | "history" | "current";
+  source: "starter" | "history" | "current" | "analysis";
   starterBookId?: string;
   recordId?: string;
+  analysisTitle?: string;
 };
 
 type WorkspaceReadMode = "overview" | "immersive";
@@ -564,6 +565,10 @@ function clearBookDerivedCaches(bookTitle: string) {
   } catch {
     // ignore storage failures
   }
+}
+
+function getAnalysisTabId(title: string) {
+  return `analysis:${buildDecisionBookId(title || "new-book")}`;
 }
 
 /**
@@ -1156,6 +1161,23 @@ export default function Home() {
     return [...historyCards, ...starterCards].slice(0, 2);
   }, [recentHistory, workspaceCardSeed]);
   const currentWorkspaceTab = useMemo<WorkspaceTab | null>(() => {
+    if (
+      bgAnalysisStatus.active &&
+      bgAnalysisTitleRef.current &&
+      bgAnalysisTitleRef.current === bookTitle
+    ) {
+      return {
+        id: getAnalysisTabId(bgAnalysisTitleRef.current),
+        title: bookTitle || bgAnalysisStatus.title || "新书",
+        subtitle: currentBookAuthor || currentFileTypeLabel || "解析中",
+        source: "analysis",
+        analysisTitle: bgAnalysisTitleRef.current,
+        closable: false,
+        status: "analyzing",
+        progressLabel: `${bgAnalysisStatus.stepsCompleted}/${bgAnalysisStatus.totalSteps}`,
+      };
+    }
+
     if (!bookTitle) return null;
 
     if (currentStarterBookId) {
@@ -1194,6 +1216,7 @@ export default function Home() {
     currentHistoryRecord,
     currentSessionRecordId,
     currentStarterBookId,
+    bgAnalysisStatus,
     isAnalyzing,
   ]);
 
@@ -1572,6 +1595,59 @@ export default function Home() {
     setMessage("分析完成");
   }, []);
 
+  const saveBgAnalysisToHistory = useCallback((bg: BgAnalysisData) => {
+    const fileType = (["epub", "azw3", "txt", "pdf"].includes(bg.fileType)
+      ? bg.fileType
+      : "epub") as SupportedFileType;
+    const starterBook = bg.starterBookId ? starterBooksById[bg.starterBookId] ?? null : null;
+    const record: HistoryRecord = {
+      id: `${bg.title}-${fileType}`,
+      title: bg.title,
+      fileType,
+      mode: bg.liteMode ? "lite" : "full",
+      createdAt: new Date().toISOString(),
+      bookSummary: bg.bookSummary,
+      readingGuide: bg.readingGuide,
+      viewMap: bg.viewMap,
+      actionExtraction: bg.actionExtraction,
+      viewValidation: bg.viewValidation,
+      ideaSourceTracing: bg.ideaSourceTracing,
+      bookRecommendation: "",
+      workspaceQuote: sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }),
+      coverImage: starterBook?.coverImage || bg.coverImage || "",
+      posterContent: null,
+      isStarterBook: !!starterBook,
+      starterBookId: starterBook?.id,
+      author: starterBook?.author || bg.author || undefined,
+    };
+    const prev = loadHistory().filter((r) => r.id !== record.id);
+    const next = [record, ...prev];
+    saveHistory(next);
+    setRecentHistory(next);
+
+    const thinkingGrowth = awardGrowth("thinking", {
+      bookId: buildDecisionBookId(record.title),
+      bookTitle: record.title,
+      action: "分析完成",
+    });
+    if (thinkingGrowth.changed) {
+      setGrowthLedger(thinkingGrowth.ledger);
+      markGrowthInspectorUpdated();
+      enqueueGuidanceToast({
+        id: `growth-thinking-${buildDecisionBookId(record.title)}`,
+        message: `思考力印记 +1\n来自《${record.title}》的分析完成`,
+        priority: TOAST_PRIORITY.INFO,
+        durationMs: 4500,
+      });
+    }
+
+    if (!starterBook) {
+      markUploadedBook(record.title);
+    }
+
+    return record;
+  }, [enqueueGuidanceToast, markGrowthInspectorUpdated]);
+
   const restoreFromHistory = useCallback((record: HistoryRecord) => {
     // Signal background analysis to stop writing to display
     bgAnalysisTitleRef.current = "";
@@ -1617,6 +1693,54 @@ export default function Home() {
       resetReaderScrollPosition();
     });
   }, [resetReaderScrollPosition, restoreFromHistory]);
+
+  const showBackgroundAnalysis = useCallback(() => {
+    const bg = bgAnalysisRef.current;
+    if (!bg) return false;
+
+    setSelectedFile(null);
+    setBookTitle(bg.title);
+    setBookAuthor(bg.author);
+    setBookCoverImage(bg.coverImage);
+    setBookSummary(bg.bookSummary);
+    setChapters(bg.chapters);
+    setReadingGuide(bg.readingGuide);
+    setViewMap(bg.viewMap);
+    setActionExtraction(bg.actionExtraction);
+    setCriticalExamination(bg.viewValidation);
+    setIdeaSourceTracing(bg.ideaSourceTracing);
+    setWorkspaceQuote(sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }));
+    setIsLiteMode(bg.liteMode);
+    setIsLiteUnlocked(!bg.liteMode);
+    setCurrentStarterBookId(bg.starterBookId);
+    setDecisionScenarios(loadDecisionScenarioCache(buildDecisionBookId(bg.title)));
+    setIsDecisionPanelOpen(false);
+    setDecisionError("");
+    setAnalysisErrorCode(null);
+    setViewMode("overview");
+    setImmersiveIndex(0);
+    setSlideDir(null);
+    bgAnalysisTitleRef.current = bg.title;
+
+    if (bgAnalysisStatus.active) {
+      setMessage(bgAnalysisStatus.step ? `正在生成${bgAnalysisStatus.step}` : "正在分析...");
+      setIsLoading(true);
+      setIsLoadingBookSummary(!bg.bookSummary);
+      setIsLoadingReadingGuide(!bg.readingGuide);
+      setIsLoadingViewMap(!bg.liteMode && !bg.viewMap);
+      setIsLoadingActionExtraction(!bg.liteMode && !bg.actionExtraction);
+      setIsLoadingViewValidation(!bg.liteMode && !bg.viewValidation);
+      setIsLoadingIdeaSourceTracing(!bg.liteMode && !bg.ideaSourceTracing);
+    } else {
+      resetAnalysisLoadingStates();
+      setMessage("分析完成");
+    }
+
+    requestAnimationFrame(() => {
+      resetReaderScrollPosition();
+    });
+    return true;
+  }, [bgAnalysisStatus, resetAnalysisLoadingStates, resetReaderScrollPosition]);
 
   const processFile = (file: File | undefined | null) => {
     if (!file) {
@@ -2224,6 +2348,11 @@ export default function Home() {
 
     setActiveTabId(tab.id);
 
+    if (tab.source === "analysis") {
+      showBackgroundAnalysis();
+      return;
+    }
+
     if (tab.source === "starter" && tab.starterBookId) {
       openStarterBook(tab.starterBookId);
       return;
@@ -2235,7 +2364,7 @@ export default function Home() {
         openHistoryRecord(record);
       }
     }
-  }, [openHistoryRecord, openStarterBook, openTabs, recentHistory]);
+  }, [openHistoryRecord, openStarterBook, openTabs, recentHistory, showBackgroundAnalysis]);
 
   const closeWorkspaceTab = useCallback((tabId: string) => {
     if (isAnalyzing) return;
@@ -2320,18 +2449,59 @@ export default function Home() {
       setIsLoadingIdeaSourceTracing(true);
 
       // Initialize background analysis tracker
+      const pendingTitle = stripSupportedFileExtension(fileToAnalyze.name) || "新书";
       const bg: BgAnalysisData = {
-        title: "", author: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
+        title: pendingTitle, author: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
         ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
         fileType: getFileTypeFromName(fileToAnalyze.name) ?? "epub",
         starterBookId: currentStarterBookId,
       };
-      bgAnalysisRef.current = null;
+      bgAnalysisRef.current = bg;
+      bgAnalysisTitleRef.current = pendingTitle;
+      setOpenTabs((prev) => {
+        const tab: WorkspaceTab = {
+          id: getAnalysisTabId(pendingTitle),
+          title: pendingTitle,
+          subtitle: "解析中",
+          source: "analysis",
+          analysisTitle: pendingTitle,
+          closable: false,
+          status: "analyzing",
+          progressLabel: "0/6",
+        };
+        return prev.some((item) => item.id === tab.id) ? prev : [...prev, tab];
+      });
+      setActiveTabId(getAnalysisTabId(pendingTitle));
       let stepsCompleted = 0;
       const totalSteps = 6;
       const updateProgress = (step: string) => {
         setBgAnalysisStatus({ active: true, title: bg.title || "新书", step, stepsCompleted, totalSteps });
+        setOpenTabs((prev) => {
+          const analysisTitle = bg.title || pendingTitle;
+          const nextId = getAnalysisTabId(analysisTitle);
+          const previousIds = new Set([getAnalysisTabId(pendingTitle)]);
+          if (bg.title) previousIds.add(getAnalysisTabId(bg.title));
+          const existingIndex = prev.findIndex((tab) => previousIds.has(tab.id));
+          const nextTab: WorkspaceTab = {
+            id: nextId,
+            title: analysisTitle,
+            subtitle: "解析中",
+            source: "analysis",
+            analysisTitle,
+            closable: false,
+            status: "analyzing",
+            progressLabel: `${stepsCompleted}/${totalSteps}`,
+          };
+          if (existingIndex === -1) return [...prev, nextTab];
+          const next = [...prev];
+          next[existingIndex] = nextTab;
+          return next;
+        });
+        setActiveTabId((current) => {
+          const previousIds = [getAnalysisTabId(pendingTitle), getAnalysisTabId(bg.title || pendingTitle)];
+          return current && previousIds.includes(current) ? getAnalysisTabId(bg.title || pendingTitle) : current;
+        });
       };
       updateProgress("上传解析中…");
 
@@ -2391,28 +2561,38 @@ export default function Home() {
       bg.bookSummary = bkSummary;
       bg.chapters = chaps;
       bg.liteMode = liteMode;
+      bgAnalysisRef.current = bg;
       stepsCompleted = 1;
-      bgAnalysisTitleRef.current = title;
+      const shouldAttachAnalysisToDisplay =
+        bgAnalysisTitleRef.current === pendingTitle || bgAnalysisTitleRef.current === title;
+      if (shouldAttachAnalysisToDisplay) {
+        bgAnalysisTitleRef.current = title;
+      }
+      updateProgress("章节已解析…");
 
       // Helper: only write to display if user is still viewing this book
       const isStillViewing = () => bgAnalysisTitleRef.current === title;
 
       // Show initial results immediately
-      setBookTitle(title);
-      setBookAuthor(author);
-      setBookCoverImage(coverImage);
-      setBookSummary(bkSummary);
-      setChapters(chaps);
-      setIsLiteMode(liteMode);
-      setIsLoadingBookSummary(false);
+      if (isStillViewing()) {
+        setBookTitle(title);
+        setBookAuthor(author);
+        setBookCoverImage(coverImage);
+        setBookSummary(bkSummary);
+        setChapters(chaps);
+        setIsLiteMode(liteMode);
+        setIsLoadingBookSummary(false);
+      }
 
       if (liteMode) {
-        setIsLoadingViewMap(false);
-        setIsLoadingActionExtraction(false);
-        setIsLoadingViewValidation(false);
-        setIsLoadingIdeaSourceTracing(false);
+        if (isStillViewing()) {
+          setIsLoadingViewMap(false);
+          setIsLoadingActionExtraction(false);
+          setIsLoadingViewValidation(false);
+          setIsLoadingIdeaSourceTracing(false);
+        }
         
-        setMessage("正在生成阅读指南...");
+        if (isStillViewing()) setMessage("正在生成阅读指南...");
         updateProgress("阅读指南…");
         const [guideResult, quoteResult] = await Promise.allSettled([
           fetch("/api/skills/reading-guide", {
@@ -2439,11 +2619,30 @@ export default function Home() {
           );
           if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
         }
+        bgAnalysisRef.current = bg;
 
         if (isStillViewing()) setIsLoadingReadingGuide(false);
-        setMessage("分析完成");
+        saveBgAnalysisToHistory(bg);
+        setOpenTabs((prev) =>
+          prev.map((tab) =>
+            tab.source === "analysis" && tab.analysisTitle === title
+              ? {
+                  ...tab,
+                  id: `history:${title}-${bg.fileType}`,
+                  source: "history",
+                  recordId: `${title}-${bg.fileType}`,
+                  closable: true,
+                  status: undefined,
+                  progressLabel: undefined,
+                }
+              : tab
+          )
+        );
+        setActiveTabId((current) =>
+          current === getAnalysisTabId(title) ? `history:${title}-${bg.fileType}` : current
+        );
+        if (isStillViewing()) setMessage("分析完成");
         setBgAnalysisStatus({ active: false });
-        // NOTE: We rely on the useEffect hook to catch message === "分析完成" && !isAnalyzing to save history.
         return;
       }
 
@@ -2462,6 +2661,7 @@ export default function Home() {
           if (isStillViewing()) setReadingGuide(bg.readingGuide);
         }
       } catch (e) { console.error("阅读指南生成失败:", e); }
+      bgAnalysisRef.current = bg;
       if (isStillViewing()) setIsLoadingReadingGuide(false);
       stepsCompleted = 2;
 
@@ -2480,6 +2680,7 @@ export default function Home() {
           if (isStillViewing()) setViewMap(bg.viewMap);
         }
       } catch (e) { console.error("观点地图生成失败:", e); }
+      bgAnalysisRef.current = bg;
       if (isStillViewing()) setIsLoadingViewMap(false);
       stepsCompleted = 3;
 
@@ -2528,6 +2729,7 @@ export default function Home() {
         );
         if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
       }
+      bgAnalysisRef.current = bg;
       if (isStillViewing()) {
         setIsLoadingActionExtraction(false);
         setIsLoadingViewValidation(false);
@@ -2537,6 +2739,25 @@ export default function Home() {
 
       // ── Save to history ──
       bgAnalysisRef.current = bg;
+      saveBgAnalysisToHistory(bg);
+      setOpenTabs((prev) =>
+        prev.map((tab) =>
+          tab.source === "analysis" && tab.analysisTitle === title
+            ? {
+                ...tab,
+                id: `history:${title}-${bg.fileType}`,
+                source: "history",
+                recordId: `${title}-${bg.fileType}`,
+                closable: true,
+                status: undefined,
+                progressLabel: undefined,
+              }
+            : tab
+        )
+      );
+      setActiveTabId((current) =>
+        current === getAnalysisTabId(title) ? `history:${title}-${bg.fileType}` : current
+      );
 
       if (isStillViewing()) {
         // User is still on this book — just mark complete
@@ -3006,6 +3227,8 @@ export default function Home() {
     id: tab.id,
     title: tab.title,
     closable: tab.closable,
+    status: tab.status,
+    progressLabel: tab.progressLabel,
   }));
   const hasPendingStarterBooks = experiencedStarterIds.length < starterBooks.length;
   const fullHistoryRecords = recentHistory
@@ -4378,14 +4601,20 @@ export default function Home() {
 
       {/* ── Background analysis progress indicator ── */}
       {bgAnalysisStatus.active && bgAnalysisTitleRef.current !== bookTitle && (
-        <div className="fixed right-4 top-4 z-50 flex items-center gap-2.5 rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] px-4 py-2.5 text-xs text-[var(--ink-soft)] shadow-[0_8px_24px_rgba(24,29,38,0.12)]">
+        <button
+          type="button"
+          onClick={showBackgroundAnalysis}
+          className="fixed right-4 top-4 z-50 flex items-center gap-2.5 rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] px-4 py-2.5 text-left text-xs text-[var(--ink-soft)] shadow-[0_8px_24px_rgba(24,29,38,0.12)] transition-all hover:border-[#c9d1d6] hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] active:scale-[0.99]"
+          aria-label={`查看《${bgAnalysisStatus.title}》的实时解析进度`}
+          title="查看实时解析"
+        >
           <span className="relative flex h-2 w-2 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-40" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
           </span>
           <span className="max-w-[180px] truncate">《{bgAnalysisStatus.title}》{bgAnalysisStatus.step}</span>
           <span className="rounded-[6px] border border-[#dfe4e8] bg-[#f8fafc] px-1.5 py-0.5 text-[var(--ink-faint)]">{bgAnalysisStatus.stepsCompleted}/{bgAnalysisStatus.totalSteps}</span>
-        </div>
+        </button>
       )}
 
       <div className="md:hidden">
