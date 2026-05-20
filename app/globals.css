@@ -343,6 +343,36 @@ select {
   will-change: transform, opacity;
 }
 
+@keyframes testimonial-hover-card-flight {
+  0% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--testimonial-fly-x, 0px)),
+        calc(-50% + var(--testimonial-fly-y, 0px))
+      );
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.testimonial-hover-card-flight {
+  animation: testimonial-hover-card-flight 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonial-hover-card-flight {
+    animation: none;
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* ── Markdown prose ─────────────────────────────────────────────────────────── */
 .md-prose {
   font-size: 0.9375rem;
