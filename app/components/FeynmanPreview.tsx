@@ -26,8 +26,11 @@ function fallbackTemplate(): FeynmanTemplateChoice {
   return {
     slug: "editorial-forest",
     name: "Editorial Forest",
+    nameZh: "森林编辑风",
     tagline: "Forest green, dusty pink, and warm cream meet Source Serif 4 in a quiet, intentional quarterly-review deck.",
+    taglineZh: "森林绿、灰粉色和温暖奶油纸色组合，像一份安静、克制、带书卷气的编辑型演示稿。",
     bestFor: "Anything that should feel like a considered editorial: research recaps, book or program announcements, and thoughtful readouts.",
+    bestForZh: "适合需要被认真阅读和温和讲述的内容：读书分享、研究复盘、团队回顾、项目介绍、课程或计划发布。",
     reason: "默认书籍讲解模板，兼顾书卷气和演示可读性。",
     mood: ["editorial", "quiet", "warm"],
     scheme: "light",
@@ -206,7 +209,7 @@ export function FeynmanPreview({
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-[var(--ink)]">
-                    模板风格：{isTemplateLoading ? "正在匹配..." : selectedTemplate.name}
+                    模板风格：{isTemplateLoading ? "正在匹配..." : selectedTemplate.nameZh ?? selectedTemplate.name}
                   </p>
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -215,10 +218,10 @@ export function FeynmanPreview({
                   />
                 </div>
                 <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
-                  {selectedTemplate.tagline}
+                  {selectedTemplate.taglineZh ?? selectedTemplate.tagline}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
-                  {selectedTemplate.bestFor}
+                  {selectedTemplate.bestForZh ?? selectedTemplate.bestFor}
                 </p>
               </div>
             </li>

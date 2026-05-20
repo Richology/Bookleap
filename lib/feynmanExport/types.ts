@@ -59,8 +59,11 @@ export type FeynmanTemplateSlug =
 export type FeynmanTemplateChoice = {
   slug: FeynmanTemplateSlug;
   name: string;
+  nameZh?: string;
   tagline: string;
+  taglineZh?: string;
   bestFor: string;
+  bestForZh?: string;
   reason: string;
   mood: string[];
   scheme: "light" | "dark" | "mixed";
