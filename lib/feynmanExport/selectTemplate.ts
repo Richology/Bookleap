@@ -482,6 +482,27 @@ const TEMPLATE_COPY_ZH: Record<
   },
 };
 
+const TEMPLATE_THUMBNAILS: Record<FeynmanTemplateSlug, string[]> = {
+  "editorial-forest": ["editorial-forest-1.png", "editorial-forest-2.png", "editorial-forest-5.png"],
+  cartesian: ["cartesian-1.png", "cartesian-4.png", "cartesian-8.png"],
+  "soft-editorial": ["soft-editorial-4.png", "soft-editorial-6.png", "soft-editorial-10.png"],
+  vellum: ["vellum-1.png", "vellum-4.png", "vellum-8.png"],
+  signal: ["signal-1.png", "signal-8.png", "signal-18.png"],
+  "blue-professional": ["blue-professional-1.png", "blue-professional-6.png", "blue-professional-8.png"],
+  "cobalt-grid": ["cobalt-grid-1.png", "cobalt-grid-3.png", "cobalt-grid-5.png"],
+  "biennale-yellow": ["biennale-yellow-1.png", "biennale-yellow-5.png", "biennale-yellow-8.png"],
+  "stencil-tablet": ["stencil-tablet-1.png", "stencil-tablet-3.png", "stencil-tablet-8.png"],
+  broadside: ["broadside-1.png", "broadside-4.png", "broadside-13.png"],
+  "bold-poster": ["bold-poster-1.png", "bold-poster-4.png", "bold-poster-8.png"],
+  "raw-grid": ["raw-grid-1.png", "raw-grid-4.png", "raw-grid-8.png"],
+  scatterbrain: ["scatterbrain-1.png", "scatterbrain-4.png", "scatterbrain-8.png"],
+  capsule: ["capsule-1.png", "capsule-4.png", "capsule-8.png"],
+};
+
+function getThumbnailUrls(slug: FeynmanTemplateSlug): string[] {
+  return TEMPLATE_THUMBNAILS[slug].map((name) => `/feynman-templates/screenshots/${name}`);
+}
+
 function buildContentText(bookTitle: string, author: string, cards: FeynmanCardsInput, content: FeynmanHtmlContent) {
   return [
     bookTitle,
@@ -542,15 +563,17 @@ export function selectFeynmanTemplate(params: {
 
 export function getFeynmanTemplateBySlug(slug: string | undefined): FeynmanTemplateChoice {
   const winner = TEMPLATE_PROFILES.find((profile) => profile.slug === slug) ?? TEMPLATE_PROFILES[0];
-  const zh = TEMPLATE_COPY_ZH[winner.slug as FeynmanTemplateSlug];
+  const templateSlug = winner.slug as FeynmanTemplateSlug;
+  const zh = TEMPLATE_COPY_ZH[templateSlug];
   return {
-    slug: winner.slug as FeynmanTemplateSlug,
+    slug: templateSlug,
     name: winner.name,
     nameZh: zh.nameZh,
     tagline: winner.tagline,
     taglineZh: zh.taglineZh,
     bestFor: winner.bestFor,
     bestForZh: zh.bestForZh,
+    thumbnailUrls: getThumbnailUrls(templateSlug),
     reason: winner.reason,
     mood: winner.mood,
     scheme: winner.scheme,
