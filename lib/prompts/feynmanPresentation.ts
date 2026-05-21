@@ -52,10 +52,12 @@ ${templateBrief}
 5. 输出格式：
    - 只输出 JSON，不要 Markdown 代码块，不要解释
    - 必须严格输出如下结构，字段名不能改
+   - type 用于匹配模板页面结构，只能从 problem、idea、method、case、list、quote、summary 中选择
 
 {
   "slides": [
     {
+      "type": "problem",
       "title": "页面标题",
       "content": "讲解文本，可引用卡片或新生成内容",
       "example": "可选案例或提示"
@@ -67,6 +69,7 @@ ${templateBrief}
    - 每页内容既可调用卡片，也可生成新文本
    - 输出内容可直接渲染到 HTML PPT 模板
    - 确保内容风格、结构和可读性稳定
+   - 不同页面要有明确类型：开场问题、核心观点、方法模型、案例场景、清单步骤、金句判断、总结收束要交替出现
 
 数量要求：slides 8-12 页。`;
 }
