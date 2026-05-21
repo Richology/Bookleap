@@ -64,6 +64,7 @@ export type FeynmanTemplateChoice = {
   taglineZh?: string;
   bestFor: string;
   bestForZh?: string;
+  thumbnailUrls?: string[];
   reason: string;
   mood: string[];
   scheme: "light" | "dark" | "mixed";

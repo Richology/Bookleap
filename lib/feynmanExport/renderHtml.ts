@@ -102,6 +102,17 @@ function getSlideLayoutClass(
   return preset[index % preset.length];
 }
 
+function getSlideDensityClass(body: string): string {
+  const compactLength = body.replace(/\s+/g, "").length;
+  const numberedCount = body.match(/\d+[.)、]\s+/g)?.length ?? 0;
+  const sentenceCount = body.match(/[。！？!?；;]/g)?.length ?? 0;
+  const structureCount = Math.max(numberedCount, sentenceCount);
+
+  if (compactLength >= 220 || structureCount >= 6) return "density-dense";
+  if (compactLength >= 150 || structureCount >= 4) return "density-comfy";
+  return "density-normal";
+}
+
 type RenderedChapter = {
   key: string;
   title: string;
@@ -194,9 +205,10 @@ function renderPresentationSlide(
   template: FeynmanTemplateChoice
 ): string {
   const layoutClass = getSlideLayoutClass(index, slide.body, template);
+  const densityClass = getSlideDensityClass(slide.body);
 
   return `
-    <section class="chapter presentation-slide ${layoutClass}" data-slide-title="${escapeAttr(slide.title)}">
+    <section class="chapter presentation-slide ${layoutClass} ${densityClass}" data-slide-title="${escapeAttr(slide.title)}">
       <p class="eyebrow">${String(index + 1).padStart(2, "0")} / 讲述页</p>
       <h2>${escapeHtml(slide.title)}</h2>
       <div class="slide-body">${renderSlideBody(slide.body)}</div>
@@ -1053,6 +1065,45 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       width: min(100%, 920px);
       margin-top: 0;
       font-size: clamp(22px, 2.1vw, 34px);
+    }
+    body.deck-mode .presentation-slide.density-comfy h2 {
+      font-size: clamp(30px, 3.4vw, 58px);
+    }
+    body.deck-mode .presentation-slide.density-comfy .slide-body {
+      font-size: clamp(20px, 1.78vw, 29px);
+      line-height: 1.4;
+    }
+    body.deck-mode .presentation-slide.density-comfy .slide-body p + p {
+      margin-top: 0.42em;
+    }
+    body.deck-mode .presentation-slide.density-comfy .slide-body ol {
+      gap: 0.42em;
+    }
+    body.deck-mode .presentation-slide.density-dense h2 {
+      font-size: clamp(28px, 3vw, 50px);
+      line-height: 1.06;
+    }
+    body.deck-mode .presentation-slide.density-dense .slide-body {
+      font-size: clamp(17px, 1.42vw, 24px);
+      line-height: 1.34;
+    }
+    body.deck-mode .presentation-slide.density-dense .slide-body p + p {
+      margin-top: 0.3em;
+    }
+    body.deck-mode .presentation-slide.density-dense .slide-body ol {
+      gap: 0.3em;
+    }
+    body.deck-mode .presentation-slide.density-dense.layout-panel .slide-body,
+    body.deck-mode .presentation-slide.density-dense.layout-tiles .slide-body p,
+    body.deck-mode .presentation-slide.density-dense.layout-tiles .slide-body li {
+      padding: clamp(12px, 1.8vw, 24px);
+    }
+    body.deck-mode .presentation-slide.density-dense.layout-table .slide-body p,
+    body.deck-mode .presentation-slide.density-dense.layout-table .slide-body li {
+      padding: 10px 0;
+    }
+    body.deck-mode .presentation-slide.density-dense.layout-stack .slide-body {
+      padding-top: 18px;
     }
     body.deck-mode .chapter-cover.is-active { display: grid; }
     body.deck-mode .chapter-final.is-active { display: flex; }

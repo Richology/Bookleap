@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useModalTransition } from "@/app/hooks/useModalTransition";
 import type {
@@ -31,6 +32,11 @@ function fallbackTemplate(): FeynmanTemplateChoice {
     taglineZh: "森林绿、灰粉色和温暖奶油纸色组合，像一份安静、克制、带书卷气的编辑型演示稿。",
     bestFor: "Anything that should feel like a considered editorial: research recaps, book or program announcements, and thoughtful readouts.",
     bestForZh: "适合需要被认真阅读和温和讲述的内容：读书分享、研究复盘、团队回顾、项目介绍、课程或计划发布。",
+    thumbnailUrls: [
+      "/feynman-templates/screenshots/editorial-forest-1.png",
+      "/feynman-templates/screenshots/editorial-forest-2.png",
+      "/feynman-templates/screenshots/editorial-forest-5.png",
+    ],
     reason: "默认书籍讲解模板，兼顾书卷气和演示可读性。",
     mood: ["editorial", "quiet", "warm"],
     scheme: "light",
@@ -160,7 +166,7 @@ export function FeynmanPreview({
       }}
     >
       <section
-        className="flex w-full max-w-[540px] flex-col overflow-hidden rounded-[12px] border border-[#9297a0] bg-[#fbfcfd] shadow-[0_18px_44px_rgba(24,29,38,0.18)]"
+        className="flex w-full max-w-[760px] flex-col overflow-hidden rounded-[12px] border border-[#9297a0] bg-[#fbfcfd] shadow-[0_18px_44px_rgba(24,29,38,0.18)]"
         style={panelStyle}
         role="dialog"
         aria-modal="true"
@@ -223,6 +229,23 @@ export function FeynmanPreview({
                 <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
                   {selectedTemplate.bestForZh ?? selectedTemplate.bestFor}
                 </p>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {(selectedTemplate.thumbnailUrls ?? []).slice(0, 3).map((url, index) => (
+                    <figure
+                      key={url}
+                      className="overflow-hidden rounded-[7px] border border-[#dfe4e8] bg-[#eef1f4]"
+                    >
+                      <Image
+                        src={url}
+                        alt={`${selectedTemplate.nameZh ?? selectedTemplate.name} 模板预览 ${index + 1}`}
+                        width={320}
+                        height={180}
+                        className="block aspect-[16/9] w-full object-cover"
+                        loading="lazy"
+                      />
+                    </figure>
+                  ))}
+                </div>
               </div>
             </li>
           </ol>
