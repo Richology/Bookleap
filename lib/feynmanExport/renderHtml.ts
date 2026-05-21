@@ -177,8 +177,8 @@ function renderCover(content: FeynmanHtmlContent): string {
 
   return `
     <section class="chapter chapter-cover" data-slide-title="封面">
+      <p class="deck-brand">书跃 BookLeap</p>
       <div class="cover-copy">
-        <p class="eyebrow">BookLeap Feynman Mode</p>
         <h1>${escapeHtml(content.bookTitle)}</h1>
         <p class="subtitle">${author}</p>
       </div>
@@ -193,6 +193,7 @@ function renderCover(content: FeynmanHtmlContent): string {
 function renderOverview(content: FeynmanHtmlContent): string {
   return `
     <section class="chapter" data-slide-title="总体概述">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">01 / 总体概述</p>
       <h2>这本书先解决一个什么问题？</h2>
       <div class="prose">${paragraph(content.overview)}</div>
@@ -209,6 +210,7 @@ function renderPresentationSlide(
 
   return `
     <section class="chapter presentation-slide ${layoutClass} ${densityClass}" data-slide-title="${escapeAttr(slide.title)}">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">${String(index + 1).padStart(2, "0")} / 讲述页</p>
       <h2>${escapeHtml(slide.title)}</h2>
       <div class="slide-body">${renderSlideBody(slide.body)}</div>
@@ -221,6 +223,7 @@ function renderAgenda(chapters: RenderedChapter[]): string {
 
   return `
     <section class="chapter agenda-slide" data-slide-title="目录概览">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">00 / 目录概览</p>
       <h2>这场分享会怎么讲？</h2>
       <div class="agenda-grid">
@@ -240,6 +243,7 @@ function renderAgenda(chapters: RenderedChapter[]): string {
 function renderCoreIdeas(content: FeynmanHtmlContent): string {
   return `
     <section class="chapter" data-slide-title="核心观点">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">02 / 核心观点</p>
       <h2>可以直接讲给别人的几句话</h2>
       <div class="idea-list">
@@ -265,6 +269,7 @@ function renderCoreIdeas(content: FeynmanHtmlContent): string {
 function renderMethods(content: FeynmanHtmlContent): string {
   return `
     <section class="chapter chapter-accent" data-slide-title="方法总结">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">03 / 方法总结</p>
       <h2>读完以后，具体怎么用？</h2>
       <div class="prose">${paragraph(content.methodsSummary)}</div>
@@ -274,6 +279,7 @@ function renderMethods(content: FeynmanHtmlContent): string {
 function renderModels(content: FeynmanHtmlContent): string {
   return `
     <section class="chapter" data-slide-title="关键模型">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">04 / 关键模型</p>
       <h2>把观点变成可复用的模型</h2>
       <div class="model-grid">
@@ -296,6 +302,7 @@ function renderModels(content: FeynmanHtmlContent): string {
 function renderExamples(content: FeynmanHtmlContent): string {
   return `
     <section class="chapter" data-slide-title="使用场景">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">05 / 使用场景</p>
       <h2>放进现实里，才知道有没有懂</h2>
       <div class="example-list">
@@ -320,6 +327,7 @@ function renderExercises(content: FeynmanHtmlContent): string {
 
   return `
     <section class="chapter" data-slide-title="决策练习">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">06 / 决策练习</p>
       <h2>最后，用一个选择检验理解</h2>
       <div class="exercise-list">
@@ -348,6 +356,7 @@ function renderExercises(content: FeynmanHtmlContent): string {
 function renderFinal(content: FeynmanHtmlContent): string {
   return `
     <section class="chapter chapter-final" data-slide-title="结语">
+      <p class="deck-brand">书跃 BookLeap</p>
       <p class="eyebrow">Final / 结语</p>
       <h2>一句话带走</h2>
       <blockquote>${escapeHtml(content.finalTakeaway)}</blockquote>
@@ -450,6 +459,16 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       opacity: 0.72;
     }
 
+    .deck-brand {
+      display: none;
+      margin: 0;
+      color: var(--faint);
+      font-family: var(--mono-font);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
     .chapter-cover {
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.62fr);
@@ -460,6 +479,7 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
 
     .chapter-cover::after { background: var(--rose); }
+    .chapter-cover .deck-brand { color: var(--rose-soft); }
     .cover-copy { max-width: 720px; }
     .eyebrow {
       margin: 0 0 18px;
@@ -837,6 +857,12 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       overflow: hidden;
       background: #11130f;
     }
+    body.deck-mode .toolbar {
+      top: 16px;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+    }
     body.deck-mode main {
       width: 100vw;
       height: 100vh;
@@ -857,6 +883,19 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       box-shadow: none;
     }
     body.deck-mode .chapter.is-active { display: block; }
+    body.deck-mode .chapter .deck-brand {
+      display: block;
+      position: absolute;
+      top: clamp(24px, 4vw, 52px);
+      right: clamp(24px, 4vw, 56px);
+      z-index: 3;
+      color: color-mix(in srgb, var(--ink) 68%, transparent);
+    }
+    body.deck-mode .chapter-cover .deck-brand,
+    body.deck-mode .chapter-final .deck-brand,
+    body.deck-mode .presentation-slide.layout-poster .deck-brand {
+      color: color-mix(in srgb, var(--panel) 78%, transparent);
+    }
     body.deck-mode .presentation-slide.is-active {
       display: grid;
       grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.78fr);
