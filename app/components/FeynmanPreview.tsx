@@ -87,6 +87,7 @@ export function FeynmanPreview({
 
     const fetchTemplate = async () => {
       setIsTemplateLoading(true);
+      setTemplate(null);
       setError("");
       try {
         const response = await fetch("/api/feynman-template", {
@@ -135,7 +136,7 @@ export function FeynmanPreview({
   }, [isDownloading]);
 
   const handleDownload = async () => {
-    if (isDownloading) return;
+    if (isDownloading || isTemplateLoading) return;
 
     try {
       setIsDownloading(true);
@@ -178,6 +179,7 @@ export function FeynmanPreview({
   };
 
   const selectedTemplate = template ?? fallbackTemplate();
+  const canDownload = !isDownloading && !isTemplateLoading;
   const generationStatus =
     generationProgress >= 96
       ? "生成完成，正在下载"
@@ -224,63 +226,75 @@ export function FeynmanPreview({
           </button>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
-          <ol className="space-y-4">
-            <li className="grid grid-cols-[28px_1fr] gap-3">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#c9d0d6] bg-[#f8fafc] text-xs font-semibold text-[var(--ink-muted)]">
-                1
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-[var(--ink)]">
-                  即将生成一个给别人讲述的 HTML
-                </p>
-                <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
-                  内容就是这本书的全部解析结果，会被重新组织成适合讲述、演示和离线打开的分享页。
-                </p>
-              </div>
-            </li>
+        <div className="space-y-5 px-6 py-5">
+          <div className="space-y-5">
+            <section>
+              <p className="text-sm font-semibold text-[var(--ink)]">
+                即将生成一个给别人讲述的 HTML
+              </p>
+              <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
+                内容就是这本书的全部解析结果，会被重新组织成适合讲述、演示和离线打开的分享页。
+              </p>
+            </section>
 
-            <li className="grid grid-cols-[28px_1fr] gap-3">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#c9d0d6] bg-[#f8fafc] text-xs font-semibold text-[var(--ink-muted)]">
-                2
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
+            <section>
+              {isTemplateLoading ? (
+                <div>
                   <p className="text-sm font-semibold text-[var(--ink)]">
-                    模板风格：{isTemplateLoading ? "正在匹配..." : selectedTemplate.nameZh ?? selectedTemplate.name}
+                    正在匹配最适合这本书的模板
                   </p>
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: selectedTemplate.colors.accent }}
-                    aria-hidden="true"
-                  />
-                </div>
-                <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
-                  {selectedTemplate.taglineZh ?? selectedTemplate.tagline}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
-                  {selectedTemplate.bestForZh ?? selectedTemplate.bestFor}
-                </p>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {(selectedTemplate.thumbnailUrls ?? []).slice(0, 3).map((url, index) => (
-                    <figure
-                      key={url}
-                      className="overflow-hidden rounded-[7px] border border-[#dfe4e8] bg-[#eef1f4]"
-                    >
-                      <Image
-                        src={url}
-                        alt={`${selectedTemplate.nameZh ?? selectedTemplate.name} 模板预览 ${index + 1}`}
-                        width={320}
-                        height={180}
-                        className="block aspect-[16/9] w-full object-cover"
-                        loading="lazy"
+                  <div className="mt-2 space-y-2">
+                    <span className="block h-3 w-[62%] rounded-full bg-[#e3e8ed]" />
+                    <span className="block h-3 w-[82%] rounded-full bg-[#eef2f5]" />
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-2" aria-hidden="true">
+                    {[0, 1, 2].map((item) => (
+                      <div
+                        key={item}
+                        className="aspect-[16/9] rounded-[7px] border border-[#dfe4e8] bg-[#eef1f4]"
                       />
-                    </figure>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </li>
-          </ol>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-[var(--ink)]">
+                      模板风格：{selectedTemplate.nameZh ?? selectedTemplate.name}
+                    </p>
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: selectedTemplate.colors.accent }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
+                    {selectedTemplate.taglineZh ?? selectedTemplate.tagline}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
+                    {selectedTemplate.bestForZh ?? selectedTemplate.bestFor}
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {(selectedTemplate.thumbnailUrls ?? []).slice(0, 3).map((url, index) => (
+                      <figure
+                        key={url}
+                        className="overflow-hidden rounded-[7px] border border-[#dfe4e8] bg-[#eef1f4]"
+                      >
+                        <Image
+                          src={url}
+                          alt={`${selectedTemplate.nameZh ?? selectedTemplate.name} 模板预览 ${index + 1}`}
+                          width={320}
+                          height={180}
+                          className="block aspect-[16/9] w-full object-cover"
+                          loading="lazy"
+                        />
+                      </figure>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
 
           {error && (
             <p className="rounded-[9px] border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-600">
@@ -289,10 +303,7 @@ export function FeynmanPreview({
           )}
         </div>
 
-        <div className="grid grid-cols-[28px_1fr] gap-3 border-t border-[#dfe4e8] px-6 py-4">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#c9d0d6] bg-[#f8fafc] text-xs font-semibold text-[var(--ink-muted)]">
-            3
-          </span>
+        <div className="border-t border-[#dfe4e8] px-6 py-4">
           <div className="space-y-3">
             {isDownloading && (
               <div className="rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5">
@@ -321,10 +332,10 @@ export function FeynmanPreview({
             <button
               type="button"
               onClick={() => void handleDownload()}
-              disabled={isDownloading}
+              disabled={!canDownload}
               className="flex h-11 w-full items-center justify-center rounded-[10px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isDownloading ? "生成中，请稍候" : "下载 HTML"}
+              {isDownloading ? "生成中，请稍候" : isTemplateLoading ? "正在匹配模板..." : "下载 HTML"}
             </button>
           </div>
         </div>
