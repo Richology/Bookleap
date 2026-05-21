@@ -4,6 +4,7 @@ import type {
   FeynmanCardsInput,
   FeynmanDecisionExerciseInput,
   FeynmanHtmlContent,
+  FeynmanTemplateChoice,
 } from "./types";
 
 function compactText(value: string, maxLength = 900): string {
@@ -292,12 +293,14 @@ export async function generateFeynmanContent({
   coverImageUrl,
   cards,
   decisionExercises,
+  template,
 }: {
   bookTitle: string;
   author: string;
   coverImageUrl?: string;
   cards: FeynmanCardsInput;
   decisionExercises?: FeynmanDecisionExerciseInput[];
+  template?: FeynmanTemplateChoice;
 }): Promise<FeynmanHtmlContent> {
   const fallback = buildFallbackFeynmanContent({
     bookTitle,
@@ -308,7 +311,7 @@ export async function generateFeynmanContent({
   });
 
   try {
-    const raw = await generateWithLLM(FEYNMAN_PRESENTATION_PROMPT(bookTitle, author, cards));
+    const raw = await generateWithLLM(FEYNMAN_PRESENTATION_PROMPT(bookTitle, author, cards, template));
     const parsed = extractJsonObject(raw);
     return {
       ...normalizeContent(parsed, fallback),

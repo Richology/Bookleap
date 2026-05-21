@@ -27,6 +27,81 @@ function paragraph(value: string): string {
   return `<p>${escapeHtml(value)}</p>`;
 }
 
+function renderSlideBody(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  const numberedItems = normalized
+    .replace(/\s+(\d+[.)、])\s*/g, "\n$1 ")
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (numberedItems.length >= 2 && numberedItems.every((item) => /^\d+[.)、]\s+/.test(item))) {
+    return `<ol>${numberedItems
+      .map((item) => `<li>${escapeHtml(item.replace(/^\d+[.)、]\s+/, ""))}</li>`)
+      .join("")}</ol>`;
+  }
+
+  const lineItems = value
+    .split(/\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (lineItems.length >= 2) {
+    return lineItems.map((item) => paragraph(item)).join("");
+  }
+
+  const sentenceItems = normalized.match(/[^。！？!?；;]+[。！？!?；;]?/g) ?? [normalized];
+  return sentenceItems
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => paragraph(item))
+    .join("");
+}
+
+type SlideLayout =
+  | "layout-split"
+  | "layout-statement"
+  | "layout-panel"
+  | "layout-stack"
+  | "layout-list"
+  | "layout-poster"
+  | "layout-tiles"
+  | "layout-table"
+  | "layout-ribbon";
+
+const TEMPLATE_LAYOUT_PRESETS: Partial<Record<FeynmanTemplateChoice["slug"], SlideLayout[]>> = {
+  "editorial-forest": ["layout-split", "layout-stack", "layout-statement", "layout-panel"],
+  cartesian: ["layout-stack", "layout-statement", "layout-split", "layout-table"],
+  "soft-editorial": ["layout-statement", "layout-stack", "layout-split", "layout-panel"],
+  vellum: ["layout-statement", "layout-table", "layout-stack", "layout-split"],
+  signal: ["layout-panel", "layout-table", "layout-statement", "layout-split"],
+  "blue-professional": ["layout-split", "layout-table", "layout-panel", "layout-list"],
+  "cobalt-grid": ["layout-table", "layout-split", "layout-panel", "layout-ribbon"],
+  "biennale-yellow": ["layout-poster", "layout-statement", "layout-stack", "layout-ribbon"],
+  "stencil-tablet": ["layout-tiles", "layout-table", "layout-panel", "layout-ribbon"],
+  broadside: ["layout-poster", "layout-statement", "layout-ribbon", "layout-split"],
+  "bold-poster": ["layout-poster", "layout-statement", "layout-panel", "layout-ribbon"],
+  "raw-grid": ["layout-tiles", "layout-table", "layout-panel", "layout-list"],
+  scatterbrain: ["layout-tiles", "layout-stack", "layout-panel", "layout-list"],
+  capsule: ["layout-tiles", "layout-split", "layout-panel", "layout-stack"],
+};
+
+function getSlideLayoutClass(
+  index: number,
+  body: string,
+  template: FeynmanTemplateChoice
+): SlideLayout {
+  const hasList = /\d+[.)、]\s+/.test(body);
+  if (hasList) return "layout-list";
+  const preset = TEMPLATE_LAYOUT_PRESETS[template.slug] ?? [
+    "layout-split",
+    "layout-stack",
+    "layout-statement",
+    "layout-panel",
+  ];
+  return preset[index % preset.length];
+}
+
 type RenderedChapter = {
   key: string;
   title: string;
@@ -115,27 +190,16 @@ function renderOverview(content: FeynmanHtmlContent): string {
 
 function renderPresentationSlide(
   slide: NonNullable<FeynmanHtmlContent["presentationSlides"]>[number],
-  index: number
+  index: number,
+  template: FeynmanTemplateChoice
 ): string {
-  const note = slide.note?.trim();
-  const source = slide.sourceCardTitle?.trim();
-  const hasMeta = note || source;
+  const layoutClass = getSlideLayoutClass(index, slide.body, template);
 
   return `
-    <section class="chapter presentation-slide" data-slide-title="${escapeAttr(slide.title)}">
+    <section class="chapter presentation-slide ${layoutClass}" data-slide-title="${escapeAttr(slide.title)}">
       <p class="eyebrow">${String(index + 1).padStart(2, "0")} / 讲述页</p>
       <h2>${escapeHtml(slide.title)}</h2>
-      <div class="slide-body">${paragraph(slide.body)}</div>
-      ${
-        hasMeta
-          ? `<aside class="slide-note" data-source-card>
-              <button type="button" class="source-chip" aria-expanded="false">
-                ${source ? `引用：${escapeHtml(source)}` : "案例 / 提示"}
-              </button>
-              ${note ? `<p>${escapeHtml(note)}</p>` : ""}
-            </aside>`
-          : ""
-      }
+      <div class="slide-body">${renderSlideBody(slide.body)}</div>
     </section>`;
 }
 
@@ -461,41 +525,21 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       line-height: 1.58;
       font-weight: 520;
     }
-    .slide-note {
-      position: relative;
-      margin-top: clamp(26px, 4vw, 46px);
-      max-width: 720px;
-      border-top: 1px solid var(--line);
-      padding-top: 18px;
-      color: var(--muted);
+    .slide-body p {
+      margin: 0;
+      text-indent: 2em;
     }
-    .source-chip {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      margin-bottom: 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: var(--panel);
-      padding: 4px 10px;
-      color: var(--forest);
-      font-family: var(--mono-font);
-      font-size: 12px;
-      font-weight: 750;
-      cursor: pointer;
+    .slide-body p + p {
+      margin-top: 0.64em;
     }
-    .slide-note p {
-      max-width: 52em;
-      font-size: 17px;
-      line-height: 1.68;
+    .slide-body ol {
+      display: grid;
+      gap: 0.52em;
+      margin: 0;
+      padding-left: 1.6em;
     }
-    .slide-note[data-source-open="false"] p,
-    .slide-note:not([data-source-open]) p {
-      display: none;
-    }
-    .slide-note:hover p,
-    .slide-note[data-source-open="true"] p {
-      display: block;
+    .slide-body li {
+      padding-left: 0.3em;
     }
 
     .agenda-slide {
@@ -803,9 +847,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     body.deck-mode .chapter.is-active { display: block; }
     body.deck-mode .presentation-slide.is-active {
       display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(420px, 0.78fr);
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      column-gap: clamp(48px, 6vw, 120px);
+      grid-template-columns: minmax(0, 0.92fr) minmax(420px, 0.78fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: clamp(32px, 5vw, 92px);
       align-content: center;
       align-items: start;
     }
@@ -814,7 +858,7 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     body.deck-mode .presentation-slide h2 {
       grid-column: 1;
-      grid-row: 2 / span 2;
+      grid-row: 2;
       max-width: 8.8em;
     }
     body.deck-mode .presentation-slide .slide-body {
@@ -825,10 +869,172 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       font-size: clamp(26px, 2.45vw, 38px);
       line-height: 1.52;
     }
-    body.deck-mode .presentation-slide .slide-note {
-      grid-column: 2;
-      grid-row: 3;
-      max-width: none;
+    body.deck-mode .presentation-slide.layout-statement.is-active {
+      grid-template-columns: 1fr;
+      align-content: center;
+    }
+    body.deck-mode .presentation-slide.layout-statement .eyebrow,
+    body.deck-mode .presentation-slide.layout-statement h2,
+    body.deck-mode .presentation-slide.layout-statement .slide-body {
+      grid-column: 1;
+    }
+    body.deck-mode .presentation-slide.layout-statement h2 {
+      max-width: 11em;
+      color: var(--forest);
+      font-size: clamp(58px, 7vw, 112px);
+    }
+    body.deck-mode .presentation-slide.layout-statement .slide-body {
+      max-width: 980px;
+      margin-top: 28px;
+      font-size: clamp(24px, 2.2vw, 34px);
+      color: var(--muted);
+    }
+    body.deck-mode .presentation-slide.layout-panel.is-active {
+      grid-template-columns: minmax(0, 0.7fr) minmax(480px, 1fr);
+      align-items: center;
+    }
+    body.deck-mode .presentation-slide.layout-panel h2 {
+      max-width: 7.2em;
+    }
+    body.deck-mode .presentation-slide.layout-panel .slide-body {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: clamp(28px, 4vw, 56px);
+      background: color-mix(in srgb, var(--panel) 72%, var(--rose-soft));
+      box-shadow: 0 18px 38px rgba(24, 29, 26, 0.08);
+    }
+    body.deck-mode .presentation-slide.layout-stack.is-active {
+      grid-template-columns: 1fr;
+      align-content: center;
+    }
+    body.deck-mode .presentation-slide.layout-stack .eyebrow,
+    body.deck-mode .presentation-slide.layout-stack h2,
+    body.deck-mode .presentation-slide.layout-stack .slide-body {
+      grid-column: 1;
+    }
+    body.deck-mode .presentation-slide.layout-stack h2 {
+      max-width: 12em;
+    }
+    body.deck-mode .presentation-slide.layout-stack .slide-body {
+      width: min(100%, 980px);
+      margin-top: clamp(28px, 4vw, 56px);
+      padding-top: clamp(22px, 3vw, 38px);
+      border-top: 1px solid var(--line);
+      font-size: clamp(26px, 2.6vw, 40px);
+    }
+    body.deck-mode .presentation-slide.layout-list.is-active {
+      grid-template-columns: minmax(0, 0.72fr) minmax(520px, 1fr);
+      align-items: center;
+    }
+    body.deck-mode .presentation-slide.layout-list .slide-body ol {
+      gap: 0.72em;
+      padding-left: 1.35em;
+    }
+    body.deck-mode .presentation-slide.layout-list .slide-body li {
+      padding-left: 0.45em;
+    }
+    body.deck-mode .presentation-slide.layout-poster.is-active {
+      grid-template-columns: 1fr;
+      align-content: space-between;
+      background: var(--forest);
+      color: var(--panel);
+    }
+    body.deck-mode .presentation-slide.layout-poster .eyebrow,
+    body.deck-mode .presentation-slide.layout-poster h2,
+    body.deck-mode .presentation-slide.layout-poster .slide-body {
+      grid-column: 1;
+    }
+    body.deck-mode .presentation-slide.layout-poster .eyebrow,
+    body.deck-mode .presentation-slide.layout-poster h2 {
+      color: var(--panel);
+    }
+    body.deck-mode .presentation-slide.layout-poster h2 {
+      max-width: 10em;
+      font-size: clamp(64px, 8vw, 128px);
+      line-height: 0.96;
+    }
+    body.deck-mode .presentation-slide.layout-poster .slide-body {
+      width: min(100%, 980px);
+      color: var(--panel);
+      font-size: clamp(22px, 2vw, 32px);
+      opacity: 0.92;
+    }
+    body.deck-mode .presentation-slide.layout-tiles.is-active {
+      grid-template-columns: minmax(0, 0.74fr) minmax(520px, 1fr);
+      align-items: center;
+    }
+    body.deck-mode .presentation-slide.layout-tiles .slide-body {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      font-size: clamp(19px, 1.65vw, 27px);
+      line-height: 1.48;
+    }
+    body.deck-mode .presentation-slide.layout-tiles .slide-body p,
+    body.deck-mode .presentation-slide.layout-tiles .slide-body li {
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: color-mix(in srgb, var(--panel) 72%, var(--rose-soft));
+      text-indent: 0;
+    }
+    body.deck-mode .presentation-slide.layout-tiles .slide-body ol {
+      display: contents;
+    }
+    body.deck-mode .presentation-slide.layout-table.is-active {
+      grid-template-columns: minmax(0, 0.64fr) minmax(560px, 1.06fr);
+      align-items: center;
+    }
+    body.deck-mode .presentation-slide.layout-table .slide-body {
+      border-top: 2px solid var(--forest);
+      border-bottom: 2px solid var(--forest);
+      font-size: clamp(20px, 1.85vw, 30px);
+      line-height: 1.5;
+    }
+    body.deck-mode .presentation-slide.layout-table .slide-body p,
+    body.deck-mode .presentation-slide.layout-table .slide-body li {
+      margin: 0;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+      text-indent: 0;
+    }
+    body.deck-mode .presentation-slide.layout-table .slide-body p:last-child,
+    body.deck-mode .presentation-slide.layout-table .slide-body li:last-child {
+      border-bottom: 0;
+    }
+    body.deck-mode .presentation-slide.layout-ribbon.is-active {
+      grid-template-columns: 1fr;
+      align-content: center;
+    }
+    body.deck-mode .presentation-slide.layout-ribbon::before {
+      content: "";
+      position: absolute;
+      inset: auto -10vw 14vh auto;
+      width: 72vw;
+      height: 16px;
+      background: var(--rose);
+      transform: rotate(-10deg);
+      opacity: 0.78;
+    }
+    body.deck-mode .presentation-slide.layout-ribbon .eyebrow,
+    body.deck-mode .presentation-slide.layout-ribbon h2,
+    body.deck-mode .presentation-slide.layout-ribbon .slide-body {
+      grid-column: 1;
+      position: relative;
+      z-index: 1;
+    }
+    body.deck-mode .presentation-slide.layout-ribbon h2 {
+      max-width: 12em;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: clamp(20px, 3vw, 36px);
+      background: var(--panel);
+    }
+    body.deck-mode .presentation-slide.layout-ribbon .slide-body {
+      width: min(100%, 920px);
+      margin-top: 28px;
+      font-size: clamp(22px, 2.1vw, 34px);
     }
     body.deck-mode .chapter-cover.is-active { display: grid; }
     body.deck-mode .chapter-final.is-active { display: flex; }
@@ -852,6 +1058,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       body.deck-mode .chapter { padding: 72px 24px 42px; }
       body.deck-mode .presentation-slide.is-active { display: block; }
       body.deck-mode .presentation-slide .slide-body { margin-top: 26px; }
+      body.deck-mode .presentation-slide.layout-panel .slide-body {
+        padding: 22px;
+      }
     }
 
     @media print {
@@ -883,7 +1092,6 @@ function renderScript(): string {
       const navButtons = Array.from(document.querySelectorAll("[data-slide-target]"));
       const overviewButtons = Array.from(document.querySelectorAll("[data-overview-target]"));
       const foldCards = Array.from(document.querySelectorAll("[data-fold-card]"));
-      const sourceCards = Array.from(document.querySelectorAll("[data-source-card]"));
       let active = 0;
 
       const setActive = (next) => {
@@ -939,15 +1147,6 @@ function renderScript(): string {
           button.setAttribute("aria-expanded", String(collapsed));
         });
       });
-      sourceCards.forEach((card) => {
-        const button = card.querySelector(".source-chip");
-        card.setAttribute("data-source-open", "false");
-        button?.addEventListener("click", () => {
-          const open = card.getAttribute("data-source-open") === "true";
-          card.setAttribute("data-source-open", String(!open));
-          button.setAttribute("aria-expanded", String(!open));
-        });
-      });
       overviewBtn?.addEventListener("click", () => {
         setMode("deck");
         const open = overview?.getAttribute("data-open") === "true";
@@ -987,7 +1186,11 @@ function renderScript(): string {
     })();`;
 }
 
-function buildChapters(content: FeynmanHtmlContent, mode: FeynmanExportMode): RenderedChapter[] {
+function buildChapters(
+  content: FeynmanHtmlContent,
+  mode: FeynmanExportMode,
+  template: FeynmanTemplateChoice
+): RenderedChapter[] {
   const hasExercises = !!content.decisionExercises?.length;
   const presentationSlides = content.presentationSlides?.filter(
     (slide) => slide.title.trim() && slide.body.trim()
@@ -999,7 +1202,7 @@ function buildChapters(content: FeynmanHtmlContent, mode: FeynmanExportMode): Re
       ...presentationSlides.map((slide, index) => ({
         key: `slide-${index + 1}`,
         title: slide.title,
-        html: renderPresentationSlide(slide, index),
+        html: renderPresentationSlide(slide, index, template),
       })),
       ...(hasExercises
         ? [{ key: "decision", title: "决策练习", html: renderExercises(content) }]
@@ -1069,7 +1272,7 @@ export function renderFeynmanHtml(
 ): string {
   const mode = options.mode ?? "all";
   const template = options.template ?? DEFAULT_TEMPLATE;
-  const renderedChapters = buildChapters(content, mode);
+  const renderedChapters = buildChapters(content, mode, template);
   const chapters = renderedChapters.map((chapter) => chapter.html).join("\n");
 
   return `<!doctype html>

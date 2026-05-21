@@ -1,13 +1,21 @@
-import type { FeynmanCardsInput } from "@/lib/feynmanExport/types";
+import type { FeynmanCardsInput, FeynmanTemplateChoice } from "@/lib/feynmanExport/types";
 
 const MAX_PROMPT_CARD_TEXT_LENGTH = 9000;
 
 export function FEYNMAN_PRESENTATION_PROMPT(
   bookTitle: string,
   author: string,
-  cards: FeynmanCardsInput
+  cards: FeynmanCardsInput,
+  template?: FeynmanTemplateChoice
 ): string {
   const payload = JSON.stringify(cards, null, 2).slice(0, MAX_PROMPT_CARD_TEXT_LENGTH);
+  const templateBrief = template
+    ? `\n已匹配模板：${template.nameZh ?? template.name}
+模板风格：${template.taglineZh ?? template.tagline}
+适合场景：${template.bestForZh ?? template.bestFor}
+版式适配要求：
+${getTemplateWritingGuidance(template.slug)}\n`
+    : "";
 
   return `你是一个“书籍内容演示设计师”，负责将书跃解析的内容生成一个演示型 PPT。
 
@@ -16,6 +24,7 @@ export function FEYNMAN_PRESENTATION_PROMPT(
 
 6 张解析卡片：
 ${payload}
+${templateBrief}
 
 要求如下：
 
@@ -60,4 +69,36 @@ ${payload}
    - 确保内容风格、结构和可读性稳定
 
 数量要求：slides 8-12 页。`;
+}
+
+function getTemplateWritingGuidance(slug: FeynmanTemplateChoice["slug"]): string {
+  if (["bold-poster", "broadside", "biennale-yellow"].includes(slug)) {
+    return [
+      "- 多写短而有冲击力的页面标题，适合海报式大标题。",
+      "- 每页正文收敛成一个强判断，少堆概念，多用一句话打透。",
+      "- 适合安排 2-3 页宣言式观点页，再穿插案例页。",
+    ].join("\n");
+  }
+
+  if (["raw-grid", "stencil-tablet", "scatterbrain", "capsule"].includes(slug)) {
+    return [
+      "- 多生成可拆成 2-4 个要点的页面，适合卡片、网格、工作坊式版式。",
+      "- 行动建议、步骤、清单和对比要写得清楚，方便视觉上分块呈现。",
+      "- 标题可以更直接，像工作台上的标签。",
+    ].join("\n");
+  }
+
+  if (["signal", "blue-professional", "cobalt-grid", "vellum"].includes(slug)) {
+    return [
+      "- 多使用结构化表达：判断、依据、行动，适合报告感和表格感页面。",
+      "- 每页正文要有层次，可自然拆成 2-3 段或编号要点。",
+      "- 少用情绪化词，强调可信、冷静、可执行。",
+    ].join("\n");
+  }
+
+  return [
+    "- 采用编辑型叙事：先提出问题，再解释误区，然后给出方法和场景。",
+    "- 标题要像文章小标题，正文像讲给朋友听的一段清楚解释。",
+    "- 页面之间要有阅读节奏，有大判断页，也有解释页和收束页。",
+  ].join("\n");
 }
