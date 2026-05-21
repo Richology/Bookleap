@@ -860,6 +860,8 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       grid-column: 1;
       grid-row: 2;
       max-width: 8.8em;
+      font-size: clamp(34px, 4vw, 68px);
+      line-height: 1.08;
     }
     body.deck-mode .presentation-slide .slide-body {
       grid-column: 2;
@@ -871,7 +873,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     body.deck-mode .presentation-slide.layout-statement.is-active {
       grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
       align-content: center;
+      gap: clamp(22px, 3vw, 44px);
     }
     body.deck-mode .presentation-slide.layout-statement .eyebrow,
     body.deck-mode .presentation-slide.layout-statement h2,
@@ -879,14 +883,16 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       grid-column: 1;
     }
     body.deck-mode .presentation-slide.layout-statement h2 {
+      grid-row: 2;
       max-width: 11em;
       color: var(--forest);
-      font-size: clamp(58px, 7vw, 112px);
+      font-size: clamp(42px, 5.2vw, 82px);
     }
     body.deck-mode .presentation-slide.layout-statement .slide-body {
+      grid-row: 3;
       max-width: 980px;
-      margin-top: 28px;
-      font-size: clamp(24px, 2.2vw, 34px);
+      margin-top: 0;
+      font-size: clamp(22px, 2vw, 32px);
       color: var(--muted);
     }
     body.deck-mode .presentation-slide.layout-panel.is-active {
@@ -905,7 +911,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     body.deck-mode .presentation-slide.layout-stack.is-active {
       grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
       align-content: center;
+      gap: clamp(20px, 3vw, 44px);
     }
     body.deck-mode .presentation-slide.layout-stack .eyebrow,
     body.deck-mode .presentation-slide.layout-stack h2,
@@ -913,14 +921,16 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       grid-column: 1;
     }
     body.deck-mode .presentation-slide.layout-stack h2 {
+      grid-row: 2;
       max-width: 12em;
     }
     body.deck-mode .presentation-slide.layout-stack .slide-body {
+      grid-row: 3;
       width: min(100%, 980px);
-      margin-top: clamp(28px, 4vw, 56px);
+      margin-top: 0;
       padding-top: clamp(22px, 3vw, 38px);
       border-top: 1px solid var(--line);
-      font-size: clamp(26px, 2.6vw, 40px);
+      font-size: clamp(23px, 2.2vw, 34px);
     }
     body.deck-mode .presentation-slide.layout-list.is-active {
       grid-template-columns: minmax(0, 0.72fr) minmax(520px, 1fr);
@@ -935,7 +945,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     body.deck-mode .presentation-slide.layout-poster.is-active {
       grid-template-columns: 1fr;
-      align-content: space-between;
+      grid-template-rows: auto auto auto;
+      align-content: center;
+      gap: clamp(24px, 4vw, 64px);
       background: var(--forest);
       color: var(--panel);
     }
@@ -949,11 +961,13 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       color: var(--panel);
     }
     body.deck-mode .presentation-slide.layout-poster h2 {
+      grid-row: 2;
       max-width: 10em;
-      font-size: clamp(64px, 8vw, 128px);
+      font-size: clamp(44px, 5.8vw, 92px);
       line-height: 0.96;
     }
     body.deck-mode .presentation-slide.layout-poster .slide-body {
+      grid-row: 3;
       width: min(100%, 980px);
       color: var(--panel);
       font-size: clamp(22px, 2vw, 32px);
@@ -1005,7 +1019,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     body.deck-mode .presentation-slide.layout-ribbon.is-active {
       grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
       align-content: center;
+      gap: clamp(22px, 3vw, 44px);
     }
     body.deck-mode .presentation-slide.layout-ribbon::before {
       content: "";
@@ -1025,6 +1041,7 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       z-index: 1;
     }
     body.deck-mode .presentation-slide.layout-ribbon h2 {
+      grid-row: 2;
       max-width: 12em;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -1032,8 +1049,9 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       background: var(--panel);
     }
     body.deck-mode .presentation-slide.layout-ribbon .slide-body {
+      grid-row: 3;
       width: min(100%, 920px);
-      margin-top: 28px;
+      margin-top: 0;
       font-size: clamp(22px, 2.1vw, 34px);
     }
     body.deck-mode .chapter-cover.is-active { display: grid; }
