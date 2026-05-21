@@ -25,21 +25,21 @@ export async function createFeynmanExportHtml(
   const bookTitle = request.bookTitle.trim() || "未知书名";
   const author = request.author?.trim() ?? "";
   const mode: FeynmanExportMode = request.mode ?? "all";
-  const content = await generateFeynmanContent({
-    bookTitle,
-    author,
-    coverImageUrl: normalizeCoverUrl(request.coverImageUrl, options.origin),
-    cards: request.cards,
-    decisionExercises: request.decisionExercises?.slice(0, 3),
-  });
   const template = request.templateSlug
     ? getFeynmanTemplateBySlug(request.templateSlug)
     : selectFeynmanTemplate({
         bookTitle,
         author,
         cards: request.cards,
-        content,
       });
+  const content = await generateFeynmanContent({
+    bookTitle,
+    author,
+    coverImageUrl: normalizeCoverUrl(request.coverImageUrl, options.origin),
+    cards: request.cards,
+    decisionExercises: request.decisionExercises?.slice(0, 3),
+    template,
+  });
   const html = renderFeynmanHtml(content, { mode, template });
   const safeTitle = sanitizeFilename(bookTitle) || "未知书名";
   const modeLabel: Record<FeynmanExportMode, string> = {
