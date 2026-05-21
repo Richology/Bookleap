@@ -69,6 +69,7 @@ export function FeynmanPreview({
   const [template, setTemplate] = useState<FeynmanTemplateChoice | null>(null);
   const [isTemplateLoading, setIsTemplateLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState("");
   const { handleClose, overlayStyle, panelStyle } = useModalTransition(onClose);
 
@@ -113,6 +114,26 @@ export function FeynmanPreview({
     };
   }, [author, bookTitle, cards]);
 
+  useEffect(() => {
+    if (!isDownloading) {
+      setGenerationProgress(0);
+      return;
+    }
+
+    setGenerationProgress(8);
+    const intervalId = window.setInterval(() => {
+      setGenerationProgress((current) => {
+        if (current >= 94) return current;
+        const step = current < 40 ? 8 : current < 76 ? 5 : 2;
+        return Math.min(94, current + step);
+      });
+    }, 520);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isDownloading]);
+
   const handleDownload = async () => {
     if (isDownloading) return;
 
@@ -146,6 +167,8 @@ export function FeynmanPreview({
       a.download = `BookLeap-${safeTitle}-费曼分享页.html`;
       a.click();
       URL.revokeObjectURL(url);
+      setGenerationProgress(100);
+      await new Promise((resolve) => window.setTimeout(resolve, 220));
       onGenerated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "分享页生成失败，请稍后重试。");
@@ -155,6 +178,14 @@ export function FeynmanPreview({
   };
 
   const selectedTemplate = template ?? fallbackTemplate();
+  const generationStatus =
+    generationProgress >= 96
+      ? "生成完成，正在下载"
+      : generationProgress >= 72
+        ? "正在打包离线 HTML"
+        : generationProgress >= 38
+          ? "正在套用模板并排版"
+          : "正在整理讲述内容";
 
   return (
     <div
@@ -186,7 +217,8 @@ export function FeynmanPreview({
             onClick={handleClose}
             disabled={isDownloading}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] border border-[#dfe4e8] bg-[#f8fafc] text-sm text-[var(--ink-faint)] transition hover:border-[#9297a0] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-45"
-            aria-label="关闭"
+            aria-label={isDownloading ? "生成中，暂时不能关闭" : "关闭"}
+            title={isDownloading ? "生成中，请稍候，完成后会自动下载" : "关闭"}
           >
             x
           </button>
@@ -261,14 +293,40 @@ export function FeynmanPreview({
           <span className="flex h-7 w-7 items-center justify-center rounded-full border border-[#c9d0d6] bg-[#f8fafc] text-xs font-semibold text-[var(--ink-muted)]">
             3
           </span>
-          <button
-            type="button"
-            onClick={() => void handleDownload()}
-            disabled={isDownloading}
-            className="flex h-11 w-full items-center justify-center rounded-[10px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isDownloading ? "正在生成..." : "下载 HTML"}
-          </button>
+          <div className="space-y-3">
+            {isDownloading && (
+              <div className="rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <span className="font-medium text-[var(--ink)]">{generationStatus}</span>
+                  <span className="tabular-nums text-[var(--ink-faint)]">{generationProgress}%</span>
+                </div>
+                <div
+                  className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e3e8ed]"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={generationProgress}
+                  aria-label="生成分享 HTML 进度"
+                >
+                  <div
+                    className="h-full rounded-full bg-[#181d26] transition-[width] duration-500 ease-out"
+                    style={{ width: `${generationProgress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-[11px] leading-4 text-[var(--ink-faint)]">
+                  生成期间请保持弹窗打开，完成后会自动下载 HTML 文件。
+                </p>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleDownload()}
+              disabled={isDownloading}
+              className="flex h-11 w-full items-center justify-center rounded-[10px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDownloading ? "生成中，请稍候" : "下载 HTML"}
+            </button>
+          </div>
         </div>
       </section>
     </div>
