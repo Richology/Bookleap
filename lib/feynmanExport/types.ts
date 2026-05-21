@@ -1,3 +1,12 @@
+export type FeynmanSlidePreset =
+  | "problem"
+  | "idea"
+  | "method"
+  | "case"
+  | "list"
+  | "quote"
+  | "summary";
+
 export type FeynmanHtmlContent = {
   bookTitle: string;
   author: string;
@@ -5,6 +14,7 @@ export type FeynmanHtmlContent = {
   presentationSlides?: Array<{
     title: string;
     body: string;
+    preset?: FeynmanSlidePreset;
     note?: string;
     sourceCardTitle?: string;
   }>;

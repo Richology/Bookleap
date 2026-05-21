@@ -4,6 +4,7 @@ import type {
   FeynmanCardsInput,
   FeynmanDecisionExerciseInput,
   FeynmanHtmlContent,
+  FeynmanSlidePreset,
   FeynmanTemplateChoice,
 } from "./types";
 
@@ -69,6 +70,22 @@ function asText(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+const FEYNMAN_SLIDE_PRESETS: FeynmanSlidePreset[] = [
+  "problem",
+  "idea",
+  "method",
+  "case",
+  "list",
+  "quote",
+  "summary",
+];
+
+function normalizeSlidePreset(value: unknown): FeynmanSlidePreset | undefined {
+  return typeof value === "string" && FEYNMAN_SLIDE_PRESETS.includes(value as FeynmanSlidePreset)
+    ? (value as FeynmanSlidePreset)
+    : undefined;
+}
+
 function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlContent["presentationSlides"]) {
   if (!Array.isArray(value)) return fallback;
 
@@ -78,6 +95,8 @@ function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlConten
         title?: unknown;
         body?: unknown;
         content?: unknown;
+        type?: unknown;
+        preset?: unknown;
         note?: unknown;
         example?: unknown;
         sourceCardTitle?: unknown;
@@ -86,6 +105,7 @@ function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlConten
       return {
         title: asText(record.title, ""),
         body: asText(record.body, asText(record.content, "")),
+        preset: normalizeSlidePreset(record.preset ?? record.type),
         note: asText(record.note, asText(record.example, "")),
         sourceCardTitle: asText(record.sourceCardTitle, ""),
       };
@@ -191,42 +211,49 @@ export function buildFallbackFeynmanContent({
     coverImageUrl,
     presentationSlides: [
       {
+        preset: "problem",
         title: "这本书到底在解决什么问题",
         body: fallbackOverview,
         note: "先把问题讲清楚，听众才知道后面的观点为什么重要。",
         sourceCardTitle: "内容综述",
       },
       {
+        preset: "quote",
         title: "先用一句话讲明白",
         body: firstSentence(cards.readingGuide, 150) || "如果只能带走一个判断，就先抓住这本书反复提醒你的那个底层问题。",
         note: "这一页负责把听众带进主题。",
         sourceCardTitle: "阅读指南",
       },
       {
+        preset: "idea",
         title: "核心观点怎么落到判断里",
         body: firstSentence(cards.viewMap, 150) || "真正有用的观点，不是漂亮句子，而是能帮你在现实里做区分和取舍。",
         note: "",
         sourceCardTitle: "观点地图",
       },
       {
+        preset: "method",
         title: "读完以后可以怎么做",
         body: fallbackMethods,
         note: "把书里的观点转成下一次选择前可以使用的动作。",
         sourceCardTitle: "行动提炼",
       },
       {
+        preset: "list",
         title: "把概念变成模型",
         body: firstSentence(cards.models, 150) || "模型的作用是让你下次遇到相似问题时，不必重新从零开始思考。",
         note: "",
         sourceCardTitle: "模型拆解",
       },
       {
+        preset: "case",
         title: "放进真实场景里检验",
         body: firstSentence(cards.insights, 150) || "如果一个观点讲得通，也要能放进工作、关系或选择里经得住检验。",
         note: "",
         sourceCardTitle: "观点校验",
       },
       {
+        preset: "summary",
         title: "最后带走什么",
         body: fallbackTakeaway,
         note: "这一页收束成一个可以复述给别人的结论。",

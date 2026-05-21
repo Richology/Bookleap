@@ -1,4 +1,9 @@
-import type { FeynmanExportMode, FeynmanHtmlContent, FeynmanTemplateChoice } from "./types";
+import type {
+  FeynmanExportMode,
+  FeynmanHtmlContent,
+  FeynmanSlidePreset,
+  FeynmanTemplateChoice,
+} from "./types";
 
 const TEMPLATE_SOURCE =
   "Template selected from Richology/beautiful-html-templates metadata and applied as a BookLeap offline HTML theme.";
@@ -69,37 +74,188 @@ type SlideLayout =
   | "layout-table"
   | "layout-ribbon";
 
-const TEMPLATE_LAYOUT_PRESETS: Partial<Record<FeynmanTemplateChoice["slug"], SlideLayout[]>> = {
-  "editorial-forest": ["layout-split", "layout-stack", "layout-statement", "layout-panel"],
-  cartesian: ["layout-stack", "layout-statement", "layout-split", "layout-table"],
-  "soft-editorial": ["layout-statement", "layout-stack", "layout-split", "layout-panel"],
-  vellum: ["layout-statement", "layout-table", "layout-stack", "layout-split"],
-  signal: ["layout-panel", "layout-table", "layout-statement", "layout-split"],
-  "blue-professional": ["layout-split", "layout-table", "layout-panel", "layout-list"],
-  "cobalt-grid": ["layout-table", "layout-split", "layout-panel", "layout-ribbon"],
-  "biennale-yellow": ["layout-poster", "layout-statement", "layout-stack", "layout-ribbon"],
-  "stencil-tablet": ["layout-tiles", "layout-table", "layout-panel", "layout-ribbon"],
-  broadside: ["layout-poster", "layout-statement", "layout-ribbon", "layout-split"],
-  "bold-poster": ["layout-poster", "layout-statement", "layout-panel", "layout-ribbon"],
-  "raw-grid": ["layout-tiles", "layout-table", "layout-panel", "layout-list"],
-  scatterbrain: ["layout-tiles", "layout-stack", "layout-panel", "layout-list"],
-  capsule: ["layout-tiles", "layout-split", "layout-panel", "layout-stack"],
+const TEMPLATE_PRESET_LAYOUTS: Partial<
+  Record<FeynmanTemplateChoice["slug"], Partial<Record<FeynmanSlidePreset, SlideLayout[]>>>
+> = {
+  "editorial-forest": {
+    problem: ["layout-split", "layout-stack"],
+    idea: ["layout-stack", "layout-statement"],
+    method: ["layout-panel", "layout-table"],
+    case: ["layout-split", "layout-panel"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement", "layout-poster"],
+    summary: ["layout-ribbon", "layout-statement"],
+  },
+  cartesian: {
+    problem: ["layout-statement", "layout-stack"],
+    idea: ["layout-split", "layout-stack"],
+    method: ["layout-table", "layout-list"],
+    case: ["layout-panel", "layout-split"],
+    list: ["layout-table", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-stack", "layout-ribbon"],
+  },
+  "soft-editorial": {
+    problem: ["layout-statement", "layout-stack"],
+    idea: ["layout-stack", "layout-split"],
+    method: ["layout-panel", "layout-table"],
+    case: ["layout-split", "layout-panel"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement", "layout-poster"],
+    summary: ["layout-ribbon", "layout-stack"],
+  },
+  vellum: {
+    problem: ["layout-statement", "layout-panel"],
+    idea: ["layout-table", "layout-stack"],
+    method: ["layout-table", "layout-list"],
+    case: ["layout-panel", "layout-split"],
+    list: ["layout-table", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-poster"],
+  },
+  signal: {
+    problem: ["layout-panel", "layout-split"],
+    idea: ["layout-table", "layout-stack"],
+    method: ["layout-table", "layout-list"],
+    case: ["layout-panel", "layout-table"],
+    list: ["layout-list", "layout-table"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-panel"],
+  },
+  "blue-professional": {
+    problem: ["layout-split", "layout-panel"],
+    idea: ["layout-table", "layout-stack"],
+    method: ["layout-list", "layout-table"],
+    case: ["layout-panel", "layout-split"],
+    list: ["layout-list", "layout-tiles"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-stack"],
+  },
+  "cobalt-grid": {
+    problem: ["layout-table", "layout-split"],
+    idea: ["layout-table", "layout-ribbon"],
+    method: ["layout-tiles", "layout-table"],
+    case: ["layout-panel", "layout-split"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-poster"],
+  },
+  "biennale-yellow": {
+    problem: ["layout-poster", "layout-statement"],
+    idea: ["layout-statement", "layout-stack"],
+    method: ["layout-ribbon", "layout-panel"],
+    case: ["layout-split", "layout-panel"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-poster", "layout-statement"],
+    summary: ["layout-ribbon", "layout-poster"],
+  },
+  "stencil-tablet": {
+    problem: ["layout-tiles", "layout-panel"],
+    idea: ["layout-table", "layout-split"],
+    method: ["layout-tiles", "layout-list"],
+    case: ["layout-panel", "layout-table"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-panel"],
+  },
+  broadside: {
+    problem: ["layout-poster", "layout-statement"],
+    idea: ["layout-statement", "layout-ribbon"],
+    method: ["layout-panel", "layout-table"],
+    case: ["layout-split", "layout-panel"],
+    list: ["layout-list", "layout-tiles"],
+    quote: ["layout-poster"],
+    summary: ["layout-poster", "layout-ribbon"],
+  },
+  "bold-poster": {
+    problem: ["layout-poster", "layout-statement"],
+    idea: ["layout-poster", "layout-ribbon"],
+    method: ["layout-panel", "layout-list"],
+    case: ["layout-split", "layout-panel"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-poster"],
+    summary: ["layout-poster", "layout-ribbon"],
+  },
+  "raw-grid": {
+    problem: ["layout-tiles", "layout-table"],
+    idea: ["layout-table", "layout-tiles"],
+    method: ["layout-list", "layout-tiles"],
+    case: ["layout-panel", "layout-table"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-table"],
+  },
+  scatterbrain: {
+    problem: ["layout-tiles", "layout-stack"],
+    idea: ["layout-tiles", "layout-panel"],
+    method: ["layout-list", "layout-tiles"],
+    case: ["layout-panel", "layout-split"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-stack"],
+  },
+  capsule: {
+    problem: ["layout-tiles", "layout-split"],
+    idea: ["layout-panel", "layout-stack"],
+    method: ["layout-list", "layout-tiles"],
+    case: ["layout-split", "layout-panel"],
+    list: ["layout-tiles", "layout-list"],
+    quote: ["layout-statement"],
+    summary: ["layout-ribbon", "layout-stack"],
+  },
 };
+
+const DEFAULT_PRESET_LAYOUTS: Record<FeynmanSlidePreset, SlideLayout[]> = {
+  problem: ["layout-split", "layout-stack"],
+  idea: ["layout-stack", "layout-statement"],
+  method: ["layout-panel", "layout-table"],
+  case: ["layout-split", "layout-panel"],
+  list: ["layout-list", "layout-tiles"],
+  quote: ["layout-statement", "layout-poster"],
+  summary: ["layout-ribbon", "layout-statement"],
+};
+
+const SLIDE_PRESET_LABELS: Record<FeynmanSlidePreset, string> = {
+  problem: "问题",
+  idea: "观点",
+  method: "方法",
+  case: "案例",
+  list: "清单",
+  quote: "金句",
+  summary: "总结",
+};
+
+function inferSlidePreset(
+  slide: NonNullable<FeynmanHtmlContent["presentationSlides"]>[number],
+  index: number,
+  total: number
+): FeynmanSlidePreset {
+  if (slide.preset) return slide.preset;
+  if (index === 0) return "problem";
+  if (index >= total - 1) return "summary";
+
+  const text = `${slide.title} ${slide.body} ${slide.note ?? ""}`;
+  if (/最后|带走|总结|收束|结论|一句话/.test(text)) return "summary";
+  if (/案例|场景|现实|比如|例如|放进|检验/.test(text)) return "case";
+  if (/方法|模型|步骤|行动|怎么做|练习|原则|工具/.test(text)) return "method";
+  if (/\d+[.)、]\s+/.test(slide.body) || /清单|列表|三步|四步|要点/.test(text)) return "list";
+  if (slide.title.length <= 12 && slide.body.replace(/\s+/g, "").length <= 120) return "quote";
+  return "idea";
+}
 
 function getSlideLayoutClass(
   index: number,
   body: string,
+  preset: FeynmanSlidePreset,
   template: FeynmanTemplateChoice
 ): SlideLayout {
   const hasList = /\d+[.)、]\s+/.test(body);
-  if (hasList) return "layout-list";
-  const preset = TEMPLATE_LAYOUT_PRESETS[template.slug] ?? [
-    "layout-split",
-    "layout-stack",
-    "layout-statement",
-    "layout-panel",
-  ];
-  return preset[index % preset.length];
+  const layouts =
+    TEMPLATE_PRESET_LAYOUTS[template.slug]?.[preset] ??
+    DEFAULT_PRESET_LAYOUTS[preset] ??
+    DEFAULT_PRESET_LAYOUTS.idea;
+  if (hasList && preset !== "quote" && layouts.includes("layout-list")) return "layout-list";
+  return layouts[index % layouts.length];
 }
 
 function getSlideDensityClass(body: string): string {
@@ -203,15 +359,21 @@ function renderOverview(content: FeynmanHtmlContent): string {
 function renderPresentationSlide(
   slide: NonNullable<FeynmanHtmlContent["presentationSlides"]>[number],
   index: number,
+  total: number,
   template: FeynmanTemplateChoice
 ): string {
-  const layoutClass = getSlideLayoutClass(index, slide.body, template);
+  const preset = inferSlidePreset(slide, index, total);
+  const layoutClass = getSlideLayoutClass(index, slide.body, preset, template);
   const densityClass = getSlideDensityClass(slide.body);
+  const slideNumber = String(index + 1).padStart(2, "0");
 
   return `
-    <section class="chapter presentation-slide ${layoutClass} ${densityClass}" data-slide-title="${escapeAttr(slide.title)}">
+    <section class="chapter presentation-slide ${layoutClass} ${densityClass} preset-${preset}" data-slide-title="${escapeAttr(slide.title)}" data-slide-preset="${escapeAttr(preset)}">
       <p class="deck-brand">书跃 BookLeap</p>
-      <p class="eyebrow">${String(index + 1).padStart(2, "0")} / 讲述页</p>
+      <span class="slide-decoration" aria-hidden="true"></span>
+      <span class="slide-number" aria-hidden="true">${slideNumber}</span>
+      <p class="eyebrow">${slideNumber} / ${SLIDE_PRESET_LABELS[preset]}</p>
+      <p class="slide-preset-label">${SLIDE_PRESET_LABELS[preset]}</p>
       <h2>${escapeHtml(slide.title)}</h2>
       <div class="slide-body">${renderSlideBody(slide.body)}</div>
     </section>`;
@@ -548,6 +710,11 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     .presentation-slide h2 {
       max-width: 12em;
+    }
+    .slide-number,
+    .slide-preset-label,
+    .slide-decoration {
+      display: none;
     }
     .slide-body {
       margin-top: clamp(30px, 4vw, 54px);
@@ -904,6 +1071,41 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       align-content: center;
       align-items: start;
     }
+    body.deck-mode .presentation-slide .slide-number {
+      display: block;
+      position: absolute;
+      right: clamp(38px, 7vw, 120px);
+      bottom: clamp(24px, 5vw, 68px);
+      z-index: 0;
+      color: color-mix(in srgb, var(--rose) 22%, transparent);
+      font-family: var(--display-font);
+      font-size: clamp(96px, 16vw, 260px);
+      font-weight: 820;
+      line-height: 0.8;
+      pointer-events: none;
+    }
+    body.deck-mode .presentation-slide .slide-preset-label {
+      display: block;
+      position: absolute;
+      left: clamp(42px, 7vw, 96px);
+      bottom: clamp(24px, 5vw, 68px);
+      z-index: 2;
+      width: max-content;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: color-mix(in srgb, var(--panel) 78%, var(--rose-soft));
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+    }
+    body.deck-mode .presentation-slide .slide-decoration {
+      display: block;
+      position: absolute;
+      pointer-events: none;
+    }
     body.deck-mode .presentation-slide .eyebrow {
       grid-column: 1 / -1;
     }
@@ -1105,6 +1307,140 @@ function renderStyles(template: FeynmanTemplateChoice): string {
       margin-top: 0;
       font-size: clamp(22px, 2.1vw, 34px);
     }
+    body.deck-mode .presentation-slide.preset-quote h2 {
+      max-width: 13em;
+      font-size: clamp(48px, 6vw, 104px);
+      line-height: 0.98;
+    }
+    body.deck-mode .presentation-slide.preset-quote .slide-body {
+      max-width: 900px;
+      color: var(--muted);
+      font-size: clamp(20px, 1.8vw, 30px);
+    }
+    body.deck-mode .presentation-slide.preset-quote .slide-body p {
+      text-indent: 0;
+    }
+    body.deck-mode .presentation-slide.preset-method .slide-body,
+    body.deck-mode .presentation-slide.preset-list .slide-body {
+      counter-reset: slide-point;
+    }
+    body.deck-mode .presentation-slide.preset-method .slide-body p,
+    body.deck-mode .presentation-slide.preset-list .slide-body p {
+      position: relative;
+      text-indent: 0;
+      padding-left: 2.3em;
+    }
+    body.deck-mode .presentation-slide.preset-method .slide-body p::before,
+    body.deck-mode .presentation-slide.preset-list .slide-body p::before {
+      counter-increment: slide-point;
+      content: counter(slide-point, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 0.08em;
+      color: var(--rose);
+      font-family: var(--mono-font);
+      font-size: 0.58em;
+      font-weight: 850;
+      letter-spacing: 0.08em;
+    }
+    body.deck-mode .presentation-slide.preset-case .slide-body {
+      position: relative;
+    }
+    body.deck-mode .presentation-slide.preset-case .slide-body::before {
+      content: "SCENE";
+      display: block;
+      margin-bottom: 16px;
+      color: var(--rose);
+      font-family: var(--mono-font);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+    }
+    body.deck-mode .presentation-slide.preset-case .slide-body p {
+      text-indent: 0;
+    }
+    body.deck-mode .presentation-slide.preset-summary h2 {
+      color: var(--rose);
+    }
+    body.deck-mode .presentation-slide.preset-summary .slide-body {
+      color: var(--ink);
+      font-weight: 680;
+    }
+    body.deck-mode .presentation-slide.preset-summary .slide-body p {
+      text-indent: 0;
+    }
+    body.deck-mode[data-template="cobalt-grid"] .chapter,
+    body.deck-mode[data-template="raw-grid"] .chapter {
+      background-image:
+        linear-gradient(color-mix(in srgb, var(--forest) 11%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in srgb, var(--forest) 11%, transparent) 1px, transparent 1px);
+      background-size: 34px 34px;
+    }
+    body.deck-mode[data-template="cartesian"] .presentation-slide .slide-decoration,
+    body.deck-mode[data-template="soft-editorial"] .presentation-slide .slide-decoration {
+      inset: clamp(42px, 7vw, 96px) auto auto clamp(42px, 7vw, 96px);
+      width: min(18vw, 220px);
+      height: 1px;
+      background: var(--line);
+      box-shadow: 0 18px 0 var(--line), 0 36px 0 var(--line);
+    }
+    body.deck-mode[data-template="editorial-forest"] .presentation-slide .slide-decoration,
+    body.deck-mode[data-template="biennale-yellow"] .presentation-slide .slide-decoration {
+      inset: auto -8vw 10vh auto;
+      width: 58vw;
+      height: clamp(36px, 7vw, 92px);
+      background: color-mix(in srgb, var(--rose) 36%, transparent);
+      transform: rotate(-8deg);
+    }
+    body.deck-mode[data-template="vellum"] .presentation-slide,
+    body.deck-mode[data-template="signal"] .presentation-slide {
+      border: clamp(12px, 2vw, 24px) solid color-mix(in srgb, var(--forest) 88%, var(--rose));
+    }
+    body.deck-mode[data-template="vellum"] .presentation-slide .slide-body,
+    body.deck-mode[data-template="signal"] .presentation-slide .slide-body {
+      border-color: color-mix(in srgb, var(--rose) 52%, var(--line));
+    }
+    body.deck-mode[data-template="blue-professional"] .presentation-slide .slide-decoration,
+    body.deck-mode[data-template="capsule"] .presentation-slide .slide-decoration {
+      inset: 0 auto 0 0;
+      width: clamp(12px, 1.6vw, 28px);
+      background: var(--forest);
+    }
+    body.deck-mode[data-template="stencil-tablet"] .presentation-slide .slide-decoration {
+      right: clamp(74px, 10vw, 150px);
+      top: clamp(92px, 12vw, 170px);
+      width: clamp(96px, 14vw, 180px);
+      height: clamp(96px, 14vw, 180px);
+      border: 2px solid var(--rose);
+      background:
+        linear-gradient(90deg, transparent 48%, var(--rose) 48% 52%, transparent 52%),
+        linear-gradient(transparent 48%, var(--rose) 48% 52%, transparent 52%);
+      opacity: 0.28;
+    }
+    body.deck-mode[data-template="broadside"] .presentation-slide,
+    body.deck-mode[data-template="bold-poster"] .presentation-slide {
+      text-transform: none;
+    }
+    body.deck-mode[data-template="broadside"] .presentation-slide .slide-number,
+    body.deck-mode[data-template="bold-poster"] .presentation-slide .slide-number {
+      right: -0.05em;
+      bottom: -0.08em;
+      color: color-mix(in srgb, var(--rose) 34%, transparent);
+      font-size: clamp(160px, 26vw, 420px);
+    }
+    body.deck-mode[data-template="broadside"] .presentation-slide h2,
+    body.deck-mode[data-template="bold-poster"] .presentation-slide h2 {
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    body.deck-mode[data-template="scatterbrain"] .presentation-slide .slide-decoration {
+      inset: clamp(86px, 11vw, 150px) clamp(68px, 9vw, 130px) auto auto;
+      width: min(32vw, 360px);
+      height: min(20vw, 220px);
+      border: 1px dashed var(--rose);
+      transform: rotate(5deg);
+      opacity: 0.52;
+    }
     body.deck-mode .presentation-slide.density-comfy h2 {
       font-size: clamp(30px, 3.4vw, 58px);
     }
@@ -1146,6 +1482,71 @@ function renderStyles(template: FeynmanTemplateChoice): string {
     }
     body.deck-mode .chapter-cover.is-active { display: grid; }
     body.deck-mode .chapter-final.is-active { display: flex; }
+    body.deck-mode[data-template="broadside"] .chapter-cover,
+    body.deck-mode[data-template="bold-poster"] .chapter-cover,
+    body.deck-mode[data-template="biennale-yellow"] .chapter-cover {
+      grid-template-columns: minmax(0, 1fr);
+      align-content: center;
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--rose) 22%, transparent), transparent 54%),
+        var(--forest);
+    }
+    body.deck-mode[data-template="broadside"] .chapter-cover h1,
+    body.deck-mode[data-template="bold-poster"] .chapter-cover h1,
+    body.deck-mode[data-template="biennale-yellow"] .chapter-cover h1 {
+      max-width: 11em;
+      font-size: clamp(62px, 9vw, 152px);
+      line-height: 0.9;
+    }
+    body.deck-mode[data-template="broadside"] .chapter-cover .cover-art,
+    body.deck-mode[data-template="bold-poster"] .chapter-cover .cover-art,
+    body.deck-mode[data-template="biennale-yellow"] .chapter-cover .cover-art {
+      position: absolute;
+      right: clamp(34px, 5vw, 80px);
+      bottom: clamp(34px, 5vw, 76px);
+      width: min(22vw, 260px);
+      opacity: 0.86;
+    }
+    body.deck-mode[data-template="vellum"] .chapter-cover,
+    body.deck-mode[data-template="signal"] .chapter-cover {
+      border: clamp(12px, 2vw, 24px) solid color-mix(in srgb, var(--rose) 60%, var(--forest));
+    }
+    body.deck-mode[data-template="cobalt-grid"] .agenda-grid,
+    body.deck-mode[data-template="raw-grid"] .agenda-grid,
+    body.deck-mode[data-template="stencil-tablet"] .agenda-grid,
+    body.deck-mode[data-template="scatterbrain"] .agenda-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    body.deck-mode[data-template="cobalt-grid"] .agenda-item,
+    body.deck-mode[data-template="raw-grid"] .agenda-item {
+      min-height: 112px;
+      border-radius: 0;
+      background: color-mix(in srgb, var(--panel) 70%, transparent);
+    }
+    body.deck-mode[data-template="signal"] .agenda-grid,
+    body.deck-mode[data-template="vellum"] .agenda-grid,
+    body.deck-mode[data-template="blue-professional"] .agenda-grid {
+      grid-template-columns: 1fr;
+      gap: 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    body.deck-mode[data-template="signal"] .agenda-item,
+    body.deck-mode[data-template="vellum"] .agenda-item,
+    body.deck-mode[data-template="blue-professional"] .agenda-item {
+      min-height: 0;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      padding: 14px 0;
+    }
+    body.deck-mode[data-template="signal"] .agenda-item:last-child,
+    body.deck-mode[data-template="vellum"] .agenda-item:last-child,
+    body.deck-mode[data-template="blue-professional"] .agenda-item:last-child {
+      border-bottom: 0;
+    }
     body.deck-mode .chapter.is-active { animation: deck-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
     body.deck-mode .deck-counter { display: block; }
     body.deck-mode .slide-nav { display: block; }
@@ -1310,7 +1711,7 @@ function buildChapters(
       ...presentationSlides.map((slide, index) => ({
         key: `slide-${index + 1}`,
         title: slide.title,
-        html: renderPresentationSlide(slide, index, template),
+        html: renderPresentationSlide(slide, index, presentationSlides.length, template),
       })),
       ...(hasExercises
         ? [{ key: "decision", title: "决策练习", html: renderExercises(content) }]
