@@ -3274,8 +3274,8 @@ export default function Home() {
   const toolRailActions = [
     {
       id: "training",
-      label: "测试题",
-      title: isDecisionLoading ? decisionLoadingStep || "生成中…" : "测试题",
+      label: "跃迁练习",
+      title: isDecisionLoading ? decisionLoadingStep || "生成中…" : "跃迁练习",
       onClick: () => {
         void handleOpenDecisionTraining();
       },
@@ -3284,8 +3284,8 @@ export default function Home() {
     },
     {
       id: "export",
-      label: "导出",
-      title: exportStatus === "exporting" ? "导出中…" : "导出",
+      label: "书库打包",
+      title: exportStatus === "exporting" ? "打包中…" : "书库打包",
       onClick: () => {
         setExportStatus("idle");
         setIsExportModalOpen(true);
@@ -3294,15 +3294,15 @@ export default function Home() {
     },
     {
       id: "share",
-      label: "分享",
-      title: isGeneratingPoster ? "生成中…" : "分享",
+      label: "书摘海报",
+      title: isGeneratingPoster ? "生成中…" : "书摘海报",
       onClick: handleGeneratePoster,
       disabled: isShareActionDisabled,
     },
     {
       id: "feynman",
-      label: "费曼页",
-      title: "生成分享页",
+      label: "讲书演示",
+      title: "讲书演示",
       onClick: handleOpenFeynmanPreview,
       disabled: isFeynmanActionDisabled,
       active: isFeynmanPreviewOpen,
