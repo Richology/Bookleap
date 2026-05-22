@@ -3284,8 +3284,8 @@ export default function Home() {
     },
     {
       id: "export",
-      label: "书库打包",
-      title: exportStatus === "exporting" ? "打包中…" : "书库打包",
+      label: "精华下载",
+      title: exportStatus === "exporting" ? "下载中…" : "精华下载",
       onClick: () => {
         setExportStatus("idle");
         setIsExportModalOpen(true);
@@ -3311,8 +3311,8 @@ export default function Home() {
   const utilityToolActions = [
     {
       id: "search",
-      label: "搜索",
-      title: "搜索 · K",
+      label: "书库搜索",
+      title: "书库搜索 · K",
       onClick: handleOpenWorkspaceSearch,
       disabled:
         recentHistory.length === 0 &&
@@ -3321,8 +3321,8 @@ export default function Home() {
     },
     {
       id: isWorkspaceFullscreen ? "exitFullscreen" : "fullscreen",
-      label: isWorkspaceFullscreen ? "退出全屏" : "全屏",
-      title: isWorkspaceFullscreen ? "退出全屏 · F" : "进入全屏 · F",
+      label: isWorkspaceFullscreen ? "退出全屏" : "沉浸全屏",
+      title: isWorkspaceFullscreen ? "退出全屏 · F" : "沉浸全屏 · F",
       onClick: handleToggleFullscreen,
       active: isWorkspaceFullscreen,
     },
