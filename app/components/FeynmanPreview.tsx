@@ -1,13 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useModalTransition } from "@/app/hooks/useModalTransition";
 import type {
   FeynmanCardsInput,
   FeynmanDecisionExerciseInput,
-  FeynmanTemplateChoice,
 } from "@/lib/feynmanExport/types";
+import {
+  selectGuizangPptStyle,
+} from "@/lib/feynmanExport/selectGuizangStyle";
 
 type FeynmanPreviewProps = {
   bookTitle: string;
@@ -19,42 +20,10 @@ type FeynmanPreviewProps = {
   onGenerated?: () => void;
 };
 
+const GUIZANG_UPSTREAM_URL = "https://github.com/op7418/guizang-ppt-skill";
+
 function sanitizeFilename(value: string) {
   return value.replace(/[/\\:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
-}
-
-function fallbackTemplate(): FeynmanTemplateChoice {
-  return {
-    slug: "editorial-forest",
-    name: "Editorial Forest",
-    nameZh: "森林编辑风",
-    tagline: "Forest green, dusty pink, and warm cream meet Source Serif 4 in a quiet, intentional quarterly-review deck.",
-    taglineZh: "森林绿、灰粉色和温暖奶油纸色组合，像一份安静、克制、带书卷气的编辑型演示稿。",
-    bestFor: "Anything that should feel like a considered editorial: research recaps, book or program announcements, and thoughtful readouts.",
-    bestForZh: "适合需要被认真阅读和温和讲述的内容：读书分享、研究复盘、团队回顾、项目介绍、课程或计划发布。",
-    thumbnailUrls: [
-      "/feynman-templates/screenshots/editorial-forest-1.png",
-      "/feynman-templates/screenshots/editorial-forest-2.png",
-      "/feynman-templates/screenshots/editorial-forest-5.png",
-    ],
-    reason: "默认书籍讲解模板，兼顾书卷气和演示可读性。",
-    mood: ["editorial", "quiet", "warm"],
-    scheme: "light",
-    density: "medium",
-    colors: {
-      paper: "#f7f4ec",
-      panel: "#fbfaf6",
-      ink: "#181d1a",
-      muted: "#636862",
-      faint: "#8b918a",
-      line: "rgba(24, 29, 26, 0.12)",
-      primary: "#243f2b",
-      accent: "#d89aa4",
-      accentSoft: "#f2d9dc",
-      finalBg: "#243f2b",
-      finalText: "#f2d9dc",
-    },
-  };
 }
 
 export function FeynmanPreview({
@@ -66,12 +35,11 @@ export function FeynmanPreview({
   onClose,
   onGenerated,
 }: FeynmanPreviewProps) {
-  const [template, setTemplate] = useState<FeynmanTemplateChoice | null>(null);
-  const [isTemplateLoading, setIsTemplateLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [error, setError] = useState("");
   const { handleClose, overlayStyle, panelStyle } = useModalTransition(onClose);
+  const selectedStyle = selectGuizangPptStyle({ bookTitle, cards });
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -81,39 +49,6 @@ export function FeynmanPreview({
       document.body.style.overflow = previousOverflow;
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchTemplate = async () => {
-      setIsTemplateLoading(true);
-      setTemplate(null);
-      setError("");
-      try {
-        const response = await fetch("/api/feynman-template", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookTitle, author, cards }),
-        });
-        const data = await response.json();
-        if (!response.ok || !data.success || !data.template) {
-          throw new Error(data.error || "模板匹配失败");
-        }
-        if (!cancelled) setTemplate(data.template);
-      } catch (err) {
-        console.error("费曼分享页模板匹配失败:", err);
-        if (!cancelled) setTemplate(fallbackTemplate());
-      } finally {
-        if (!cancelled) setIsTemplateLoading(false);
-      }
-    };
-
-    void fetchTemplate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [author, bookTitle, cards]);
 
   useEffect(() => {
     if (!isDownloading) {
@@ -136,7 +71,7 @@ export function FeynmanPreview({
   }, [isDownloading]);
 
   const handleDownload = async () => {
-    if (isDownloading || isTemplateLoading) return;
+    if (isDownloading) return;
 
     try {
       setIsDownloading(true);
@@ -149,14 +84,14 @@ export function FeynmanPreview({
           author,
           coverImageUrl,
           mode: "all",
-          templateSlug: template?.slug,
+          style: selectedStyle,
           cards,
           decisionExercises,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("分享页生成失败，请稍后重试。");
+        throw new Error("讲书演示生成失败，请稍后重试。");
       }
 
       const html = await response.text();
@@ -165,29 +100,27 @@ export function FeynmanPreview({
       const safeTitle = sanitizeFilename(bookTitle) || "未知书名";
       const a = document.createElement("a");
       a.href = url;
-      a.download = `BookLeap-${safeTitle}-费曼分享页.html`;
+      a.download = `BookLeap-${safeTitle}-讲书演示.html`;
       a.click();
       URL.revokeObjectURL(url);
       setGenerationProgress(100);
       await new Promise((resolve) => window.setTimeout(resolve, 220));
       onGenerated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "分享页生成失败，请稍后重试。");
+      setError(err instanceof Error ? err.message : "讲书演示生成失败，请稍后重试。");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const selectedTemplate = template ?? fallbackTemplate();
-  const canDownload = !isDownloading && !isTemplateLoading;
   const generationStatus =
     generationProgress >= 96
       ? "生成完成，正在下载"
       : generationProgress >= 72
         ? "正在打包离线 HTML"
         : generationProgress >= 38
-          ? "正在套用模板并排版"
-          : "正在整理讲述内容";
+          ? "正在套用 Guizang PPT Skill"
+          : "正在生成讲书内容";
 
   return (
     <div
@@ -205,12 +138,12 @@ export function FeynmanPreview({
         aria-modal="true"
         aria-labelledby="feynman-export-title"
       >
-        <div className="flex items-start justify-between gap-5 border-b border-[#dfe4e8] px-6 pb-4 pt-5">
+        <div className="flex items-start justify-between gap-5 border-b border-[#e2e6ea] px-6 pb-5 pt-5">
           <div className="min-w-0">
-            <p id="feynman-export-title" className="text-base font-semibold leading-6 text-[var(--ink)]">
-              生成分享 HTML
+            <p id="feynman-export-title" className="text-lg font-semibold leading-7 text-[var(--ink)]">
+              生成讲书演示
             </p>
-            <p className="mt-1 truncate text-xs leading-5 text-[var(--ink-faint)]">
+            <p className="mt-1 truncate text-sm leading-5 text-[var(--ink-faint)]">
               《{bookTitle}》{author ? ` · ${author}` : ""}
             </p>
           </div>
@@ -227,74 +160,42 @@ export function FeynmanPreview({
         </div>
 
         <div className="space-y-5 px-6 py-5">
-          <div className="space-y-5">
-            <section>
-              <p className="text-sm font-semibold text-[var(--ink)]">
-                即将生成一个给别人讲述的 HTML
+          <section className="space-y-4">
+            <div>
+              <p className="w-full text-sm leading-6 text-[var(--ink-faint)]">
+                基于全部解析内容生成 8-12 页横向翻页演示，下载后可离线打开、投屏展示，也适合自己复盘这本书。
               </p>
-              <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
-                内容就是这本书的全部解析结果，会被重新组织成适合讲述、演示和离线打开的分享页。
-              </p>
-            </section>
+            </div>
 
-            <section>
-              {isTemplateLoading ? (
-                <div>
-                  <p className="text-sm font-semibold text-[var(--ink)]">
-                    正在匹配最适合这本书的模板
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    <span className="block h-3 w-[62%] rounded-full bg-[#e3e8ed]" />
-                    <span className="block h-3 w-[82%] rounded-full bg-[#eef2f5]" />
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2" aria-hidden="true">
-                    {[0, 1, 2].map((item) => (
-                      <div
-                        key={item}
-                        className="aspect-[16/9] rounded-[7px] border border-[#dfe4e8] bg-[#eef1f4]"
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-[var(--ink)]">
-                      模板风格：{selectedTemplate.nameZh ?? selectedTemplate.name}
-                    </p>
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ background: selectedTemplate.colors.accent }}
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <p className="mt-1.5 text-xs leading-5 text-[var(--ink-faint)]">
-                    {selectedTemplate.taglineZh ?? selectedTemplate.tagline}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
-                    {selectedTemplate.bestForZh ?? selectedTemplate.bestFor}
-                  </p>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {(selectedTemplate.thumbnailUrls ?? []).slice(0, 3).map((url, index) => (
-                      <figure
-                        key={url}
-                        className="overflow-hidden rounded-[7px] border border-[#dfe4e8] bg-[#eef1f4]"
-                      >
-                        <Image
-                          src={url}
-                          alt={`${selectedTemplate.nameZh ?? selectedTemplate.name} 模板预览 ${index + 1}`}
-                          width={320}
-                          height={180}
-                          className="block aspect-[16/9] w-full object-cover"
-                          loading="lazy"
-                        />
-                      </figure>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-          </div>
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              <div className="rounded-[9px] border border-[#e2e6ea] bg-[#fbfcfd] px-3 py-3">
+                <p className="text-xs font-semibold text-[var(--ink)]">重新讲述</p>
+                <p className="mt-1 text-[11px] leading-4 text-[var(--ink-faint)]">
+                  不照搬卡片，生成适合口头讲解的内容。
+                </p>
+              </div>
+              <div className="rounded-[9px] border border-[#e2e6ea] bg-[#fbfcfd] px-3 py-3">
+                <p className="text-xs font-semibold text-[var(--ink)]">自动排版</p>
+                <p className="mt-1 text-[11px] leading-4 text-[var(--ink-faint)]">
+                  自动选择视觉风格，生成可演示页面。
+                </p>
+              </div>
+              <div className="rounded-[9px] border border-[#e2e6ea] bg-[#fbfcfd] px-3 py-3">
+                <p className="text-xs font-semibold text-[var(--ink)]">离线下载</p>
+                <p className="mt-1 text-[11px] leading-4 text-[var(--ink-faint)]">
+                  一个 HTML 文件，下载后即可打开。
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[#edf0f2] pt-2 text-[10px] leading-4 text-[var(--ink-faint)]">
+            <span>技术说明：本功能为 Beta，使用开源演示生成组件，遵循 AGPL-3.0。</span>
+            <span className="text-[#c4c9cf]" aria-hidden="true">·</span>
+            <a className="font-medium text-[var(--ink-faint)] underline underline-offset-2" href={GUIZANG_UPSTREAM_URL} target="_blank" rel="noreferrer">
+              开源项目
+            </a>
+          </section>
 
           {error && (
             <p className="rounded-[9px] border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-600">
@@ -303,7 +204,7 @@ export function FeynmanPreview({
           )}
         </div>
 
-        <div className="border-t border-[#dfe4e8] px-6 py-4">
+        <div className="border-t border-[#dfe4e8] px-6 py-3">
           <div className="space-y-3">
             {isDownloading && (
               <div className="rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5">
@@ -317,7 +218,7 @@ export function FeynmanPreview({
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={generationProgress}
-                  aria-label="生成分享 HTML 进度"
+                  aria-label="生成讲书演示进度"
                 >
                   <div
                     className="h-full rounded-full bg-[#181d26] transition-[width] duration-500 ease-out"
@@ -332,10 +233,10 @@ export function FeynmanPreview({
             <button
               type="button"
               onClick={() => void handleDownload()}
-              disabled={!canDownload}
-              className="flex h-11 w-full items-center justify-center rounded-[10px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isDownloading}
+              className="ml-auto flex h-9 min-w-[132px] items-center justify-center rounded-[9px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isDownloading ? "生成中，请稍候" : isTemplateLoading ? "正在匹配模板..." : "下载 HTML"}
+              {isDownloading ? "生成中" : "下载 HTML"}
             </button>
           </div>
         </div>

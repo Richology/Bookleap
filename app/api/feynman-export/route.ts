@@ -4,26 +4,11 @@ import type {
   FeynmanCardsInput,
   FeynmanExportMode,
   FeynmanExportRequest,
-  FeynmanTemplateSlug,
+  GuizangPptStyle,
 } from "@/lib/feynmanExport/types";
 
 const FEYNMAN_EXPORT_MODES: FeynmanExportMode[] = ["all", "core", "methods", "decision"];
-const FEYNMAN_TEMPLATE_SLUGS: FeynmanTemplateSlug[] = [
-  "editorial-forest",
-  "cartesian",
-  "soft-editorial",
-  "vellum",
-  "signal",
-  "blue-professional",
-  "cobalt-grid",
-  "biennale-yellow",
-  "stencil-tablet",
-  "broadside",
-  "bold-poster",
-  "raw-grid",
-  "scatterbrain",
-  "capsule",
-];
+const GUIZANG_PPT_STYLES: GuizangPptStyle[] = ["magazine", "swiss"];
 
 function isNonEmptyText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -48,9 +33,9 @@ function normalizeMode(value: unknown): FeynmanExportMode {
     : "all";
 }
 
-function normalizeTemplateSlug(value: unknown): FeynmanTemplateSlug | undefined {
-  return typeof value === "string" && FEYNMAN_TEMPLATE_SLUGS.includes(value as FeynmanTemplateSlug)
-    ? (value as FeynmanTemplateSlug)
+function normalizeStyle(value: unknown): GuizangPptStyle | undefined {
+  return typeof value === "string" && GUIZANG_PPT_STYLES.includes(value as GuizangPptStyle)
+    ? (value as GuizangPptStyle)
     : undefined;
 }
 
@@ -60,7 +45,7 @@ export async function POST(request: Request) {
 
     if (!isNonEmptyText(body.bookTitle) || !hasCompleteCards(body.cards)) {
       return NextResponse.json(
-        { success: false, error: "需要完整的书名和 6 张解析卡片后才能生成费曼分享页" },
+        { success: false, error: "需要完整的书名和 6 张解析卡片后才能生成讲书演示" },
         { status: 400 }
       );
     }
@@ -72,7 +57,7 @@ export async function POST(request: Request) {
         author: typeof body.author === "string" ? body.author : "",
         coverImageUrl: typeof body.coverImageUrl === "string" ? body.coverImageUrl : "",
         mode: normalizeMode(body.mode),
-        templateSlug: normalizeTemplateSlug(body.templateSlug),
+        style: normalizeStyle(body.style),
         cards: body.cards,
         decisionExercises: Array.isArray(body.decisionExercises)
           ? body.decisionExercises
@@ -90,6 +75,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[feynman-export] 导出失败:", error);
-    return NextResponse.json({ success: false, error: "费曼分享页生成失败" }, { status: 500 });
+    return NextResponse.json({ success: false, error: "讲书演示生成失败" }, { status: 500 });
   }
 }

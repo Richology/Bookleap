@@ -7,6 +7,33 @@ export type FeynmanSlidePreset =
   | "quote"
   | "summary";
 
+export type GuizangPptStyle = "magazine" | "swiss";
+
+export type GuizangSwissLayout =
+  | "S03"
+  | "S08"
+  | "S09"
+  | "S10"
+  | "S11"
+  | "S14"
+  | "S15"
+  | "S16"
+  | "S17"
+  | "S19";
+
+export type GuizangMagazineLayout =
+  | "hero"
+  | "divider"
+  | "statement"
+  | "two-column"
+  | "grid"
+  | "pipeline"
+  | "quote"
+  | "comparison"
+  | "mixed";
+
+export type GuizangSlideLayout = GuizangSwissLayout | GuizangMagazineLayout;
+
 export type FeynmanHtmlContent = {
   bookTitle: string;
   author: string;
@@ -15,6 +42,7 @@ export type FeynmanHtmlContent = {
     title: string;
     body: string;
     preset?: FeynmanSlidePreset;
+    layout?: GuizangSlideLayout;
     note?: string;
     sourceCardTitle?: string;
   }>;
@@ -50,56 +78,12 @@ export type FeynmanDecisionExerciseInput = {
 
 export type FeynmanExportMode = "all" | "core" | "methods" | "decision";
 
-export type FeynmanTemplateSlug =
-  | "editorial-forest"
-  | "cartesian"
-  | "soft-editorial"
-  | "vellum"
-  | "signal"
-  | "blue-professional"
-  | "cobalt-grid"
-  | "biennale-yellow"
-  | "stencil-tablet"
-  | "broadside"
-  | "bold-poster"
-  | "raw-grid"
-  | "scatterbrain"
-  | "capsule";
-
-export type FeynmanTemplateChoice = {
-  slug: FeynmanTemplateSlug;
-  name: string;
-  nameZh?: string;
-  tagline: string;
-  taglineZh?: string;
-  bestFor: string;
-  bestForZh?: string;
-  thumbnailUrls?: string[];
-  reason: string;
-  mood: string[];
-  scheme: "light" | "dark" | "mixed";
-  density: "low" | "medium" | "high";
-  colors: {
-    paper: string;
-    panel: string;
-    ink: string;
-    muted: string;
-    faint: string;
-    line: string;
-    primary: string;
-    accent: string;
-    accentSoft: string;
-    finalBg: string;
-    finalText: string;
-  };
-};
-
 export type FeynmanExportRequest = {
   bookTitle: string;
   author?: string;
   coverImageUrl?: string;
   mode?: FeynmanExportMode;
-  templateSlug?: FeynmanTemplateSlug;
+  style?: GuizangPptStyle;
   cards: FeynmanCardsInput;
   decisionExercises?: FeynmanDecisionExerciseInput[];
 };
