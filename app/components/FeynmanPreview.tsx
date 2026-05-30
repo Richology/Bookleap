@@ -119,7 +119,7 @@ export function FeynmanPreview({
       : generationProgress >= 72
         ? "正在打包离线 HTML"
         : generationProgress >= 38
-          ? "正在套用 Guizang PPT Skill"
+          ? "正在编排演示页面"
           : "正在生成讲书内容";
 
   return (
