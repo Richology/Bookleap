@@ -2096,7 +2096,7 @@ export default function Home() {
     if (!hasCompleteDecisionCards(cards)) {
       enqueueGuidanceToast({
         id: "feynman-export-incomplete",
-        message: "请先完成 6 个分析模块，再生成费曼分享页",
+        message: "请先完成 6 个分析模块，再生成讲书演示",
         priority: TOAST_PRIORITY.SYSTEM,
         durationMs: 4200,
       });
@@ -4334,7 +4334,7 @@ export default function Home() {
           onGenerated={() => {
             enqueueGuidanceToast({
               id: "feynman-export-download-success",
-              message: "费曼分享页已下载",
+              message: "讲书演示已下载",
               priority: TOAST_PRIORITY.INFO,
               durationMs: 4200,
             });

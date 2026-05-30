@@ -5,7 +5,10 @@ import type {
   FeynmanDecisionExerciseInput,
   FeynmanHtmlContent,
   FeynmanSlidePreset,
-  FeynmanTemplateChoice,
+  GuizangMagazineLayout,
+  GuizangPptStyle,
+  GuizangSlideLayout,
+  GuizangSwissLayout,
 } from "./types";
 
 function compactText(value: string, maxLength = 900): string {
@@ -80,13 +83,48 @@ const FEYNMAN_SLIDE_PRESETS: FeynmanSlidePreset[] = [
   "summary",
 ];
 
+const GUIZANG_SWISS_LAYOUTS: GuizangSwissLayout[] = [
+  "S03",
+  "S08",
+  "S09",
+  "S10",
+  "S11",
+  "S14",
+  "S15",
+  "S16",
+  "S17",
+  "S19",
+];
+
+const GUIZANG_MAGAZINE_LAYOUTS: GuizangMagazineLayout[] = [
+  "hero",
+  "divider",
+  "statement",
+  "two-column",
+  "grid",
+  "pipeline",
+  "quote",
+  "comparison",
+  "mixed",
+];
+
 function normalizeSlidePreset(value: unknown): FeynmanSlidePreset | undefined {
   return typeof value === "string" && FEYNMAN_SLIDE_PRESETS.includes(value as FeynmanSlidePreset)
     ? (value as FeynmanSlidePreset)
     : undefined;
 }
 
-function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlContent["presentationSlides"]) {
+function normalizeSlideLayout(value: unknown, style: GuizangPptStyle): GuizangSlideLayout | undefined {
+  if (typeof value !== "string") return undefined;
+  const layouts: readonly string[] = style === "swiss" ? GUIZANG_SWISS_LAYOUTS : GUIZANG_MAGAZINE_LAYOUTS;
+  return layouts.includes(value) ? (value as GuizangSlideLayout) : undefined;
+}
+
+function normalizePresentationSlides(
+  value: unknown,
+  fallback: FeynmanHtmlContent["presentationSlides"],
+  style: GuizangPptStyle
+) {
   if (!Array.isArray(value)) return fallback;
 
   const slides = value
@@ -97,6 +135,7 @@ function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlConten
         content?: unknown;
         type?: unknown;
         preset?: unknown;
+        layout?: unknown;
         note?: unknown;
         example?: unknown;
         sourceCardTitle?: unknown;
@@ -106,6 +145,7 @@ function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlConten
         title: asText(record.title, ""),
         body: asText(record.body, asText(record.content, "")),
         preset: normalizeSlidePreset(record.preset ?? record.type),
+        layout: normalizeSlideLayout(record.layout, style),
         note: asText(record.note, asText(record.example, "")),
         sourceCardTitle: asText(record.sourceCardTitle, ""),
       };
@@ -118,7 +158,8 @@ function normalizePresentationSlides(value: unknown, fallback: FeynmanHtmlConten
 
 function normalizeContent(
   value: unknown,
-  fallback: FeynmanHtmlContent
+  fallback: FeynmanHtmlContent,
+  style: GuizangPptStyle
 ): FeynmanHtmlContent {
   if (!value || typeof value !== "object") return fallback;
   const candidate = value as Partial<FeynmanHtmlContent>;
@@ -155,7 +196,8 @@ function normalizeContent(
 
   const presentationSlides = normalizePresentationSlides(
     (candidate as { slides?: unknown }).slides ?? candidate.presentationSlides,
-    fallback.presentationSlides
+    fallback.presentationSlides,
+    style
   );
 
   return {
@@ -212,6 +254,7 @@ export function buildFallbackFeynmanContent({
     presentationSlides: [
       {
         preset: "problem",
+        layout: "S08",
         title: "这本书到底在解决什么问题",
         body: fallbackOverview,
         note: "先把问题讲清楚，听众才知道后面的观点为什么重要。",
@@ -219,6 +262,7 @@ export function buildFallbackFeynmanContent({
       },
       {
         preset: "quote",
+        layout: "S03",
         title: "先用一句话讲明白",
         body: firstSentence(cards.readingGuide, 150) || "如果只能带走一个判断，就先抓住这本书反复提醒你的那个底层问题。",
         note: "这一页负责把听众带进主题。",
@@ -226,6 +270,7 @@ export function buildFallbackFeynmanContent({
       },
       {
         preset: "idea",
+        layout: "S19",
         title: "核心观点怎么落到判断里",
         body: firstSentence(cards.viewMap, 150) || "真正有用的观点，不是漂亮句子，而是能帮你在现实里做区分和取舍。",
         note: "",
@@ -233,6 +278,7 @@ export function buildFallbackFeynmanContent({
       },
       {
         preset: "method",
+        layout: "S15",
         title: "读完以后可以怎么做",
         body: fallbackMethods,
         note: "把书里的观点转成下一次选择前可以使用的动作。",
@@ -240,6 +286,7 @@ export function buildFallbackFeynmanContent({
       },
       {
         preset: "list",
+        layout: "S17",
         title: "把概念变成模型",
         body: firstSentence(cards.models, 150) || "模型的作用是让你下次遇到相似问题时，不必重新从零开始思考。",
         note: "",
@@ -247,6 +294,7 @@ export function buildFallbackFeynmanContent({
       },
       {
         preset: "case",
+        layout: "S09",
         title: "放进真实场景里检验",
         body: firstSentence(cards.insights, 150) || "如果一个观点讲得通，也要能放进工作、关系或选择里经得住检验。",
         note: "",
@@ -254,6 +302,7 @@ export function buildFallbackFeynmanContent({
       },
       {
         preset: "summary",
+        layout: "S03",
         title: "最后带走什么",
         body: fallbackTakeaway,
         note: "这一页收束成一个可以复述给别人的结论。",
@@ -320,14 +369,14 @@ export async function generateFeynmanContent({
   coverImageUrl,
   cards,
   decisionExercises,
-  template,
+  style,
 }: {
   bookTitle: string;
   author: string;
   coverImageUrl?: string;
   cards: FeynmanCardsInput;
   decisionExercises?: FeynmanDecisionExerciseInput[];
-  template?: FeynmanTemplateChoice;
+  style: GuizangPptStyle;
 }): Promise<FeynmanHtmlContent> {
   const fallback = buildFallbackFeynmanContent({
     bookTitle,
@@ -338,10 +387,10 @@ export async function generateFeynmanContent({
   });
 
   try {
-    const raw = await generateWithLLM(FEYNMAN_PRESENTATION_PROMPT(bookTitle, author, cards, template));
+    const raw = await generateWithLLM(FEYNMAN_PRESENTATION_PROMPT(bookTitle, author, cards, style));
     const parsed = extractJsonObject(raw);
     return {
-      ...normalizeContent(parsed, fallback),
+      ...normalizeContent(parsed, fallback, style),
       bookTitle,
       author,
       coverImageUrl,

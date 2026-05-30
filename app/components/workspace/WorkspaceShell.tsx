@@ -37,7 +37,7 @@ export function WorkspaceShell({
 
       <div className="mx-auto max-w-[1760px] px-3 pb-10 pt-3 md:px-5 md:pt-4 xl:flex xl:h-full xl:min-h-0 xl:box-border xl:flex-col xl:px-5 xl:pb-3 xl:pt-3" style={shellStyle}>
         <div className="grid grid-cols-1 gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[48px_minmax(0,1fr)] xl:gap-2.5">
-          <div className="hidden xl:flex xl:h-full xl:min-h-0 xl:items-stretch xl:justify-center">
+          <div className="relative z-40 hidden xl:flex xl:h-full xl:min-h-0 xl:items-stretch xl:justify-center">
             {toolRail}
           </div>
           <div className="relative grid grid-cols-1 gap-3 xl:block xl:h-full xl:min-h-0">

@@ -1,4 +1,4 @@
-import type { FeynmanCardsInput, FeynmanTemplateChoice } from "@/lib/feynmanExport/types";
+import type { FeynmanCardsInput, GuizangPptStyle } from "@/lib/feynmanExport/types";
 
 const MAX_PROMPT_CARD_TEXT_LENGTH = 9000;
 
@@ -6,25 +6,36 @@ export function FEYNMAN_PRESENTATION_PROMPT(
   bookTitle: string,
   author: string,
   cards: FeynmanCardsInput,
-  template?: FeynmanTemplateChoice
+  style: GuizangPptStyle
 ): string {
   const payload = JSON.stringify(cards, null, 2).slice(0, MAX_PROMPT_CARD_TEXT_LENGTH);
-  const templateBrief = template
-    ? `\n已匹配模板：${template.nameZh ?? template.name}
-模板风格：${template.taglineZh ?? template.tagline}
-适合场景：${template.bestForZh ?? template.bestFor}
-版式适配要求：
-${getTemplateWritingGuidance(template.slug)}\n`
-    : "";
+  const styleGuidance =
+    style === "swiss"
+      ? [
+          "已选择 Guizang PPT Skill 的 Style B：瑞士国际主义。",
+          "写法要冷静、结构化、方法论感强，适合事实、模型、判断、行动建议。",
+          "多生成 method / list / idea / case 类型页面，正文可以自然拆成 2-4 个短要点。",
+          "layout 只能从 S03、S08、S09、S10、S11、S14、S15、S16、S17、S19 中选择，并且 8-12 页至少使用 5 种不同 layout。",
+          "layout 用法：S03=一句核心判断或金句；S08/S09=对比、转折、现实场景；S10/S19=单个观点深讲；S11=递进步骤或时间线；S14/S17=模型、层级、系统关系；S15/S16=清单、方法、多个要点。",
+        ].join("\n")
+      : [
+          "已选择 Guizang PPT Skill 的 Style A：电子杂志 × 电子墨水。",
+          "写法要有叙事感、阅读感和观点节奏，适合人文、故事、洞察和讲述。",
+          "多生成 problem / quote / idea / case / summary 类型页面，标题要像一篇讲书文章的小标题。",
+          "layout 只能从 hero、divider、statement、two-column、grid、pipeline、quote、comparison、mixed 中选择，并且 8-12 页至少使用 5 种不同 layout。",
+          "layout 用法：statement/quote=观点或金句；two-column/comparison=观点与解释、前后对比；grid=多个要点；pipeline=步骤或方法；mixed=案例讲述；divider=章节转场。",
+        ].join("\n");
 
-  return `你是一个“书籍内容演示设计师”，负责将书跃解析的内容生成一个演示型 PPT。
+  return `你是一个“书籍内容演示设计师”，负责将书跃解析的内容生成一份可直接演示的 HTML PPT 讲书稿。
 
 书名：${bookTitle}
 作者：${author || "未知"}
 
 6 张解析卡片：
 ${payload}
-${templateBrief}
+
+视觉系统：
+${styleGuidance}
 
 要求如下：
 
@@ -52,12 +63,14 @@ ${templateBrief}
 5. 输出格式：
    - 只输出 JSON，不要 Markdown 代码块，不要解释
    - 必须严格输出如下结构，字段名不能改
-   - type 用于匹配模板页面结构，只能从 problem、idea、method、case、list、quote、summary 中选择
+   - type 只能从 problem、idea、method、case、list、quote、summary 中选择
+   - layout 必须从上面的 Guizang layout 列表中选择
 
 {
   "slides": [
     {
       "type": "problem",
+      "layout": "${style === "swiss" ? "S08" : "two-column"}",
       "title": "页面标题",
       "content": "讲解文本，可引用卡片或新生成内容",
       "example": "可选案例或提示"
@@ -67,41 +80,9 @@ ${templateBrief}
 
 6. 生成目标：
    - 每页内容既可调用卡片，也可生成新文本
-   - 输出内容可直接渲染到 HTML PPT 模板
+   - 输出内容可直接渲染到 Guizang HTML PPT 模板
    - 确保内容风格、结构和可读性稳定
    - 不同页面要有明确类型：开场问题、核心观点、方法模型、案例场景、清单步骤、金句判断、总结收束要交替出现
 
 数量要求：slides 8-12 页。`;
-}
-
-function getTemplateWritingGuidance(slug: FeynmanTemplateChoice["slug"]): string {
-  if (["bold-poster", "broadside", "biennale-yellow"].includes(slug)) {
-    return [
-      "- 多写短而有冲击力的页面标题，适合海报式大标题。",
-      "- 每页正文收敛成一个强判断，少堆概念，多用一句话打透。",
-      "- 适合安排 2-3 页宣言式观点页，再穿插案例页。",
-    ].join("\n");
-  }
-
-  if (["raw-grid", "stencil-tablet", "scatterbrain", "capsule"].includes(slug)) {
-    return [
-      "- 多生成可拆成 2-4 个要点的页面，适合卡片、网格、工作坊式版式。",
-      "- 行动建议、步骤、清单和对比要写得清楚，方便视觉上分块呈现。",
-      "- 标题可以更直接，像工作台上的标签。",
-    ].join("\n");
-  }
-
-  if (["signal", "blue-professional", "cobalt-grid", "vellum"].includes(slug)) {
-    return [
-      "- 多使用结构化表达：判断、依据、行动，适合报告感和表格感页面。",
-      "- 每页正文要有层次，可自然拆成 2-3 段或编号要点。",
-      "- 少用情绪化词，强调可信、冷静、可执行。",
-    ].join("\n");
-  }
-
-  return [
-    "- 采用编辑型叙事：先提出问题，再解释误区，然后给出方法和场景。",
-    "- 标题要像文章小标题，正文像讲给朋友听的一段清楚解释。",
-    "- 页面之间要有阅读节奏，有大判断页，也有解释页和收束页。",
-  ].join("\n");
 }

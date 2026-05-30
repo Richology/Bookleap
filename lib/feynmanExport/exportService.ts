@@ -1,6 +1,6 @@
 import { generateFeynmanContent } from "./generateFeynmanContent";
 import { renderFeynmanHtml } from "./renderHtml";
-import { getFeynmanTemplateBySlug, selectFeynmanTemplate } from "./selectTemplate";
+import { selectGuizangPptStyle } from "./selectGuizangStyle";
 import type { FeynmanExportMode, FeynmanExportRequest } from "./types";
 
 function sanitizeFilename(value: string): string {
@@ -25,22 +25,16 @@ export async function createFeynmanExportHtml(
   const bookTitle = request.bookTitle.trim() || "未知书名";
   const author = request.author?.trim() ?? "";
   const mode: FeynmanExportMode = request.mode ?? "all";
-  const template = request.templateSlug
-    ? getFeynmanTemplateBySlug(request.templateSlug)
-    : selectFeynmanTemplate({
-        bookTitle,
-        author,
-        cards: request.cards,
-      });
+  const style = request.style ?? selectGuizangPptStyle({ bookTitle, cards: request.cards });
   const content = await generateFeynmanContent({
     bookTitle,
     author,
     coverImageUrl: normalizeCoverUrl(request.coverImageUrl, options.origin),
     cards: request.cards,
     decisionExercises: request.decisionExercises?.slice(0, 3),
-    template,
+    style,
   });
-  const html = renderFeynmanHtml(content, { mode, template });
+  const html = renderFeynmanHtml(content, { mode, style });
   const safeTitle = sanitizeFilename(bookTitle) || "未知书名";
   const modeLabel: Record<FeynmanExportMode, string> = {
     all: "完整",
@@ -51,6 +45,6 @@ export async function createFeynmanExportHtml(
 
   return {
     html,
-    filename: `BookLeap-${safeTitle}-${modeLabel[mode]}费曼分享页.html`,
+    filename: `BookLeap-${safeTitle}-${modeLabel[mode]}讲书演示.html`,
   };
 }

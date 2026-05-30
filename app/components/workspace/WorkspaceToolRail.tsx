@@ -208,7 +208,7 @@ function WorkspaceContactDock() {
           </>
         )}
         {!isOpen && (
-          <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
+          <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
             联系主理人
           </span>
         )}
@@ -237,7 +237,7 @@ export function WorkspaceToolRail({
       aria-label={action.label}
     >
       <ToolIcon id={action.id} />
-      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
+      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
         {action.title}
       </span>
     </button>
@@ -255,7 +255,7 @@ export function WorkspaceToolRail({
             <path d="M11.5 4.5L6 10l5.5 5.5" />
             <path d="M6.5 10H15" />
           </svg>
-          <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-50 hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
+          <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
             返回首页
           </span>
         </Link>
