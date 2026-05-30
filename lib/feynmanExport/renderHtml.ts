@@ -9,10 +9,7 @@ import type {
   GuizangSwissLayout,
 } from "./types";
 
-const GUIZANG_UPSTREAM_URL = "https://github.com/op7418/guizang-ppt-skill";
-const GUIZANG_SOURCE_URL = "https://github.com/Richology/ai-book-analyzer/tree/main/lib/feynmanExport/guizang";
-const GUIZANG_COMMIT = "014c572454065e905477a7432ae331dfc0fe6070";
-const MOTION_SOURCE_ID = "__bookleap_guizang_motion_module__";
+const MOTION_SOURCE_ID = "__bookleap_motion_module__";
 
 function escapeHtml(value: string): string {
   return value
@@ -156,6 +153,9 @@ try {
 if(motion){`;
 
   return template
+    .replace(/guizang-ppt-low-power/g, "bookleap-presentation-low-power")
+    .replace(/<div id="hint">[\s\S]*?<\/div>/g, "")
+    .replace(/if\(hint\) hint\.textContent = `[\s\S]*?`;/g, "")
     .replace(
       "加载策略:先 ./assets/motion.min.js(本地,离线可用),失败 fallback 到 jsDelivr CDN",
       "加载策略:BookLeap 生成时已将 motion.min.js 内联到当前 HTML,离线可用"
@@ -176,17 +176,6 @@ if(motion){`;
     .replace(/let motion;\s*try \{[\s\S]*?\}\s*\n\s*if\(motion\)\{/, inlineMotionLoader);
 }
 
-function renderLegalComment(): string {
-  return `<!--
-BookLeap 讲书演示 Beta
-This generated deck uses Guizang PPT Skill assets.
-Upstream: ${GUIZANG_UPSTREAM_URL}
-BookLeap integration source: ${GUIZANG_SOURCE_URL}
-License: GNU Affero General Public License v3.0
-Upstream commit: ${GUIZANG_COMMIT}
--->`;
-}
-
 function renderMagazineCover(content: FeynmanHtmlContent, total: number): string {
   const author = content.author ? `作者：${escapeHtml(content.author)}` : "BookLeap";
   return `
@@ -195,7 +184,7 @@ function renderMagazineCover(content: FeynmanHtmlContent, total: number): string
   <h1 class="h-hero" data-anim="title">${escapeHtml(content.bookTitle)}</h1>
   <p class="lead" data-anim="up">${escapeHtml(author)} · 基于书跃解析生成</p>
   <div class="meta-row" data-anim="up">
-    <span>Guizang PPT Skill</span>
+    <span>书跃 BookLeap</span>
     <span>${String(total).padStart(2, "0")} pages</span>
   </div>
 </section>`;
@@ -285,7 +274,7 @@ function renderSwissCover(content: FeynmanHtmlContent, total: number): string {
         <div class="lead" style="max-width:52ch;color:rgba(255,255,255,.86)">把一本书讲给别人听，也重新讲给自己听。</div>
         <div style="display:flex;justify-content:space-between;align-items:end">
           <div class="t-meta" style="color:rgba(255,255,255,.6)">${author}</div>
-          <div class="t-meta" style="color:rgba(255,255,255,.6)">Guizang PPT Skill</div>
+          <div class="t-meta" style="color:rgba(255,255,255,.6)">书跃 BookLeap</div>
         </div>
       </div>
     </div>
@@ -510,7 +499,7 @@ export function renderFeynmanHtml(
   const style = options.style ?? "swiss";
   const template = prepareSingleFileRuntime(loadGuizangTemplate(style));
   const title = `${content.bookTitle} · 讲书演示`;
-  const slides = `${renderLegalComment()}\n${renderSlides(content, style)}`;
+  const slides = renderSlides(content, style);
 
   return injectSlides(template, slides)
     .replace("[必填] 替换为 PPT 标题 · Deck Title", escapeHtml(title));
