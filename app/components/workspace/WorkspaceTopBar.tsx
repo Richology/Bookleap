@@ -29,8 +29,12 @@ export function WorkspaceTopBar({
   onCloseAllTabs,
   isLibraryCollapsed,
   onExpandLibrary,
+  onPreviewLibrary,
+  onLibraryTriggerLeave,
   isGrowthCollapsed,
   onExpandGrowth,
+  onPreviewGrowth,
+  onGrowthTriggerLeave,
   hasGrowthUpdate,
 }: {
   tabs: WorkspaceTabItem[];
@@ -40,8 +44,12 @@ export function WorkspaceTopBar({
   onCloseAllTabs: () => void;
   isLibraryCollapsed: boolean;
   onExpandLibrary: () => void;
+  onPreviewLibrary?: () => void;
+  onLibraryTriggerLeave?: () => void;
   isGrowthCollapsed: boolean;
   onExpandGrowth: () => void;
+  onPreviewGrowth?: () => void;
+  onGrowthTriggerLeave?: () => void;
   hasGrowthUpdate?: boolean;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,6 +79,15 @@ export function WorkspaceTopBar({
           <button
             type="button"
             onClick={onExpandLibrary}
+            onPointerEnter={onPreviewLibrary}
+            onPointerMove={onPreviewLibrary}
+            onMouseEnter={onPreviewLibrary}
+            onMouseMove={onPreviewLibrary}
+            onPointerLeave={onLibraryTriggerLeave}
+            onMouseLeave={onLibraryTriggerLeave}
+            onFocus={onPreviewLibrary}
+            onBlur={onLibraryTriggerLeave}
+            data-workspace-preview-trigger="library"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-transparent text-[#4f555d] transition-all hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="展开书库栏"
             title="展开书库栏 · ["
@@ -105,6 +122,15 @@ export function WorkspaceTopBar({
             <button
               type="button"
               onClick={onExpandGrowth}
+              onPointerEnter={onPreviewGrowth}
+              onPointerMove={onPreviewGrowth}
+              onMouseEnter={onPreviewGrowth}
+              onMouseMove={onPreviewGrowth}
+              onPointerLeave={onGrowthTriggerLeave}
+              onMouseLeave={onGrowthTriggerLeave}
+              onFocus={onPreviewGrowth}
+              onBlur={onGrowthTriggerLeave}
+              data-workspace-preview-trigger="growth"
               className={`relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
                 hasGrowthUpdate
                   ? "border-[rgba(10,46,14,0.16)] bg-[rgba(168,216,196,0.28)] text-[var(--accent)] shadow-[0_0_0_3px_rgba(168,216,196,0.14)] hover:bg-[rgba(168,216,196,0.38)]"

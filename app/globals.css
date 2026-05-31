@@ -76,6 +76,36 @@ body {
   --shadow-paper-strong: 0 12px 28px rgba(24, 29, 38, 0.08);
 }
 
+@keyframes workspace-drawer-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-drawer-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.workspace-drawer-in-left {
+  animation: workspace-drawer-in-left 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.workspace-drawer-in-right {
+  animation: workspace-drawer-in-right 260ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
 [class*="border-[var(--ghost-border)]"] {
   border-color: var(--ghost-border) !important;
 }

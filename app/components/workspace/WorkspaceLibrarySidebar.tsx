@@ -14,11 +14,15 @@ function LibraryToggleIcon() {
 
 export function WorkspaceLibrarySidebar({
   isCollapsed,
+  isPreview,
   onToggle,
+  onPreviewClose,
   children,
 }: {
   isCollapsed: boolean;
+  isPreview?: boolean;
   onToggle: () => void;
+  onPreviewClose?: () => void;
   children: ReactNode;
 }) {
   if (isCollapsed) {
@@ -26,8 +30,12 @@ export function WorkspaceLibrarySidebar({
   }
 
   return (
-    <aside className="order-2 min-w-0 xl:pointer-events-auto xl:order-none xl:h-full xl:min-h-0">
-      <div className="relative rounded-[18px] border border-[rgba(24,29,38,0.08)] bg-[#f7f8f9] p-2 shadow-none xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:rounded-[12px] xl:shadow-[10px_0_28px_rgba(24,29,38,0.10)]">
+    <aside
+      className="order-2 min-w-0 xl:pointer-events-auto xl:order-none xl:h-full xl:min-h-0"
+      onMouseLeave={isPreview ? onPreviewClose : undefined}
+      data-workspace-preview-panel="library"
+    >
+      <div className="workspace-drawer-in-left relative rounded-[18px] border border-[rgba(24,29,38,0.08)] bg-[#f7f8f9] p-2 shadow-none xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:rounded-[12px] xl:shadow-[10px_0_28px_rgba(24,29,38,0.10)]">
         <div className="mb-2 grid min-h-10 grid-cols-[40px_minmax(0,1fr)_40px] items-center px-1 pb-1.5">
           <button
             onClick={onToggle}
