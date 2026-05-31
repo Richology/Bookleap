@@ -787,6 +787,10 @@ export default function Home() {
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [isLibraryCollapsed, setIsLibraryCollapsed] = useState(false);
   const [isGrowthPanelCollapsed, setIsGrowthPanelCollapsed] = useState(true);
+  const [isLibraryPreviewOpen, setIsLibraryPreviewOpen] = useState(false);
+  const [isGrowthPreviewOpen, setIsGrowthPreviewOpen] = useState(false);
+  const [isLibraryPreviewSuppressed, setIsLibraryPreviewSuppressed] = useState(false);
+  const [isGrowthPreviewSuppressed, setIsGrowthPreviewSuppressed] = useState(false);
   const [hasGrowthUpdateBadge, setHasGrowthUpdateBadge] = useState(false);
   const [openTabs, setOpenTabs] = useState<WorkspaceTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -1048,17 +1052,128 @@ export default function Home() {
     setHasGrowthUpdateBadge(true);
   }, []);
 
+  const openLibraryPanel = useCallback(() => {
+    setIsLibraryPreviewOpen(false);
+    setIsLibraryPreviewSuppressed(false);
+    setIsLibraryCollapsed(false);
+  }, []);
+
+  const toggleLibraryPanel = useCallback(() => {
+    setIsLibraryPreviewOpen(false);
+    setIsLibraryCollapsed((prev) => {
+      const next = !prev;
+      if (next) {
+        setIsLibraryPreviewSuppressed(true);
+      }
+      return next;
+    });
+  }, []);
+
+  const previewLibraryPanel = useCallback(() => {
+    if (isLibraryCollapsed && !isLibraryPreviewSuppressed) {
+      setIsLibraryPreviewOpen(true);
+    }
+  }, [isLibraryCollapsed, isLibraryPreviewSuppressed]);
+
+  const allowLibraryPreview = useCallback(() => {
+    setIsLibraryPreviewSuppressed(false);
+  }, []);
+
   const openGrowthInspector = useCallback(() => {
+    setIsGrowthPreviewOpen(false);
+    setIsGrowthPreviewSuppressed(false);
     setIsGrowthPanelCollapsed(false);
     setHasGrowthUpdateBadge(false);
   }, []);
 
   const handleToggleGrowthInspector = useCallback(() => {
+    setIsGrowthPreviewOpen(false);
     if (isGrowthPanelCollapsed) {
       setHasGrowthUpdateBadge(false);
     }
-    setIsGrowthPanelCollapsed((prev) => !prev);
+    setIsGrowthPanelCollapsed((prev) => {
+      const next = !prev;
+      if (next) {
+        setIsGrowthPreviewSuppressed(true);
+      }
+      return next;
+    });
   }, [isGrowthPanelCollapsed]);
+
+  const previewGrowthInspector = useCallback(() => {
+    if (isGrowthPanelCollapsed && !isGrowthPreviewSuppressed) {
+      setIsGrowthPreviewOpen(true);
+    }
+  }, [isGrowthPanelCollapsed, isGrowthPreviewSuppressed]);
+
+  const allowGrowthPreview = useCallback(() => {
+    setIsGrowthPreviewSuppressed(false);
+  }, []);
+
+  useEffect(() => {
+    if (
+      !isLibraryPreviewOpen &&
+      !isGrowthPreviewOpen &&
+      !isLibraryPreviewSuppressed &&
+      !isGrowthPreviewSuppressed
+    ) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const isPointerInsidePreviewArea = (side: "library" | "growth") => {
+        const previewElements = [
+          document.querySelector(`[data-workspace-preview-panel="${side}"]`),
+          document.querySelector(`[data-workspace-preview-trigger="${side}"]`),
+        ];
+
+        return previewElements.some((element) => {
+          if (!element) return false;
+          const rect = element.getBoundingClientRect();
+          return (
+            event.clientX >= rect.left &&
+            event.clientX <= rect.right &&
+            event.clientY >= rect.top &&
+            event.clientY <= rect.bottom
+          );
+        });
+      };
+
+      const isPointerInsidePreviewTrigger = (side: "library" | "growth") => {
+        const trigger = document.querySelector(`[data-workspace-preview-trigger="${side}"]`);
+        if (!trigger) return false;
+        const rect = trigger.getBoundingClientRect();
+        return (
+          event.clientX >= rect.left &&
+          event.clientX <= rect.right &&
+          event.clientY >= rect.top &&
+          event.clientY <= rect.bottom
+        );
+      };
+
+      if (isLibraryPreviewOpen && !isPointerInsidePreviewArea("library")) {
+        setIsLibraryPreviewOpen(false);
+      }
+
+      if (isGrowthPreviewOpen && !isPointerInsidePreviewArea("growth")) {
+        setIsGrowthPreviewOpen(false);
+      }
+
+      if (isLibraryPreviewSuppressed && !isPointerInsidePreviewTrigger("library")) {
+        setIsLibraryPreviewSuppressed(false);
+      }
+
+      if (isGrowthPreviewSuppressed && !isPointerInsidePreviewTrigger("growth")) {
+        setIsGrowthPreviewSuppressed(false);
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, [
+    isGrowthPreviewOpen,
+    isGrowthPreviewSuppressed,
+    isLibraryPreviewOpen,
+    isLibraryPreviewSuppressed,
+  ]);
 
   useEffect(() => {
     if (!isWorkspaceSearchOpen) return;
@@ -1109,7 +1224,7 @@ export default function Home() {
 
       if (event.key === "[" && !isTyping && isPlainKey) {
         event.preventDefault();
-        setIsLibraryCollapsed((prev) => !prev);
+        toggleLibraryPanel();
       }
 
       if (event.key === "]" && !isTyping && isPlainKey) {
@@ -1126,6 +1241,7 @@ export default function Home() {
     handleToggleFullscreen,
     handleToggleGrowthInspector,
     isUploadShortcutBlocked,
+    toggleLibraryPanel,
   ]);
 
   const workspaceMemoryCards = useMemo<WorkspaceMemoryCard[]>(() => {
@@ -3332,6 +3448,8 @@ export default function Home() {
     "bg-transparent";
   const workspaceRailPanelClass =
     "rounded-[13px] border border-transparent bg-[#eef1f2]";
+  const shouldShowLibrarySidebar = !isLibraryCollapsed || isLibraryPreviewOpen;
+  const shouldShowGrowthSidebar = !isGrowthPanelCollapsed || isGrowthPreviewOpen;
   const searchResultClass = (isActiveResult: boolean) =>
     `group w-full rounded-[10px] border px-3.5 py-3 text-left transition-all ${
       isActiveResult
@@ -3341,8 +3459,10 @@ export default function Home() {
 
   const librarySidebar = (
     <WorkspaceLibrarySidebar
-      isCollapsed={isLibraryCollapsed}
-      onToggle={() => setIsLibraryCollapsed((prev) => !prev)}
+      isCollapsed={!shouldShowLibrarySidebar}
+      isPreview={isLibraryPreviewOpen}
+      onToggle={toggleLibraryPanel}
+      onPreviewClose={() => setIsLibraryPreviewOpen(false)}
     >
       <input
         ref={fileInputRef}
@@ -3548,9 +3668,13 @@ export default function Home() {
           onCloseTab={closeWorkspaceTab}
           onCloseAllTabs={closeAllWorkspaceTabs}
           isLibraryCollapsed={isLibraryCollapsed}
-          onExpandLibrary={() => setIsLibraryCollapsed(false)}
+          onExpandLibrary={openLibraryPanel}
+          onPreviewLibrary={previewLibraryPanel}
+          onLibraryTriggerLeave={allowLibraryPreview}
           isGrowthCollapsed={isGrowthPanelCollapsed}
           onExpandGrowth={openGrowthInspector}
+          onPreviewGrowth={previewGrowthInspector}
+          onGrowthTriggerLeave={allowGrowthPreview}
           hasGrowthUpdate={hasGrowthUpdateBadge}
         />
       )}
@@ -4167,8 +4291,10 @@ export default function Home() {
 
   const growthSidebar = (
     <WorkspaceGrowthSidebar
-      isCollapsed={isGrowthPanelCollapsed}
+      isCollapsed={!shouldShowGrowthSidebar}
+      isPreview={isGrowthPreviewOpen}
       onToggle={handleToggleGrowthInspector}
+      onPreviewClose={() => setIsGrowthPreviewOpen(false)}
     >
       <GrowthLedgerPanel ledger={growthLedger} />
 
