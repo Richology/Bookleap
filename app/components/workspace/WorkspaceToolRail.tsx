@@ -35,6 +35,16 @@ function ToolIcon({ id }: { id: string }) {
     );
   }
 
+  if (id === "backup") {
+    return (
+      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4.8 5.2c0-1.1 2.3-2 5.2-2s5.2.9 5.2 2-2.3 2-5.2 2-5.2-.9-5.2-2Z" />
+        <path d="M4.8 5.2v4.6c0 1.1 2.3 2 5.2 2s5.2-.9 5.2-2V5.2" />
+        <path d="M4.8 9.8v4.6c0 1.1 2.3 2 5.2 2s5.2-.9 5.2-2V9.8" />
+      </svg>
+    );
+  }
+
   if (id === "exitFullscreen") {
     return (
       <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -220,9 +230,11 @@ function WorkspaceContactDock() {
 export function WorkspaceToolRail({
   actions,
   utilityActions = [],
+  bottomActions = [],
 }: {
   actions: WorkspaceToolAction[];
   utilityActions?: WorkspaceToolAction[];
+  bottomActions?: WorkspaceToolAction[];
 }) {
   const renderActionButton = (action: WorkspaceToolAction) => (
     <button
@@ -275,7 +287,12 @@ export function WorkspaceToolRail({
         </div>
       </div>
 
-      <WorkspaceContactDock />
+      <div className="relative z-20 overflow-visible rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] p-1 shadow-[0_1px_2px_rgba(24,29,38,0.035)]">
+        <div className="flex flex-col gap-1">
+          {bottomActions.map(renderActionButton)}
+          <WorkspaceContactDock />
+        </div>
+      </div>
     </div>
   );
 }
