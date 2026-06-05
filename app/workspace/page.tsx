@@ -169,6 +169,12 @@ const STARTER_MODE_SEEN_KEY = "bookleap_has_seen_starter_mode";
 const STARTER_SELECTED_BOOK_KEY = "bookleap_selected_starter_book";
 const STARTER_EXPERIENCED_KEY = "bookleap_experienced_starter_books";
 const WORKSPACE_DISCLAIMER_ACCEPTED_KEY = "bookleap_workspace_disclaimer_accepted_v1";
+const BACKUP_STORAGE_PREFIXES = [
+  "bookleap_",
+  "decision_scenarios_",
+  "addiction:",
+  "poster_content_",
+] as const;
 
 /* ── Track which starter books have been experienced ── */
 function getExperiencedStarterBooks(): string[] {
@@ -237,12 +243,199 @@ type HistoryRecord = {
   author?: string;
 };
 
+type LocalDataBackup = {
+  app: "bookleap";
+  version: 1;
+  exportedAt: string;
+  source: "browser-localStorage";
+  historyCount: number;
+  history: HistoryRecord[];
+  localStorage: Record<string, string>;
+};
+
+type BackupImportPreview = {
+  backup: LocalDataBackup;
+  fileName: string;
+  historyCount: number;
+  storageKeyCount: number;
+  newHistoryCount: number;
+  updatedHistoryCount: number;
+  keptCurrentCount: number;
+};
+
 type WorkspaceMemoryCard = {
   id: string;
   title: string;
   author: string;
   quote: string;
 };
+
+function shouldIncludeBackupStorageKey(key: string) {
+  return BACKUP_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
+function collectBookleapLocalStorage(): Record<string, string> {
+  const snapshot: Record<string, string> = {};
+
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !shouldIncludeBackupStorageKey(key)) continue;
+
+      const value = localStorage.getItem(key);
+      if (value !== null) {
+        snapshot[key] = value;
+      }
+    }
+  } catch {
+    // ignore unavailable browser storage
+  }
+
+  return snapshot;
+}
+
+function createLocalDataBackup(): LocalDataBackup {
+  const history = loadHistory();
+
+  return {
+    app: "bookleap",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    source: "browser-localStorage",
+    historyCount: history.length,
+    history,
+    localStorage: collectBookleapLocalStorage(),
+  };
+}
+
+function downloadJsonFile(filename: string, data: unknown) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isSupportedHistoryRecord(value: unknown): value is HistoryRecord {
+  if (!isRecordObject(value)) return false;
+
+  const fileType = value.fileType;
+  const mode = value.mode;
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    (fileType === "epub" || fileType === "pdf" || fileType === "azw3" || fileType === "txt") &&
+    (mode === "full" || mode === "lite") &&
+    typeof value.createdAt === "string" &&
+    typeof value.bookSummary === "string" &&
+    typeof value.readingGuide === "string" &&
+    typeof value.viewMap === "string" &&
+    typeof value.actionExtraction === "string" &&
+    typeof value.viewValidation === "string" &&
+    typeof value.ideaSourceTracing === "string" &&
+    typeof value.bookRecommendation === "string"
+  );
+}
+
+function normalizeLocalDataBackup(value: unknown): LocalDataBackup | null {
+  if (!isRecordObject(value)) return null;
+
+  const localStorageSnapshot: Record<string, string> = {};
+  if (isRecordObject(value.localStorage)) {
+    for (const [key, item] of Object.entries(value.localStorage)) {
+      if (typeof item === "string" && shouldIncludeBackupStorageKey(key)) {
+        localStorageSnapshot[key] = item;
+      }
+    }
+  }
+
+  const history = Array.isArray(value.history)
+    ? value.history.filter(isSupportedHistoryRecord)
+    : [];
+
+  if (
+    value.app !== "bookleap" ||
+    value.version !== 1 ||
+    typeof value.exportedAt !== "string" ||
+    value.source !== "browser-localStorage" ||
+    (!Array.isArray(value.history) && Object.keys(localStorageSnapshot).length === 0)
+  ) {
+    return null;
+  }
+
+  return {
+    app: "bookleap",
+    version: 1,
+    exportedAt: value.exportedAt,
+    source: "browser-localStorage",
+    historyCount: history.length,
+    history,
+    localStorage: localStorageSnapshot,
+  };
+}
+
+function getHistoryRecordTime(record: HistoryRecord): number {
+  const time = Date.parse(record.createdAt);
+  return Number.isFinite(time) ? time : 0;
+}
+
+function mergeHistoryRecords(current: HistoryRecord[], incoming: HistoryRecord[]) {
+  const byId = new Map(current.map((record) => [record.id, record]));
+  let newHistoryCount = 0;
+  let updatedHistoryCount = 0;
+
+  for (const record of incoming) {
+    const existing = byId.get(record.id);
+    if (!existing) {
+      byId.set(record.id, record);
+      newHistoryCount += 1;
+      continue;
+    }
+
+    if (getHistoryRecordTime(record) >= getHistoryRecordTime(existing)) {
+      byId.set(record.id, record);
+      updatedHistoryCount += 1;
+    }
+  }
+
+  const merged = Array.from(byId.values()).sort(
+    (a, b) => getHistoryRecordTime(b) - getHistoryRecordTime(a)
+  );
+
+  return {
+    merged,
+    newHistoryCount,
+    updatedHistoryCount,
+    keptCurrentCount: current.length - updatedHistoryCount,
+  };
+}
+
+function analyzeBackupImport(backup: LocalDataBackup): BackupImportPreview {
+  const current = loadHistory();
+  const mergeStats = mergeHistoryRecords(current, backup.history);
+
+  return {
+    backup,
+    fileName: "",
+    historyCount: backup.history.length,
+    storageKeyCount: Object.keys(backup.localStorage).length,
+    newHistoryCount: mergeStats.newHistoryCount,
+    updatedHistoryCount: mergeStats.updatedHistoryCount,
+    keptCurrentCount: mergeStats.keptCurrentCount,
+  };
+}
 
 function pickWorkspaceQuote(record: HistoryRecord): string {
   const candidates = [
@@ -709,6 +902,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupImportInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const touchStartXRef = useRef(0);
   const immersiveContainerRef = useRef<HTMLDivElement>(null);
@@ -802,6 +996,9 @@ export default function Home() {
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isDisclaimerModalOpen, setIsDisclaimerModalOpen] = useState(false);
+  const [isBackupNoticeOpen, setIsBackupNoticeOpen] = useState(false);
+  const [backupImportPreview, setBackupImportPreview] = useState<BackupImportPreview | null>(null);
+  const [backupImportError, setBackupImportError] = useState("");
 
   const resetAnalysisLoadingStates = useCallback(() => {
     setIsLoading(false);
@@ -1004,6 +1201,7 @@ export default function Home() {
     isFeynmanPreviewOpen ||
     isUpgradeModalOpen ||
     isDisclaimerModalOpen ||
+    isBackupNoticeOpen ||
     isDecisionPanelOpen;
 
   useEffect(() => {
@@ -1488,6 +1686,139 @@ export default function Home() {
       return current;
     });
   }, []);
+
+  const downloadLocalBackup = useCallback(() => {
+    try {
+      const backup = createLocalDataBackup();
+      const dateStamp = backup.exportedAt.slice(0, 10);
+
+      downloadJsonFile(`bookleap-backup-${dateStamp}.json`, backup);
+      enqueueGuidanceToast({
+        id: `local-backup-${Date.now()}`,
+        message: `已导出本地备份\n包含 ${backup.historyCount} 条解析记录`,
+        priority: TOAST_PRIORITY.INFO,
+        durationMs: 4200,
+      });
+    } catch {
+      enqueueGuidanceToast({
+        id: `local-backup-failed-${Date.now()}`,
+        message: "本地备份导出失败\n请确认浏览器允许下载文件",
+        priority: TOAST_PRIORITY.SYSTEM,
+        durationMs: 5200,
+      });
+    }
+  }, [enqueueGuidanceToast]);
+
+  const handleBackupLocalData = useCallback(() => {
+    setBackupImportPreview(null);
+    setBackupImportError("");
+    setIsBackupNoticeOpen(true);
+  }, []);
+
+  const handleConfirmBackupDownload = useCallback(() => {
+    downloadLocalBackup();
+  }, [downloadLocalBackup]);
+
+  const handleChooseBackupFile = useCallback(() => {
+    backupImportInputRef.current?.click();
+  }, []);
+
+  const handleBackupFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+
+    setBackupImportError("");
+    setBackupImportPreview(null);
+
+    try {
+      const raw = await file.text();
+      const parsed = normalizeLocalDataBackup(JSON.parse(raw));
+
+      if (!parsed) {
+        setBackupImportError("无法识别这个备份文件。请选择书跃导出的 JSON 备份。");
+        return;
+      }
+
+      setBackupImportPreview({
+        ...analyzeBackupImport(parsed),
+        fileName: file.name,
+      });
+    } catch {
+      setBackupImportError("备份文件读取失败。请确认文件没有损坏，并且是 JSON 格式。");
+    }
+  }, []);
+
+  const handleConfirmBackupImport = useCallback(() => {
+    if (!backupImportPreview) return;
+
+    try {
+      const currentBackup = createLocalDataBackup();
+      const beforeImportStamp = currentBackup.exportedAt.slice(0, 10);
+      downloadJsonFile(`bookleap-before-import-${beforeImportStamp}.json`, currentBackup);
+
+      const { backup } = backupImportPreview;
+      const currentHistory = loadHistory();
+      const mergeStats = mergeHistoryRecords(currentHistory, backup.history);
+
+      for (const [key, value] of Object.entries(backup.localStorage)) {
+        if (!shouldIncludeBackupStorageKey(key) || key === HISTORY_KEY) continue;
+        localStorage.setItem(key, value);
+      }
+
+      saveHistory(mergeStats.merged);
+      setRecentHistory(mergeStats.merged);
+      setGrowthLedger(loadGrowthLedger());
+      setExperiencedStarterIds(getExperiencedStarterBooks());
+      setSelectedStarterBookIdState(getSelectedStarterBookId());
+      setBackupImportPreview(null);
+      setBackupImportError("");
+      setIsBackupNoticeOpen(false);
+
+      enqueueGuidanceToast({
+        id: `local-import-${Date.now()}`,
+        message: `已合并导入备份\n新增 ${mergeStats.newHistoryCount} 条，更新 ${mergeStats.updatedHistoryCount} 条`,
+        priority: TOAST_PRIORITY.INFO,
+        durationMs: 5200,
+      });
+    } catch {
+      setBackupImportError("导入失败。已保留当前浏览器数据，请稍后重试。");
+    }
+  }, [backupImportPreview, enqueueGuidanceToast]);
+
+  useEffect(() => {
+    const handleBackupShortcut = (event: KeyboardEvent) => {
+      const isPlainKey = !event.metaKey && !event.ctrlKey && !event.altKey;
+      if (
+        event.key.toLowerCase() !== "b" ||
+        !isPlainKey ||
+        isTextInputTarget(event.target) ||
+        isInteractiveShortcutTarget(event.target) ||
+        isUploadShortcutBlocked
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      handleBackupLocalData();
+    };
+
+    window.addEventListener("keydown", handleBackupShortcut);
+    return () => window.removeEventListener("keydown", handleBackupShortcut);
+  }, [handleBackupLocalData, isUploadShortcutBlocked]);
+
+  useEffect(() => {
+    if (!isBackupNoticeOpen) return;
+
+    const handleBackupModalKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsBackupNoticeOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleBackupModalKeyDown);
+    return () => window.removeEventListener("keydown", handleBackupModalKeyDown);
+  }, [isBackupNoticeOpen]);
 
   useEffect(() => {
     if (activeToast || toastQueue.length === 0) return;
@@ -3443,6 +3774,14 @@ export default function Home() {
       active: isWorkspaceFullscreen,
     },
   ];
+  const bottomToolActions = [
+    {
+      id: "backup",
+      label: "数据备份",
+      title: "数据备份 · B",
+      onClick: handleBackupLocalData,
+    },
+  ];
 
   const workspacePanelClass =
     "bg-transparent";
@@ -4343,7 +4682,7 @@ export default function Home() {
   return (
     <>
       <WorkspaceShell
-        toolRail={<WorkspaceToolRail actions={toolRailActions} utilityActions={utilityToolActions} />}
+        toolRail={<WorkspaceToolRail actions={toolRailActions} utilityActions={utilityToolActions} bottomActions={bottomToolActions} />}
         librarySidebar={librarySidebar}
         readerPane={readerPane}
         growthSidebar={growthSidebar}
@@ -4360,6 +4699,164 @@ export default function Home() {
 
       {isDisclaimerModalOpen && (
         <WorkspaceDisclaimerModal onAccept={handleAcceptWorkspaceDisclaimer} />
+      )}
+
+      {isBackupNoticeOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-[rgba(24,29,38,0.34)] px-5 py-6 backdrop-blur-[2px]"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIsBackupNoticeOpen(false);
+            }
+          }}
+          role="presentation"
+        >
+          <section
+            className="flex w-full max-w-[640px] flex-col overflow-hidden rounded-[12px] border border-[#9297a0] bg-[#fbfcfd] shadow-[0_18px_44px_rgba(24,29,38,0.18)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="backup-notice-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[#dfe4e8] px-6 pb-4 pt-5">
+              <div>
+                <p
+                  id="backup-notice-title"
+                  className="text-base font-semibold leading-6 text-[var(--ink)]"
+                >
+                  数据备份
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
+                  用本地 JSON 文件迁移或恢复当前浏览器里的书跃数据。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBackupNoticeOpen(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-faint)] transition hover:border-[#9297a0] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                aria-label="关闭备份说明"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                  <path d="M5 5 15 15M15 5 5 15" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4 px-6 py-5 text-sm leading-7 text-[var(--ink-soft)]">
+              {!backupImportPreview ? (
+                <>
+                  <div className="rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 py-3">
+                    <p className="font-medium text-[var(--ink)]">备份文件会包含</p>
+                    <p className="mt-2 text-xs leading-5 text-[var(--ink-faint)]">
+                      解析历史、训练缓存、成长记录、海报缓存和书跃基础状态。文件只在本地下载或读取，不会上传到书跃服务器。
+                    </p>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <section className="rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] px-4 py-4">
+                      <p className="font-medium text-[var(--ink)]">导出备份</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
+                        下载当前浏览器里的书跃数据，适合换电脑前先保存。
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleConfirmBackupDownload}
+                        className="mt-4 flex h-10 w-full items-center justify-center rounded-[10px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] focus:outline-none focus:ring-2 focus:ring-[#9297a0] focus:ring-offset-2 focus:ring-offset-[#fbfcfd] active:scale-[0.99]"
+                      >
+                        导出备份
+                      </button>
+                    </section>
+
+                    <section className="rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] px-4 py-4">
+                      <p className="font-medium text-[var(--ink)]">导入恢复</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
+                        选择之前导出的备份文件，将数据合并到当前浏览器。
+                      </p>
+                      <input
+                        ref={backupImportInputRef}
+                        type="file"
+                        accept="application/json,.json"
+                        onChange={(event) => void handleBackupFileChange(event)}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleChooseBackupFile}
+                        className="mt-4 flex h-10 w-full items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[#9297a0] hover:text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[#9297a0] focus:ring-offset-2 focus:ring-offset-[#fbfcfd] active:scale-[0.99]"
+                      >
+                        选择备份文件
+                      </button>
+                    </section>
+                  </div>
+
+                  {backupImportError && (
+                    <div className="rounded-[10px] border border-[rgba(154,52,18,0.18)] bg-[rgba(255,247,237,0.78)] px-4 py-3 text-sm leading-6 text-[#9a3412]">
+                      {backupImportError}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-[10px] border border-[rgba(10,46,14,0.18)] bg-[var(--accent-soft)] px-4 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-medium text-[var(--ink)]">确认导入</p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
+                        {backupImportPreview.fileName} · {new Date(backupImportPreview.backup.exportedAt).toLocaleString("zh-CN")}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleChooseBackupFile}
+                        className="flex h-8 items-center justify-center rounded-[8px] border border-[rgba(10,46,14,0.18)] bg-[#fbfcfd] px-3 text-xs font-medium text-[var(--ink-soft)] transition hover:border-[rgba(10,46,14,0.36)] hover:text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[#9297a0] focus:ring-offset-2 focus:ring-offset-[var(--accent-soft)] active:scale-[0.98]"
+                      >
+                        重新选择
+                      </button>
+                      <span className="rounded-[8px] border border-[rgba(10,46,14,0.18)] bg-[#fbfcfd] px-2.5 py-1 text-xs font-medium text-[var(--accent)]">
+                        {backupImportPreview.historyCount} 条记录
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs leading-5 text-[var(--ink-soft)] sm:grid-cols-3">
+                    <div className="rounded-[8px] bg-[#fbfcfd] px-3 py-2">
+                      <p className="text-[var(--ink-faint)]">新增记录</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{backupImportPreview.newHistoryCount}</p>
+                    </div>
+                    <div className="rounded-[8px] bg-[#fbfcfd] px-3 py-2">
+                      <p className="text-[var(--ink-faint)]">更新记录</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{backupImportPreview.updatedHistoryCount}</p>
+                    </div>
+                    <div className="rounded-[8px] bg-[#fbfcfd] px-3 py-2">
+                      <p className="text-[var(--ink-faint)]">保留当前</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{backupImportPreview.keptCurrentCount}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-[var(--ink-faint)]">
+                    解析历史按记录 ID 去重，相同记录保留较新的版本；同名缓存键会使用备份里的值。导入前会自动导出当前浏览器备份。
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {backupImportPreview && (
+              <div className="flex flex-col gap-3 border-t border-[#dfe4e8] px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsBackupNoticeOpen(false)}
+                  className="flex h-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[#9297a0] hover:text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[#9297a0] focus:ring-offset-2 focus:ring-offset-[#fbfcfd] active:scale-[0.99]"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmBackupImport}
+                  className="flex h-10 items-center justify-center rounded-[10px] bg-[#181d26] px-5 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] focus:outline-none focus:ring-2 focus:ring-[#9297a0] focus:ring-offset-2 focus:ring-offset-[#fbfcfd] active:scale-[0.99]"
+                >
+                  合并导入
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
       )}
 
       {/* ── Payment modal ── */}
@@ -4837,6 +5334,7 @@ export default function Home() {
           exportUnlocked={exportUnlocked}
           onOpenTraining={() => void handleOpenDecisionTraining()}
           onOpenExport={() => { setExportStatus("idle"); setIsExportModalOpen(true); }}
+          onBackupData={handleBackupLocalData}
         />
       </div>
     </>
