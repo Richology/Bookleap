@@ -169,6 +169,8 @@ const STARTER_MODE_SEEN_KEY = "bookleap_has_seen_starter_mode";
 const STARTER_SELECTED_BOOK_KEY = "bookleap_selected_starter_book";
 const STARTER_EXPERIENCED_KEY = "bookleap_experienced_starter_books";
 const WORKSPACE_DISCLAIMER_ACCEPTED_KEY = "bookleap_workspace_disclaimer_accepted_v1";
+const LEGACY_BOOK_DOMAIN = "book.richology.cn";
+const CANONICAL_WORKSPACE_URL = "https://bookleap.cn/workspace";
 const BACKUP_STORAGE_PREFIXES = [
   "bookleap_",
   "decision_scenarios_",
@@ -807,6 +809,10 @@ function isLocalRuntimeHost(hostname: string): boolean {
   );
 }
 
+function isLegacyBookDomainHost(hostname: string): boolean {
+  return hostname.toLowerCase() === LEGACY_BOOK_DOMAIN;
+}
+
 function getAnalyzeFailureMessage(
   responseOk: boolean,
   serverMessage?: string
@@ -999,6 +1005,7 @@ export default function Home() {
   const [isBackupNoticeOpen, setIsBackupNoticeOpen] = useState(false);
   const [backupImportPreview, setBackupImportPreview] = useState<BackupImportPreview | null>(null);
   const [backupImportError, setBackupImportError] = useState("");
+  const [isLegacyDomainNoticeVisible, setIsLegacyDomainNoticeVisible] = useState(false);
 
   const resetAnalysisLoadingStates = useCallback(() => {
     setIsLoading(false);
@@ -1037,6 +1044,10 @@ export default function Home() {
     "";
   const historyCover = currentHistoryRecord?.coverImage ?? "";
   const localCover = starterCover || bookCoverImage || historyCover;
+
+  useEffect(() => {
+    setIsLegacyDomainNoticeVisible(isLegacyBookDomainHost(window.location.hostname));
+  }, []);
 
   const [fetchedCover, setFetchedCover] = useState("");
   useEffect(() => {
@@ -4689,6 +4700,45 @@ export default function Home() {
         isLibraryCollapsed={isLibraryCollapsed}
         isGrowthCollapsed={isGrowthPanelCollapsed}
       />
+
+      {isLegacyDomainNoticeVisible && (
+        <aside
+          className="fixed inset-x-3 top-3 z-[90] mx-auto flex max-w-[980px] flex-col gap-3 rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] px-4 py-3 text-sm shadow-[0_12px_32px_rgba(24,29,38,0.12)] md:left-[72px] md:right-5 md:flex-row md:items-center md:justify-between md:px-4"
+          aria-label="旧域名迁移提醒"
+        >
+          <div className="min-w-0">
+            <p className="font-medium text-[var(--ink)]">书跃已启用新域名 bookleap.cn</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--ink-soft)]">
+              旧域名里的解析记录只保存在这里。迁移时请先导出备份，再到新域名导入。
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleBackupLocalData}
+              className="rounded-[9px] border border-[var(--ink)] bg-[var(--ink)] px-3 py-2 text-xs font-medium text-[#fbfcfd] transition hover:bg-[#2d3138] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] active:scale-[0.98]"
+            >
+              导出备份
+            </button>
+            <a
+              href={CANONICAL_WORKSPACE_URL}
+              className="rounded-[9px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:border-[#9297a0] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] active:scale-[0.98]"
+            >
+              前往新域名
+            </a>
+            <button
+              type="button"
+              onClick={() => setIsLegacyDomainNoticeVisible(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-transparent text-[var(--ink-faint)] transition hover:border-[#dfe4e8] hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+              aria-label="关闭旧域名迁移提醒"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                <path d="M5 5 15 15M15 5 5 15" />
+              </svg>
+            </button>
+          </div>
+        </aside>
+      )}
       
       <UpgradeReadingModal 
         isOpen={isUpgradeModalOpen} 
