@@ -10,6 +10,9 @@ type WorkspaceToolAction = {
   onClick: () => void;
   disabled?: boolean;
   active?: boolean;
+  showCallout?: boolean;
+  calloutText?: string;
+  onDismissCallout?: () => void;
 };
 
 const WORKSPACE_WECHAT_ID = "iwbr1988";
@@ -41,6 +44,17 @@ function ToolIcon({ id }: { id: string }) {
         <path d="M4.8 5.2c0-1.1 2.3-2 5.2-2s5.2.9 5.2 2-2.3 2-5.2 2-5.2-.9-5.2-2Z" />
         <path d="M4.8 5.2v4.6c0 1.1 2.3 2 5.2 2s5.2-.9 5.2-2V5.2" />
         <path d="M4.8 9.8v4.6c0 1.1 2.3 2 5.2 2s5.2-.9 5.2-2V9.8" />
+      </svg>
+    );
+  }
+
+  if (id === "coffee") {
+    return (
+      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5.2 7h8.2v3.9a3.6 3.6 0 0 1-3.6 3.6h-1a3.6 3.6 0 0 1-3.6-3.6V7Z" />
+        <path d="M13.4 8.2h1.1a1.7 1.7 0 0 1 0 3.4h-1.1" />
+        <path d="M6.2 16h7" />
+        <path d="M7 4.2c.5.45.5.9 0 1.35M10 4.2c.5.45.5.9 0 1.35M13 4.2c.5.45.5.9 0 1.35" />
       </svg>
     );
   }
@@ -237,22 +251,42 @@ export function WorkspaceToolRail({
   bottomActions?: WorkspaceToolAction[];
 }) {
   const renderActionButton = (action: WorkspaceToolAction) => (
-    <button
-      key={action.id}
-      onClick={action.onClick}
-      disabled={action.disabled}
-      className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
-        action.active
-          ? "border-[#9297a0] bg-[#eef1ef] text-[var(--accent)]"
-          : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
-      } ${action.disabled ? "cursor-not-allowed opacity-40" : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"}`}
-      aria-label={action.label}
-    >
-      <ToolIcon id={action.id} />
-      <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
-        {action.title}
-      </span>
-    </button>
+    <div key={action.id} className="relative">
+      <button
+        onClick={action.onClick}
+        disabled={action.disabled}
+        className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
+          action.active
+            ? "border-[#9297a0] bg-[#eef1ef] text-[var(--accent)]"
+            : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
+        } ${action.disabled ? "cursor-not-allowed opacity-40" : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"}`}
+        aria-label={action.label}
+      >
+        <ToolIcon id={action.id} />
+        <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
+          {action.title}
+        </span>
+      </button>
+
+      {action.showCallout && action.calloutText && (
+        <div className="absolute bottom-0 left-[calc(100%+12px)] z-[90] w-[190px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3 py-2.5 text-[12px] leading-5 text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)]">
+          <span className="absolute bottom-3 left-[-5px] h-2.5 w-2.5 rotate-45 border-b border-l border-[#cfd6dc] bg-[#fbfcfd]" />
+          <p className="pr-4">{action.calloutText}</p>
+          {action.onDismissCallout && (
+            <button
+              type="button"
+              onClick={action.onDismissCallout}
+              className="absolute right-1.5 top-1.5 rounded-[6px] p-1 text-[var(--ink-faint)] transition-colors hover:bg-[#f1f3f4] hover:text-[var(--ink)]"
+              aria-label="关闭提示"
+            >
+              <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 
   return (

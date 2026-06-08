@@ -16,6 +16,7 @@ import { DecisionTrainingPanel } from "../components/DecisionTrainingPanel";
 import { FeynmanPreview } from "../components/FeynmanPreview";
 import { UpgradeReadingModal } from "../components/UpgradeReadingModal";
 import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal";
+import { SupportCoffeeModal } from "../components/SupportCoffeeModal";
 import { Toast } from "../components/Toast";
 import { FabMenu, type FabMenuHandle } from "../components/FabMenu";
 import { WorkspaceBookItem } from "../components/workspace/WorkspaceBookItem";
@@ -75,6 +76,7 @@ import {
   hasWorkspaceQuoteArtifacts,
   sanitizeWorkspaceQuote,
 } from "@/lib/workspaceQuote";
+import { shouldPromptCoffeeSupport } from "@/lib/supportCoffee.mjs";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
   type GuidanceToast,
@@ -202,6 +204,7 @@ function markStarterBookExperienced(bookId: string) {
 const RETURNING_USER_TOAST_SESSION_KEY = "bookleap_returning_user_toast_seen";
 const HISTORY_REORGANIZED_KEY = "bookleap_history_reorganized_shown";
 const FAB_HISTORY_SEEN_KEY = "bookleap_fab_history_seen";
+const SUPPORT_COFFEE_PROMPT_SEEN_KEY = "bookleap_support_coffee_prompt_seen";
 const STARTER_LOADING_STEPS = [
   { text: "正在解析全书结构…", duration: 700 },
   { text: "正在提炼核心观点…", duration: 800 },
@@ -729,6 +732,22 @@ function markFabHistorySeen() {
   }
 }
 
+function hasSupportCoffeePromptBeenShown() {
+  try {
+    return localStorage.getItem(SUPPORT_COFFEE_PROMPT_SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markSupportCoffeePromptShown() {
+  try {
+    localStorage.setItem(SUPPORT_COFFEE_PROMPT_SEEN_KEY, "1");
+  } catch {
+    // ignore
+  }
+}
+
 function loadDecisionScenarioCache(bookId: string): DecisionScenario[] {
   try {
     const raw = localStorage.getItem(getDecisionCacheKey(bookId));
@@ -945,6 +964,8 @@ export default function Home() {
   const [isLoadingIdeaSourceTracing, setIsLoadingIdeaSourceTracing] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "success">("idle");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSupportCoffeeModalOpen, setIsSupportCoffeeModalOpen] = useState(false);
+  const [showSupportCoffeeCallout, setShowSupportCoffeeCallout] = useState(false);
   const [isLiteMode, setIsLiteMode] = useState(false);
   const [isLiteUnlocked, setIsLiteUnlocked] = useState(false);
   const [isPaywallModalOpen, setIsPaywallModalOpen] = useState(false);
@@ -1207,6 +1228,7 @@ export default function Home() {
   const isUploadShortcutBlocked =
     isWorkspaceSearchOpen ||
     isExportModalOpen ||
+    isSupportCoffeeModalOpen ||
     isPaywallModalOpen ||
     isPosterModalOpen ||
     isFeynmanPreviewOpen ||
@@ -1574,6 +1596,15 @@ export default function Home() {
     // 不再自动进入 starter mode，新用户默认看到上传区
     setIsStarterModeVisible(false);
   }, []);
+
+  useEffect(() => {
+    if (
+      shouldPromptCoffeeSupport(recentHistory, hasSupportCoffeePromptBeenShown())
+    ) {
+      markSupportCoffeePromptShown();
+      setShowSupportCoffeeCallout(true);
+    }
+  }, [recentHistory]);
 
   useEffect(() => {
     if (!currentBookId) {
@@ -3787,6 +3818,19 @@ export default function Home() {
   ];
   const bottomToolActions = [
     {
+      id: "coffee",
+      label: "请书跃喝杯咖啡",
+      title: "请书跃喝杯咖啡",
+      onClick: () => {
+        setShowSupportCoffeeCallout(false);
+        setIsSupportCoffeeModalOpen(true);
+      },
+      active: isSupportCoffeeModalOpen,
+      showCallout: showSupportCoffeeCallout,
+      calloutText: "已经认真拆完 3 本书了。愿意的话，请书跃喝杯咖啡。",
+      onDismissCallout: () => setShowSupportCoffeeCallout(false),
+    },
+    {
       id: "backup",
       label: "数据备份",
       title: "数据备份 · B",
@@ -4749,6 +4793,10 @@ export default function Home() {
 
       {isDisclaimerModalOpen && (
         <WorkspaceDisclaimerModal onAccept={handleAcceptWorkspaceDisclaimer} />
+      )}
+
+      {isSupportCoffeeModalOpen && (
+        <SupportCoffeeModal onClose={() => setIsSupportCoffeeModalOpen(false)} />
       )}
 
       {isBackupNoticeOpen && (
