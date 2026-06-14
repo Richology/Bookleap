@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const SITE_URL = "https://bookleap.cn";
+export const SITE_URL = "https://www.bookleap.cn";
 export const SITE_NAME = "书跃 BookLeap";
 export const SITE_TITLE =
   "书跃 BookLeap｜免费 AI 拆书工具，高效读书与电子书拆解";
