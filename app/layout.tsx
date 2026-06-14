@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Newsreader, Geist_Mono } from "next/font/google";
+import { defaultMetadata } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,10 +18,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "书跃 · BookLeap",
-  description: "从好书中完成认知跃迁",
-};
+export const metadata: Metadata = defaultMetadata;
 
 export default function RootLayout({
   children,

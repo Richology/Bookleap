@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const FAQ_ITEMS = [
+export const FAQ_ITEMS = [
   {
     q: "为什么推荐上传 EPUB 或 AZW3，而不是 PDF？",
     a: "EPUB 和 AZW3 通常包含更完整的目录与章节结构，书跃可以更稳定地做深度结构化解析。PDF 文件缺少稳定章节元数据，只能按固定字数分块处理，通常会进入简化分析模式。如果你手里只有 PDF，也可以上传；若希望效果更完整，建议优先使用 EPUB 或无 DRM 的 AZW3。单文件目前最多支持 50MB。",

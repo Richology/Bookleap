@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
+import { JsonLd } from "./components/JsonLd";
 import { BookLeapCTA } from "./components/landing/BookLeapCTA";
 import { FacetCarousel } from "./components/landing/FacetCarousel";
-import { FAQ } from "./components/landing/FAQ";
+import { FAQ, FAQ_ITEMS } from "./components/landing/FAQ";
 import { NeedAHand } from "./components/landing/NeedAHand";
 import { ScrollSection } from "./components/landing/ScrollSection";
 import { Testimonials } from "./components/landing/Testimonials";
 import { WorkbenchStory } from "./components/landing/WorkbenchStory";
+import { buildFaqJsonLd, buildHomeJsonLd } from "@/lib/seo";
 
 const ANALYSIS_FACETS = [
   {
@@ -142,6 +144,8 @@ export default function HomeV2Page() {
 
   return (
     <>
+      <JsonLd data={buildHomeJsonLd()} />
+      <JsonLd data={buildFaqJsonLd(FAQ_ITEMS)} />
       <HomeV2Nav />
 
       <main className="archive-atmosphere relative overflow-x-clip text-[var(--ink)]">
