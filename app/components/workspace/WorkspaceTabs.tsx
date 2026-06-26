@@ -39,7 +39,7 @@ export function WorkspaceTabs({
             className="group relative flex h-10 w-[180px] shrink-0 items-stretch"
           >
             <div
-              className={`relative flex min-w-0 flex-1 items-center gap-1 rounded-[9px] bg-transparent shadow-none transition-all after:absolute after:inset-x-0 after:bottom-[-8px] after:h-0.5 after:transition-colors hover:bg-[var(--workspace-accent-surface)] hover:shadow-[0_8px_18px_rgba(24,29,38,0.08)] ${
+              className={`relative flex min-w-0 flex-1 items-center gap-1 rounded-[9px] bg-transparent shadow-none transition-all after:absolute after:inset-x-0 after:bottom-[-8px] after:h-0.5 after:transition-colors hover:bg-[var(--workspace-hover-surface)] hover:shadow-[0_8px_18px_rgba(24,29,38,0.08)] ${
                 isActive
                   ? "after:bg-[var(--ink)]"
                   : "after:bg-transparent"

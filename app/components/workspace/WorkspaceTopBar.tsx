@@ -133,7 +133,7 @@ export function WorkspaceTopBar({
               data-workspace-preview-trigger="growth"
               className={`relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
                 hasGrowthUpdate
-                  ? "border-[rgba(10,46,14,0.16)] bg-[rgba(168,216,196,0.28)] text-[var(--accent)] shadow-[0_0_0_3px_rgba(168,216,196,0.14)] hover:bg-[rgba(168,216,196,0.38)]"
+                  ? "border-[rgba(10,46,14,0.16)] bg-[rgba(168,216,196,0.28)] text-[var(--accent)] shadow-[0_0_0_3px_rgba(168,216,196,0.14)] hover:bg-[var(--workspace-hover-surface)]"
                   : "border-transparent bg-transparent text-[#4f555d] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
               }`}
               aria-label={hasGrowthUpdate ? "展开成长区，有新的成长记录" : "展开成长区"}
@@ -163,7 +163,7 @@ export function WorkspaceTopBar({
                       key={tab.id}
                       className={`group flex items-center justify-between gap-2 rounded-[8px] px-3 py-2.5 transition-all ${
                         isActive
-                          ? "bg-[#eef1ef]"
+                          ? "bg-[var(--workspace-hover-surface)]"
                           : "hover:bg-[#f4f5f7]"
                       }`}
                     >
@@ -182,7 +182,7 @@ export function WorkspaceTopBar({
                       {tab.closable ? (
                         <button
                           onClick={() => onCloseTab(tab.id)}
-                          className="shrink-0 rounded-[7px] p-1.5 text-[var(--ink-faint)] opacity-70 transition-all hover:bg-[#e7ebed] hover:text-[var(--ink)] group-hover:opacity-100"
+                          className="shrink-0 rounded-[7px] p-1.5 text-[var(--ink-faint)] opacity-70 transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] group-hover:opacity-100"
                           aria-label={`关闭 ${tab.title}`}
                         >
                           <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
