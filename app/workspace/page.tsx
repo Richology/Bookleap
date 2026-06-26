@@ -620,7 +620,7 @@ function createOriginalReadingAdviceSummary(content: string) {
     content
       .replace(/\*\*阅读原书建议[:：][^*\n]+?\*\*/g, " ")
       .replace(/阅读原书建议[:：]\s*\S+/g, " "),
-    118
+    58
   );
 }
 
@@ -985,6 +985,7 @@ export default function Home() {
   const [bookAuthor, setBookAuthor] = useState("");
   const [readingGuide, setReadingGuide] = useState("");
   const [originalReadingValue, setOriginalReadingValue] = useState("");
+  const [isOriginalReadingAdviceExpanded, setIsOriginalReadingAdviceExpanded] = useState(false);
   const [viewMap, setViewMap] = useState("");
   const [actionExtraction, setActionExtraction] = useState("");
   const [criticalExamination, setCriticalExamination] = useState("");
@@ -1655,6 +1656,10 @@ export default function Home() {
 
     setAddictionStateLocal(getAddictionState(currentBookId));
   }, [currentBookId]);
+
+  useEffect(() => {
+    setIsOriginalReadingAdviceExpanded(false);
+  }, [bookTitle]);
 
   useEffect(() => {
     if (!currentWorkspaceTab) {
@@ -4515,11 +4520,35 @@ export default function Home() {
                       </span>
                     </span>
                   </p>
-                  <p className="mt-1 text-[13px] leading-6 text-[var(--ink-soft)]">
-                    {isLoadingOriginalReadingValue
-                      ? "正在根据书的类型、内容密度和原书增量判断是否值得继续读原书"
-                      : originalReadingAdviceSummary || "等待生成阅读建议"}
-                  </p>
+                  <div className="mt-1 flex items-start gap-2">
+                    <p className="min-w-0 flex-1 text-[13px] leading-6 text-[var(--ink-soft)] line-clamp-2">
+                      {isLoadingOriginalReadingValue
+                        ? "正在根据书的类型、内容密度和原书增量判断是否值得继续读原书"
+                        : originalReadingAdviceSummary || "等待生成阅读建议"}
+                    </p>
+                    {!isLoadingOriginalReadingValue && originalReadingAdviceSummary && (
+                      <button
+                        type="button"
+                        onClick={() => setIsOriginalReadingAdviceExpanded((prev) => !prev)}
+                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] text-[var(--ink-faint)] transition-all hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                        aria-label={isOriginalReadingAdviceExpanded ? "收起原书阅读建议详情" : "展开原书阅读建议详情"}
+                        aria-expanded={isOriginalReadingAdviceExpanded}
+                      >
+                        <svg
+                          className={`h-4 w-4 transition-transform ${isOriginalReadingAdviceExpanded ? "rotate-180" : ""}`}
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="m5.5 7.5 4.5 4.5 4.5-4.5" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
 
                   <div className="mt-3">
                     <div
@@ -4553,6 +4582,26 @@ export default function Home() {
                       })}
                     </div>
                   </div>
+
+                  {isOriginalReadingAdviceExpanded && (originalReadingValue || originalReadingAdviceSummary) && (
+                    <div className="mt-3 rounded-[9px] bg-[var(--workspace-accent-surface)] px-3.5 py-3 text-[12px] leading-6 text-[var(--ink-soft)]">
+                      {originalReadingValue ? (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold text-[var(--ink)]">{children}</strong>,
+                            ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4 last:mb-0">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4 last:mb-0">{children}</ol>,
+                          }}
+                        >
+                          {originalReadingValue}
+                        </ReactMarkdown>
+                      ) : (
+                        <p>{originalReadingAdviceSummary}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               cover={(
