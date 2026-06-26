@@ -407,14 +407,17 @@ function mergeHistoryRecords(current: HistoryRecord[], incoming: HistoryRecord[]
 
   for (const record of incoming) {
     const existing = byId.get(record.id);
+    const nextRecord = existing && !record.coverImage && existing.coverImage
+      ? { ...record, coverImage: existing.coverImage }
+      : record;
     if (!existing) {
-      byId.set(record.id, record);
+      byId.set(record.id, nextRecord);
       newHistoryCount += 1;
       continue;
     }
 
     if (getHistoryRecordTime(record) >= getHistoryRecordTime(existing)) {
-      byId.set(record.id, record);
+      byId.set(record.id, nextRecord);
       updatedHistoryCount += 1;
     }
   }
@@ -490,10 +493,6 @@ function compactHistoryForStorage(
 
   return nextRecords.map((record) => ({
     ...record,
-    coverImage:
-      record.coverImage && record.coverImage.length > 12000
-        ? ""
-        : record.coverImage,
     posterContent: options.stripPosterContent ? null : record.posterContent,
   }));
 }
@@ -511,7 +510,6 @@ function saveHistory(records: HistoryRecord[]) {
   if (tryWriteHistory(records)) return true;
 
   const attempts = [
-    compactHistoryForStorage(records),
     compactHistoryForStorage(records, { stripPosterContent: true }),
     compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 30 }),
     compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 15 }),
@@ -628,6 +626,58 @@ function createOverviewExcerpt(content: string, maxLength = 128) {
   const compact = compactSearchText(withoutMarkdown);
   if (!compact) return "";
   return compact.length > maxLength ? `${compact.slice(0, maxLength).trim()}...` : compact;
+}
+
+function normalizeBookLookupText(value: string) {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+function isBookTitleMatch(returned: string, query: string) {
+  const a = normalizeBookLookupText(returned);
+  const b = normalizeBookLookupText(query);
+  return a.includes(b) || b.includes(a);
+}
+
+async function fetchBookCoverFromCatalog(title: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(title)}&maxResults=3`
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const items = data.items ?? [];
+      for (const item of items) {
+        const info = item.volumeInfo;
+        if (!info?.imageLinks?.thumbnail) continue;
+        if (isBookTitleMatch(info.title ?? "", title)) {
+          return info.imageLinks.thumbnail.replace("http://", "https://");
+        }
+      }
+      if (items[0]?.volumeInfo?.imageLinks?.thumbnail) {
+        return items[0].volumeInfo.imageLinks.thumbnail.replace("http://", "https://");
+      }
+    }
+  } catch { /* ignore catalog miss */ }
+
+  try {
+    const res = await fetch(
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=3&fields=title,cover_i`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const docs = data.docs ?? [];
+    for (const doc of docs) {
+      if (!doc.cover_i) continue;
+      if (isBookTitleMatch(doc.title ?? "", title)) {
+        return `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
+      }
+    }
+    if (docs[0]?.cover_i) {
+      return `https://covers.openlibrary.org/b/id/${docs[0].cover_i}-L.jpg`;
+    }
+  } catch { /* ignore catalog miss */ }
+
+  return null;
 }
 
 const ORIGINAL_READING_LEVELS = [
@@ -1013,6 +1063,7 @@ export default function Home() {
   const bgAnalysisRef = useRef<BgAnalysisData | null>(null);
   const bgAnalysisTitleRef = useRef<string>("");
   const originalReadingBackfillRef = useRef<Set<string>>(new Set());
+  const coverBackfillRef = useRef<Set<string>>(new Set());
   const [bgAnalysisStatus, setBgAnalysisStatus] = useState<BgAnalysisStatus>({ active: false });
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
@@ -1159,15 +1210,6 @@ export default function Home() {
 
     let cancelled = false;
 
-    const normalize = (s: string) =>
-      s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-
-    const isTitleMatch = (returned: string, query: string) => {
-      const a = normalize(returned);
-      const b = normalize(query);
-      return a.includes(b) || b.includes(a);
-    };
-
     const joinAuthors = (authors: unknown): string => {
       if (!Array.isArray(authors)) return "";
       return authors
@@ -1186,7 +1228,7 @@ export default function Home() {
           const data = await googleRes.json();
           const items = data.items ?? [];
           const matched = items.find((item: { volumeInfo?: { title?: string; authors?: unknown } }) =>
-            item.volumeInfo?.title && isTitleMatch(item.volumeInfo.title, bookTitle)
+            item.volumeInfo?.title && isBookTitleMatch(item.volumeInfo.title, bookTitle)
           ) ?? items[0];
           const authors = joinAuthors(matched?.volumeInfo?.authors);
           if (authors && !cancelled) {
@@ -1204,7 +1246,7 @@ export default function Home() {
         const data = await openLibraryRes.json();
         const docs = data.docs ?? [];
         const matched = docs.find((doc: { title?: string; author_name?: unknown }) =>
-          doc.title && isTitleMatch(doc.title, bookTitle)
+          doc.title && isBookTitleMatch(doc.title, bookTitle)
         ) ?? docs[0];
         const authors = joinAuthors(matched?.author_name);
         if (authors && !cancelled) setFetchedAuthor(authors);
@@ -1224,60 +1266,8 @@ export default function Home() {
     }
     let cancelled = false;
 
-    const normalize = (s: string) =>
-      s.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-
-    const isTitleMatch = (returned: string, query: string) => {
-      const a = normalize(returned);
-      const b = normalize(query);
-      return a.includes(b) || b.includes(a);
-    };
-
-    const tryGoogleBooks = async (): Promise<string | null> => {
-      try {
-        const res = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(bookTitle)}&maxResults=3`
-        );
-        if (!res.ok) return null;
-        const data = await res.json();
-        const items = data.items ?? [];
-        for (const item of items) {
-          const info = item.volumeInfo;
-          if (!info?.imageLinks?.thumbnail) continue;
-          if (isTitleMatch(info.title ?? "", bookTitle)) {
-            return info.imageLinks.thumbnail.replace("http://", "https://");
-          }
-        }
-        if (items[0]?.volumeInfo?.imageLinks?.thumbnail) {
-          return items[0].volumeInfo.imageLinks.thumbnail.replace("http://", "https://");
-        }
-      } catch { /* ignore */ }
-      return null;
-    };
-
-    const tryOpenLibrary = async (): Promise<string | null> => {
-      try {
-        const res = await fetch(
-          `https://openlibrary.org/search.json?title=${encodeURIComponent(bookTitle)}&limit=3&fields=title,cover_i`
-        );
-        if (!res.ok) return null;
-        const data = await res.json();
-        const docs = data.docs ?? [];
-        for (const doc of docs) {
-          if (!doc.cover_i) continue;
-          if (isTitleMatch(doc.title ?? "", bookTitle)) {
-            return `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`;
-          }
-        }
-        if (docs[0]?.cover_i) {
-          return `https://covers.openlibrary.org/b/id/${docs[0].cover_i}-L.jpg`;
-        }
-      } catch { /* ignore */ }
-      return null;
-    };
-
     (async () => {
-      const cover = (await tryGoogleBooks()) ?? (await tryOpenLibrary());
+      const cover = await fetchBookCoverFromCatalog(bookTitle);
       if (cover && !cancelled) setFetchedCover(cover);
     })();
 
@@ -1694,6 +1684,52 @@ export default function Home() {
 
     setAddictionStateLocal(getAddictionState(currentBookId));
   }, [currentBookId]);
+
+  useEffect(() => {
+    const missingCoverRecords = recentHistory
+      .filter((record) => {
+        if (record.coverImage) return false;
+        if (record.starterBookId && starterBooksById[record.starterBookId]?.coverImage) return false;
+        return !coverBackfillRef.current.has(record.id);
+      });
+
+    if (missingCoverRecords.length === 0) return;
+
+    let cancelled = false;
+
+    const backfillCovers = async () => {
+      const updates = await Promise.all(
+        missingCoverRecords.map(async (record) => {
+          coverBackfillRef.current.add(record.id);
+          const coverImage = await fetchBookCoverFromCatalog(record.title);
+          return coverImage ? { id: record.id, coverImage } : null;
+        })
+      );
+      if (cancelled) return;
+
+      const validUpdates = updates.filter(
+        (item): item is { id: string; coverImage: string } => !!item
+      );
+      if (validUpdates.length === 0) return;
+
+      const updateMap = new Map(validUpdates.map((item) => [item.id, item.coverImage]));
+      const history = loadHistory();
+      const nextHistory = history.map((record) => {
+        const coverImage = updateMap.get(record.id);
+        return coverImage ? { ...record, coverImage } : record;
+      });
+
+      if (saveHistory(nextHistory)) {
+        setRecentHistory(nextHistory);
+      }
+    };
+
+    void backfillCovers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recentHistory]);
 
   useEffect(() => {
     setIsOriginalReadingAdviceExpanded(false);
@@ -2238,8 +2274,10 @@ export default function Home() {
       ? bg.fileType
       : "epub") as SupportedFileType;
     const starterBook = bg.starterBookId ? starterBooksById[bg.starterBookId] ?? null : null;
+    const recordId = `${bg.title}-${fileType}`;
+    const existing = loadHistory().find((record) => record.id === recordId);
     const record: HistoryRecord = {
-      id: `${bg.title}-${fileType}`,
+      id: recordId,
       title: bg.title,
       fileType,
       mode: bg.liteMode ? "lite" : "full",
@@ -2253,7 +2291,7 @@ export default function Home() {
       ideaSourceTracing: bg.ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }),
-      coverImage: starterBook?.coverImage || bg.coverImage || "",
+      coverImage: starterBook?.coverImage || bg.coverImage || existing?.coverImage || "",
       posterContent: null,
       isStarterBook: !!starterBook,
       starterBookId: starterBook?.id,
@@ -2312,7 +2350,7 @@ export default function Home() {
       ideaSourceTracing: bg.ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }),
-      coverImage: starterBook?.coverImage || bg.coverImage || "",
+      coverImage: starterBook?.coverImage || bg.coverImage || existing?.coverImage || "",
       posterContent: existing?.posterContent ?? null,
       isStarterBook: !!starterBook,
       starterBookId: starterBook?.id,
