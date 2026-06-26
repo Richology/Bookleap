@@ -168,7 +168,7 @@ function WorkspaceContactDock() {
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="mt-2 rounded-[8px] border border-[rgba(24,29,38,0.10)] bg-[#f7f8f9] px-3 py-1.5 text-[11px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#eef1f2] hover:text-[var(--ink)] active:scale-[0.98]"
+                  className="mt-2 rounded-[8px] border border-[rgba(24,29,38,0.10)] bg-[#f7f8f9] px-3 py-1.5 text-[11px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] active:scale-[0.98]"
                 >
                   {copied ? "已复制" : "复制微信号"}
                 </button>
@@ -214,8 +214,8 @@ function WorkspaceContactDock() {
         }}
         className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
           isOpen
-            ? "border-[#9297a0] bg-[var(--workspace-accent-surface)] text-[var(--accent)]"
-            : "border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)]"
+            ? "border-[#9297a0] bg-[var(--workspace-hover-surface)] text-[var(--accent)]"
+            : "border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)]"
         }`}
         aria-label={isOpen ? "关闭联系主理人" : "联系主理人"}
       >
@@ -257,8 +257,8 @@ export function WorkspaceToolRail({
         disabled={action.disabled}
         className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
           action.active
-            ? "border-[#9297a0] bg-[var(--workspace-accent-surface)] text-[var(--accent)]"
-            : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)]"
+            ? "border-[#9297a0] bg-[var(--workspace-hover-surface)] text-[var(--accent)]"
+            : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)]"
         } ${action.disabled ? "cursor-not-allowed opacity-40" : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"}`}
         aria-label={action.label}
       >
@@ -294,7 +294,7 @@ export function WorkspaceToolRail({
       <div className="flex flex-col items-center gap-2">
         <Link
           href="/"
-          className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
           aria-label="返回首页"
         >
           <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">

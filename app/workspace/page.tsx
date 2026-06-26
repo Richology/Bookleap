@@ -482,10 +482,48 @@ function loadHistory(): HistoryRecord[] {
   }
 }
 
-function saveHistory(records: HistoryRecord[]) {
+function compactHistoryForStorage(
+  records: HistoryRecord[],
+  options: { stripPosterContent?: boolean; maxRecords?: number } = {}
+) {
+  const nextRecords = options.maxRecords ? records.slice(0, options.maxRecords) : records;
+
+  return nextRecords.map((record) => ({
+    ...record,
+    coverImage:
+      record.coverImage && record.coverImage.length > 12000
+        ? ""
+        : record.coverImage,
+    posterContent: options.stripPosterContent ? null : record.posterContent,
+  }));
+}
+
+function tryWriteHistory(records: HistoryRecord[]) {
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(records));
-  } catch { /* quota exceeded – silently ignore */ }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function saveHistory(records: HistoryRecord[]) {
+  if (tryWriteHistory(records)) return true;
+
+  const attempts = [
+    compactHistoryForStorage(records),
+    compactHistoryForStorage(records, { stripPosterContent: true }),
+    compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 30 }),
+    compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 15 }),
+    compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 8 }),
+  ];
+
+  for (const attempt of attempts) {
+    if (tryWriteHistory(attempt)) return true;
+  }
+
+  console.warn("历史记录保存失败：浏览器本地存储空间不足");
+  return false;
 }
 
 function hasSeenStarterMode(): boolean {
@@ -2249,6 +2287,42 @@ export default function Home() {
     return record;
   }, [enqueueGuidanceToast, markGrowthInspectorUpdated]);
 
+  const saveBgAnalysisSnapshotToHistory = useCallback((bg: BgAnalysisData) => {
+    if (!bg.title || !bg.bookSummary) return;
+
+    const fileType = (["epub", "azw3", "txt", "pdf"].includes(bg.fileType)
+      ? bg.fileType
+      : "epub") as SupportedFileType;
+    const starterBook = bg.starterBookId ? starterBooksById[bg.starterBookId] ?? null : null;
+    const recordId = `${bg.title}-${fileType}`;
+    const prev = loadHistory().filter((record) => record.id !== recordId);
+    const existing = loadHistory().find((record) => record.id === recordId);
+    const record: HistoryRecord = {
+      id: recordId,
+      title: bg.title,
+      fileType,
+      mode: bg.liteMode ? "lite" : "full",
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+      bookSummary: bg.bookSummary,
+      readingGuide: bg.readingGuide,
+      originalReadingValue: bg.originalReadingValue,
+      viewMap: bg.viewMap,
+      actionExtraction: bg.actionExtraction,
+      viewValidation: bg.viewValidation,
+      ideaSourceTracing: bg.ideaSourceTracing,
+      bookRecommendation: "",
+      workspaceQuote: sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }),
+      coverImage: starterBook?.coverImage || bg.coverImage || "",
+      posterContent: existing?.posterContent ?? null,
+      isStarterBook: !!starterBook,
+      starterBookId: starterBook?.id,
+      author: starterBook?.author || bg.author || undefined,
+    };
+    const next = [record, ...prev];
+    saveHistory(next);
+    setRecentHistory(next);
+  }, []);
+
   const restoreFromHistory = useCallback((record: HistoryRecord) => {
     // Signal background analysis to stop writing to display
     bgAnalysisTitleRef.current = "";
@@ -3194,6 +3268,7 @@ export default function Home() {
       bg.chapters = chaps;
       bg.liteMode = liteMode;
       bgAnalysisRef.current = bg;
+      saveBgAnalysisSnapshotToHistory(bg);
       stepsCompleted = 1;
       const shouldAttachAnalysisToDisplay =
         bgAnalysisTitleRef.current === pendingTitle || bgAnalysisTitleRef.current === title;
@@ -3274,6 +3349,7 @@ export default function Home() {
           if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
         }
         bgAnalysisRef.current = bg;
+        saveBgAnalysisSnapshotToHistory(bg);
 
         if (isStillViewing()) setIsLoadingReadingGuide(false);
         if (isStillViewing()) setIsLoadingOriginalReadingValue(false);
@@ -3317,6 +3393,7 @@ export default function Home() {
         }
       } catch (e) { console.error("阅读指南生成失败:", e); }
       bgAnalysisRef.current = bg;
+      saveBgAnalysisSnapshotToHistory(bg);
       if (isStillViewing()) setIsLoadingReadingGuide(false);
       stepsCompleted = 2;
 
@@ -3336,6 +3413,7 @@ export default function Home() {
         }
       } catch (e) { console.error("观点地图生成失败:", e); }
       bgAnalysisRef.current = bg;
+      saveBgAnalysisSnapshotToHistory(bg);
       if (isStillViewing()) setIsLoadingViewMap(false);
       stepsCompleted = 3;
 
@@ -3399,6 +3477,7 @@ export default function Home() {
         if (isStillViewing()) setWorkspaceQuote(bg.workspaceQuote);
       }
       bgAnalysisRef.current = bg;
+      saveBgAnalysisSnapshotToHistory(bg);
       if (isStillViewing()) {
         setIsLoadingActionExtraction(false);
         setIsLoadingViewValidation(false);
@@ -4020,7 +4099,7 @@ export default function Home() {
   const searchResultClass = (isActiveResult: boolean) =>
     `group w-full rounded-[10px] border px-3.5 py-3 text-left transition-all ${
       isActiveResult
-        ? "border-[#9297a0] bg-[var(--workspace-accent-surface)]"
+        ? "border-[#9297a0] bg-[var(--workspace-hover-surface)]"
         : "border-transparent bg-transparent hover:border-[#dfe4e8] hover:bg-[#f8fafc]"
     }`;
 
@@ -4066,7 +4145,7 @@ export default function Home() {
           className={`group rounded-[13px] border px-4 py-4 text-left outline-none transition-all ${
             isDragging
               ? "border-[#9297a0] bg-[#fbfcfd] shadow-[0_10px_28px_rgba(24,29,38,0.08)]"
-              : "cursor-pointer border-transparent bg-[var(--workspace-accent-surface)] hover:bg-[var(--workspace-accent-surface)] focus-visible:border-[#9297a0] focus-visible:bg-[var(--workspace-accent-surface)] focus-visible:ring-2 focus-visible:ring-[#9297a0]/25"
+              : "cursor-pointer border-transparent bg-[var(--workspace-hover-surface)] hover:bg-[var(--workspace-hover-surface)] focus-visible:border-[#9297a0] focus-visible:bg-[var(--workspace-hover-surface)] focus-visible:ring-2 focus-visible:ring-[#9297a0]/25"
           }`}
         >
           <div className="flex items-start gap-3.5">
@@ -4176,7 +4255,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setShowFullHistory(true)}
-                  className="mx-auto mt-1 flex h-7 w-9 items-center justify-center rounded-full text-[var(--ink-faint)] transition-all hover:bg-[#e7ebed] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                  className="mx-auto mt-1 flex h-7 w-9 items-center justify-center rounded-full text-[var(--ink-faint)] transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                   aria-label="展开上传历史"
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -4268,7 +4347,7 @@ export default function Home() {
         const bannerClass = isError
           ? "border-red-200/70 bg-red-50/80 text-red-600"
           : isSuccess
-          ? "bg-[#eef1ef] border-[rgba(10,46,14,0.18)] text-[var(--accent)]"
+          ? "bg-[var(--workspace-hover-surface)] border-[rgba(24,29,38,0.12)] text-[var(--ink)]"
           : isAnalyzing
           ? "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-soft)]"
           : "bg-[var(--surface-low)] border-[var(--ghost-border)] text-[var(--ink-faint)]";
@@ -4500,7 +4579,7 @@ export default function Home() {
                   <p className="text-[14px] font-semibold leading-6 text-[var(--ink)]">
                     <span>原书阅读建议</span>
                     <span className="mx-2 text-[var(--ink-faint)]">·</span>
-                    <span className="group/help relative inline-flex pr-4">
+                    <span className="group/help relative inline-flex items-start gap-1.5 pr-4">
                       <span>
                         {originalReadingAdviceLevelIndex >= 0
                           ? ORIGINAL_READING_LEVELS[originalReadingAdviceLevelIndex].label
@@ -4510,32 +4589,44 @@ export default function Home() {
                       </span>
                       <button
                         type="button"
-                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[10px] font-semibold leading-none text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[10px] font-semibold leading-none text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                         aria-label="查看原书阅读建议档位说明"
                       >
                         ?
                       </button>
-                      <span className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-30 hidden w-[360px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 whitespace-pre-line text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/help:block group-focus-within/help:block">
+                    <span className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-30 hidden w-[360px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 whitespace-pre-line text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/help:block group-focus-within/help:block">
                         {ORIGINAL_READING_LEVEL_HELP}
                       </span>
                     </span>
                   </p>
-                  <div className="mt-1 flex items-start gap-2">
-                    <p className="min-w-0 flex-1 text-[13px] leading-6 text-[var(--ink-soft)] line-clamp-2">
-                      {isLoadingOriginalReadingValue
-                        ? "正在根据书的类型、内容密度和原书增量判断是否值得继续读原书"
-                        : originalReadingAdviceSummary || "等待生成阅读建议"}
-                    </p>
-                    {!isLoadingOriginalReadingValue && originalReadingAdviceSummary && (
+                  {isOriginalReadingAdviceExpanded && (originalReadingValue || originalReadingAdviceSummary) ? (
+                    <div className="mt-2 flex items-start gap-2">
+                      <div className="min-w-0 flex-1 rounded-[9px] bg-[var(--workspace-hover-surface)] px-3.5 py-3 text-[12px] leading-6 text-[var(--ink-soft)]">
+                        {originalReadingValue ? (
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              strong: ({ children }) => <strong className="font-semibold text-[var(--ink)]">{children}</strong>,
+                              ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4 last:mb-0">{children}</ul>,
+                              ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4 last:mb-0">{children}</ol>,
+                            }}
+                          >
+                            {originalReadingValue}
+                          </ReactMarkdown>
+                        ) : (
+                          <p>{originalReadingAdviceSummary}</p>
+                        )}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setIsOriginalReadingAdviceExpanded((prev) => !prev)}
-                        className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] text-[var(--ink-faint)] transition-all hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-                        aria-label={isOriginalReadingAdviceExpanded ? "收起原书阅读建议详情" : "展开原书阅读建议详情"}
+                        onClick={() => setIsOriginalReadingAdviceExpanded(false)}
+                        className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] text-[var(--ink-faint)] transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                        aria-label="收起原书阅读建议详情"
                         aria-expanded={isOriginalReadingAdviceExpanded}
                       >
                         <svg
-                          className={`h-4 w-4 transition-transform ${isOriginalReadingAdviceExpanded ? "rotate-180" : ""}`}
+                          className="h-4 w-4 rotate-180 transition-transform"
                           viewBox="0 0 20 20"
                           fill="none"
                           stroke="currentColor"
@@ -4547,8 +4638,38 @@ export default function Home() {
                           <path d="m5.5 7.5 4.5 4.5 4.5-4.5" />
                         </svg>
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex items-start gap-2">
+                      <p className="min-w-0 flex-1 text-[13px] leading-6 text-[var(--ink-soft)] line-clamp-2">
+                        {isLoadingOriginalReadingValue
+                          ? "正在根据书的类型、内容密度和原书增量判断是否值得继续读原书"
+                          : originalReadingAdviceSummary || "等待生成阅读建议"}
+                      </p>
+                      {!isLoadingOriginalReadingValue && originalReadingAdviceSummary && (
+                        <button
+                          type="button"
+                          onClick={() => setIsOriginalReadingAdviceExpanded(true)}
+                          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] text-[var(--ink-faint)] transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                          aria-label="展开原书阅读建议详情"
+                          aria-expanded={isOriginalReadingAdviceExpanded}
+                        >
+                          <svg
+                            className="h-4 w-4 transition-transform"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="m5.5 7.5 4.5 4.5 4.5-4.5" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   <div className="mt-3">
                     <div
@@ -4583,25 +4704,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {isOriginalReadingAdviceExpanded && (originalReadingValue || originalReadingAdviceSummary) && (
-                    <div className="mt-3 rounded-[9px] bg-[var(--workspace-accent-surface)] px-3.5 py-3 text-[12px] leading-6 text-[var(--ink-soft)]">
-                      {originalReadingValue ? (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkBreaks]}
-                          components={{
-                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                            strong: ({ children }) => <strong className="font-semibold text-[var(--ink)]">{children}</strong>,
-                            ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4 last:mb-0">{children}</ul>,
-                            ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4 last:mb-0">{children}</ol>,
-                          }}
-                        >
-                          {originalReadingValue}
-                        </ReactMarkdown>
-                      ) : (
-                        <p>{originalReadingAdviceSummary}</p>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
               cover={(
@@ -4729,7 +4831,7 @@ export default function Home() {
                     const isPending = !card.isLoading && !isReady;
                     const excerpt = createOverviewExcerpt(card.content);
                     const cardStateClass = isReady
-                      ? "analysis-overview-card-ready border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] active:scale-[0.99]"
+                      ? "analysis-overview-card-ready border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] active:scale-[0.99]"
                       : card.isLoading
                       ? "analysis-overview-card-active border-[rgba(10,46,14,0.28)] bg-[#eef7f1] shadow-[0_10px_26px_rgba(10,46,14,0.10)]"
                       : "analysis-overview-card-pending cursor-default border-[rgba(24,29,38,0.06)] bg-[#f8fafc]";

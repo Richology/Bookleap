@@ -23,10 +23,10 @@ export function WorkspaceBookItem({
 }) {
   const toneClass =
     tone === "current"
-      ? "border-transparent bg-[var(--workspace-accent-surface)] text-[var(--ink)]"
+      ? "border-transparent bg-[var(--workspace-hover-surface)] text-[var(--ink)]"
       : tone === "gifted"
-      ? "border-transparent bg-transparent hover:bg-[#e7ebed]"
-      : "border-transparent bg-transparent hover:bg-[#e7ebed]";
+      ? "border-transparent bg-transparent hover:bg-[var(--workspace-hover-surface)]"
+      : "border-transparent bg-transparent hover:bg-[var(--workspace-hover-surface)]";
   const rootClass =
     variant === "flat"
       ? "group flex min-h-12 cursor-pointer items-start justify-between gap-3 rounded-[9px] px-2.5 py-2 transition-all"
