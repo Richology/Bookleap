@@ -6,18 +6,20 @@ export function WorkspaceReaderHeader({
   title,
   subtitle,
   cover,
+  action,
   density = "compact",
 }: {
   title: string;
   subtitle?: string;
   progressLabel?: string;
   cover?: ReactNode;
+  action?: ReactNode;
   density?: "hero" | "compact";
 }) {
   if (density === "hero") {
     return (
-      <div className="grid gap-5 border-b border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-5 py-4 md:grid-cols-[96px_minmax(0,1fr)] md:px-6">
-        <div className="hidden md:block">
+      <div className="grid items-start gap-6 border-b border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-5 py-5 md:grid-cols-[136px_minmax(0,1fr)] md:px-6 lg:grid-cols-[148px_minmax(0,1fr)]">
+        <div className="hidden md:flex md:items-start">
           {cover}
         </div>
 
@@ -30,6 +32,12 @@ export function WorkspaceReaderHeader({
             <p className="mt-1.5 text-[13px] font-medium text-[var(--ink-soft)] md:text-[14px]">
               作者：{subtitle}
             </p>
+          )}
+
+          {action && (
+            <div className="mt-7 max-w-[34rem]">
+              {action}
+            </div>
           )}
         </div>
       </div>

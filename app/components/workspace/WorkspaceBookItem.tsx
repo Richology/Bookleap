@@ -23,7 +23,7 @@ export function WorkspaceBookItem({
 }) {
   const toneClass =
     tone === "current"
-      ? "border-transparent bg-[#e5ece8] text-[var(--ink)]"
+      ? "border-transparent bg-[var(--workspace-accent-surface)] text-[var(--ink)]"
       : tone === "gifted"
       ? "border-transparent bg-transparent hover:bg-[#e7ebed]"
       : "border-transparent bg-transparent hover:bg-[#e7ebed]";

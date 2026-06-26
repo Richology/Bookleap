@@ -29,7 +29,7 @@ export function WorkspaceTabs({
   }
 
   return (
-    <div className="flex min-w-0 items-center gap-1 overflow-x-auto no-scrollbar">
+    <div className="flex min-w-0 items-end gap-2 overflow-x-auto pb-2 no-scrollbar">
       {tabs.map((tab) => {
         const isActive = tab.id === activeTabId;
 
@@ -39,10 +39,10 @@ export function WorkspaceTabs({
             className="group relative flex h-10 w-[180px] shrink-0 items-stretch"
           >
             <div
-              className={`relative flex min-w-0 flex-1 items-center gap-1 rounded-[8px] transition-all ${
+              className={`relative flex min-w-0 flex-1 items-center gap-1 rounded-[9px] bg-transparent shadow-none transition-all after:absolute after:inset-x-0 after:bottom-[-8px] after:h-0.5 after:transition-colors hover:bg-[var(--workspace-accent-surface)] hover:shadow-[0_8px_18px_rgba(24,29,38,0.08)] ${
                 isActive
-                  ? "bg-transparent"
-                  : "bg-transparent hover:bg-[#edf1f3]"
+                  ? "after:bg-[var(--ink)]"
+                  : "after:bg-transparent"
               }`}
             >
               <button
@@ -79,10 +79,6 @@ export function WorkspaceTabs({
                     <path d="M5 5L15 15M15 5L5 15" />
                   </svg>
                 </button>
-              )}
-
-              {isActive && (
-                <span className="absolute bottom-[-5px] left-1/2 h-0.5 w-[72px] -translate-x-1/2 rounded-full bg-[var(--accent)]" />
               )}
             </div>
           </div>

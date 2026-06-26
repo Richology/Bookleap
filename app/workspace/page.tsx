@@ -100,6 +100,7 @@ type BgAnalysisData = {
   bookSummary: string;
   chapters: Chapter[];
   readingGuide: string;
+  originalReadingValue: string;
   viewMap: string;
   actionExtraction: string;
   viewValidation: string;
@@ -117,6 +118,7 @@ type BgAnalysisStatus =
 type ImmersiveCardDef = {
   key: string;
   label: string;
+  orderLabel: string;
   content: string;
   isLoading: boolean;
   loadingText: string;
@@ -235,6 +237,7 @@ type HistoryRecord = {
   createdAt: string;
   bookSummary: string;
   readingGuide: string;
+  originalReadingValue?: string;
   viewMap: string;
   actionExtraction: string;
   viewValidation: string;
@@ -346,6 +349,7 @@ function isSupportedHistoryRecord(value: unknown): value is HistoryRecord {
     typeof value.createdAt === "string" &&
     typeof value.bookSummary === "string" &&
     typeof value.readingGuide === "string" &&
+    (value.originalReadingValue === undefined || typeof value.originalReadingValue === "string") &&
     typeof value.viewMap === "string" &&
     typeof value.actionExtraction === "string" &&
     typeof value.viewValidation === "string" &&
@@ -586,6 +590,31 @@ function createOverviewExcerpt(content: string, maxLength = 128) {
   const compact = compactSearchText(withoutMarkdown);
   if (!compact) return "";
   return compact.length > maxLength ? `${compact.slice(0, maxLength).trim()}...` : compact;
+}
+
+const ORIGINAL_READING_LEVELS = [
+  { label: "不必读原书", hint: "不必读" },
+  { label: "精华后跳读", hint: "跳读" },
+  { label: "按需查阅", hint: "查阅" },
+  { label: "值得通读", hint: "通读" },
+  { label: "强烈推荐读原书", hint: "强烈读" },
+] as const;
+
+function getOriginalReadingLevelIndex(content: string) {
+  const compact = createOverviewExcerpt(content, 360);
+  const matchedIndex = ORIGINAL_READING_LEVELS.findIndex((level) =>
+    compact.includes(level.label)
+  );
+  return matchedIndex >= 0 ? matchedIndex : 2;
+}
+
+function createOriginalReadingAdviceSummary(content: string) {
+  return createOverviewExcerpt(
+    content
+      .replace(/\*\*阅读原书建议[:：][^*\n]+?\*\*/g, " ")
+      .replace(/阅读原书建议[:：]\s*\S+/g, " "),
+    118
+  );
 }
 
 function isTextInputTarget(target: EventTarget | null) {
@@ -947,6 +976,7 @@ export default function Home() {
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
   const [readingGuide, setReadingGuide] = useState("");
+  const [originalReadingValue, setOriginalReadingValue] = useState("");
   const [viewMap, setViewMap] = useState("");
   const [actionExtraction, setActionExtraction] = useState("");
   const [criticalExamination, setCriticalExamination] = useState("");
@@ -958,6 +988,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingBookSummary, setIsLoadingBookSummary] = useState(false);
   const [isLoadingReadingGuide, setIsLoadingReadingGuide] = useState(false);
+  const [isLoadingOriginalReadingValue, setIsLoadingOriginalReadingValue] = useState(false);
   const [isLoadingViewMap, setIsLoadingViewMap] = useState(false);
   const [isLoadingActionExtraction, setIsLoadingActionExtraction] = useState(false);
   const [isLoadingViewValidation, setIsLoadingViewValidation] = useState(false);
@@ -1032,6 +1063,7 @@ export default function Home() {
     setIsLoading(false);
     setIsLoadingBookSummary(false);
     setIsLoadingReadingGuide(false);
+    setIsLoadingOriginalReadingValue(false);
     setIsLoadingViewMap(false);
     setIsLoadingActionExtraction(false);
     setIsLoadingViewValidation(false);
@@ -1042,6 +1074,7 @@ export default function Home() {
     isLoading ||
     isLoadingBookSummary ||
     isLoadingReadingGuide ||
+    isLoadingOriginalReadingValue ||
     isLoadingViewMap ||
     isLoadingActionExtraction ||
     isLoadingViewValidation ||
@@ -1648,6 +1681,7 @@ export default function Home() {
       createdAt: new Date().toISOString(),
       bookSummary,
       readingGuide,
+      originalReadingValue,
       viewMap,
       actionExtraction,
       viewValidation: criticalExamination,
@@ -2035,6 +2069,8 @@ export default function Home() {
     setIsLoadingBookSummary(false);
     setReadingGuide("");
     setIsLoadingReadingGuide(false);
+    setOriginalReadingValue("");
+    setIsLoadingOriginalReadingValue(false);
     setViewMap("");
     setIsLoadingViewMap(false);
     setActionExtraction("");
@@ -2074,6 +2110,7 @@ export default function Home() {
     setBookSummary(bg.bookSummary);
     setChapters(bg.chapters);
     setReadingGuide(bg.readingGuide);
+    setOriginalReadingValue(bg.originalReadingValue);
     setViewMap(bg.viewMap);
     setActionExtraction(bg.actionExtraction);
     setCriticalExamination(bg.viewValidation);
@@ -2102,6 +2139,7 @@ export default function Home() {
       createdAt: new Date().toISOString(),
       bookSummary: bg.bookSummary,
       readingGuide: bg.readingGuide,
+      originalReadingValue: bg.originalReadingValue,
       viewMap: bg.viewMap,
       actionExtraction: bg.actionExtraction,
       viewValidation: bg.viewValidation,
@@ -2148,6 +2186,7 @@ export default function Home() {
     // Clear loading states so history book shows cleanly
     setIsLoadingBookSummary(false);
     setIsLoadingReadingGuide(false);
+    setIsLoadingOriginalReadingValue(false);
     setIsLoadingViewMap(false);
     setIsLoadingActionExtraction(false);
     setIsLoadingViewValidation(false);
@@ -2161,6 +2200,7 @@ export default function Home() {
     setBookAuthor(record.author || "");
     setBookSummary(record.bookSummary);
     setReadingGuide(record.readingGuide);
+    setOriginalReadingValue(record.originalReadingValue ?? "");
     setViewMap(record.viewMap);
     setActionExtraction(record.actionExtraction);
     setCriticalExamination(record.viewValidation);
@@ -2199,6 +2239,7 @@ export default function Home() {
     setBookSummary(bg.bookSummary);
     setChapters(bg.chapters);
     setReadingGuide(bg.readingGuide);
+    setOriginalReadingValue(bg.originalReadingValue);
     setViewMap(bg.viewMap);
     setActionExtraction(bg.actionExtraction);
     setCriticalExamination(bg.viewValidation);
@@ -2221,6 +2262,7 @@ export default function Home() {
       setIsLoading(true);
       setIsLoadingBookSummary(!bg.bookSummary);
       setIsLoadingReadingGuide(!bg.readingGuide);
+      setIsLoadingOriginalReadingValue(!bg.originalReadingValue);
       setIsLoadingViewMap(!bg.liteMode && !bg.viewMap);
       setIsLoadingActionExtraction(!bg.liteMode && !bg.actionExtraction);
       setIsLoadingViewValidation(!bg.liteMode && !bg.viewValidation);
@@ -2456,6 +2498,7 @@ export default function Home() {
     const allSections: ExportSection[] = [
       { id: "bookSummary", label: "全书摘要" },
       { id: "readingGuide", label: "阅读指南" },
+      { id: "originalReadingValue", label: "原书阅读建议" },
       { id: "viewMap", label: "观点地图" },
       { id: "actionExtraction", label: "行动提炼" },
       { id: "viewValidation", label: "观点校验" },
@@ -2464,6 +2507,7 @@ export default function Home() {
     const contentMap: Record<string, string> = {
       bookSummary,
       readingGuide,
+      originalReadingValue,
       viewMap,
       actionExtraction,
       viewValidation: criticalExamination,
@@ -2952,6 +2996,7 @@ export default function Home() {
 
       setIsLoadingBookSummary(true);
       setIsLoadingReadingGuide(true);
+      setIsLoadingOriginalReadingValue(true);
       setIsLoadingViewMap(true);
       setIsLoadingActionExtraction(true);
       setIsLoadingViewValidation(true);
@@ -2961,6 +3006,7 @@ export default function Home() {
       const pendingTitle = stripSupportedFileExtension(fileToAnalyze.name) || "新书";
       const bg: BgAnalysisData = {
         title: pendingTitle, author: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
+        originalReadingValue: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
         ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
         fileType: getFileTypeFromName(fileToAnalyze.name) ?? "epub",
@@ -3129,6 +3175,28 @@ export default function Home() {
           if (isStillViewing()) setReadingGuide(bg.readingGuide);
         }
 
+        if (bg.readingGuide) {
+          try {
+            const originalValueRes = await fetch("/api/skills/original-reading-value", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title,
+                bookSummary: bkSummary,
+                readingGuide: bg.readingGuide,
+                chapters: chaps,
+              }),
+            });
+            const originalValueData = await originalValueRes.json();
+            if (originalValueData.success) {
+              bg.originalReadingValue = originalValueData.originalReadingValue || "";
+              if (isStillViewing()) setOriginalReadingValue(bg.originalReadingValue);
+            }
+          } catch (e) {
+            console.error("原书阅读价值判断生成失败:", e);
+          }
+        }
+
         if (quoteResult.status === "fulfilled" && quoteResult.value.success) {
           bg.workspaceQuote = sanitizeWorkspaceQuote(
             quoteResult.value.workspaceQuote || "",
@@ -3139,6 +3207,7 @@ export default function Home() {
         bgAnalysisRef.current = bg;
 
         if (isStillViewing()) setIsLoadingReadingGuide(false);
+        if (isStillViewing()) setIsLoadingOriginalReadingValue(false);
         saveBgAnalysisToHistory(bg);
         setOpenTabs((prev) =>
           prev.map((tab) =>
@@ -3204,7 +3273,7 @@ export default function Home() {
       // ── Parallel: Action + Validation + IdeaSource ──
       updateProgress("剩余分析…");
       if (isStillViewing()) setMessage("正在生成剩余分析...");
-      const [actionResult, validResult, ideaResult, quoteResult] = await Promise.allSettled([
+      const [actionResult, validResult, ideaResult, originalValueResult, quoteResult] = await Promise.allSettled([
         fetch("/api/skills/action-extraction", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -3219,6 +3288,16 @@ export default function Home() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, bookSummary: bkSummary, viewMap: bg.viewMap || "" }),
+        }).then(r => r.json()),
+        fetch("/api/skills/original-reading-value", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            bookSummary: bkSummary,
+            readingGuide: bg.readingGuide,
+            chapters: chaps,
+          }),
         }).then(r => r.json()),
         fetch("/api/skills/workspace-quote", {
           method: "POST",
@@ -3239,6 +3318,10 @@ export default function Home() {
         bg.ideaSourceTracing = ideaResult.value.ideaSourceTracing || "";
         if (isStillViewing()) setIdeaSourceTracing(bg.ideaSourceTracing);
       }
+      if (originalValueResult.status === "fulfilled" && originalValueResult.value.success) {
+        bg.originalReadingValue = originalValueResult.value.originalReadingValue || "";
+        if (isStillViewing()) setOriginalReadingValue(bg.originalReadingValue);
+      }
       if (quoteResult.status === "fulfilled" && quoteResult.value.success) {
         bg.workspaceQuote = sanitizeWorkspaceQuote(
           quoteResult.value.workspaceQuote || "",
@@ -3251,6 +3334,7 @@ export default function Home() {
         setIsLoadingActionExtraction(false);
         setIsLoadingViewValidation(false);
         setIsLoadingIdeaSourceTracing(false);
+        setIsLoadingOriginalReadingValue(false);
       }
       stepsCompleted = totalSteps;
 
@@ -3308,12 +3392,12 @@ export default function Home() {
 
   // ── Derived state ───────────────────────────────────────────────────────────
   const allImmersiveCardDefs = useMemo<ImmersiveCardDef[]>(() => [
-    { key: "bookSummary",         label: "全书摘要", content: bookSummary,         isLoading: isLoadingBookSummary,        loadingText: "正在生成全书摘要..." },
-    { key: "readingGuide",        label: "阅读指南", content: readingGuide,        isLoading: isLoadingReadingGuide,       loadingText: "正在生成阅读指南..." },
-    { key: "viewMap",             label: "观点地图", content: viewMap,             isLoading: isLoadingViewMap,            loadingText: "正在生成观点地图..." },
-    { key: "actionExtraction",    label: "行动提炼", content: actionExtraction,    isLoading: isLoadingActionExtraction,   loadingText: "正在生成行动提炼..." },
-    { key: "criticalExamination", label: "观点校验", content: criticalExamination, isLoading: isLoadingViewValidation,     loadingText: "正在生成观点校验..." },
-    { key: "ideaSourceTracing",   label: "思想溯源", content: ideaSourceTracing,   isLoading: isLoadingIdeaSourceTracing,  loadingText: "正在生成思想溯源..." },
+    { key: "bookSummary",         label: "全书摘要", orderLabel: "01", content: bookSummary,         isLoading: isLoadingBookSummary,        loadingText: "正在生成全书摘要..." },
+    { key: "readingGuide",        label: "阅读指南", orderLabel: "02", content: readingGuide,        isLoading: isLoadingReadingGuide,       loadingText: "正在生成阅读指南..." },
+    { key: "viewMap",             label: "观点地图", orderLabel: "03", content: viewMap,             isLoading: isLoadingViewMap,            loadingText: "正在生成观点地图..." },
+    { key: "actionExtraction",    label: "行动提炼", orderLabel: "04", content: actionExtraction,    isLoading: isLoadingActionExtraction,   loadingText: "正在生成行动提炼..." },
+    { key: "criticalExamination", label: "观点校验", orderLabel: "05", content: criticalExamination, isLoading: isLoadingViewValidation,     loadingText: "正在生成观点校验..." },
+    { key: "ideaSourceTracing",   label: "思想溯源", orderLabel: "06", content: ideaSourceTracing,   isLoading: isLoadingIdeaSourceTracing,  loadingText: "正在生成思想溯源..." },
   ], [
     actionExtraction,
     bookSummary,
@@ -3550,6 +3634,18 @@ export default function Home() {
     if (!isLiteMode || isLiteUnlocked) return true;
     return ["bookSummary", "readingGuide"].includes(card.key);
   });
+  const shouldUseStarterReadingAdviceFallback =
+    !!currentStarterBookId && !originalReadingValue && !isLoadingOriginalReadingValue;
+  const originalReadingAdviceLevelIndex = originalReadingValue
+    ? getOriginalReadingLevelIndex(originalReadingValue)
+    : shouldUseStarterReadingAdviceFallback
+    ? 2
+    : -1;
+  const originalReadingAdviceSummary = originalReadingValue
+    ? createOriginalReadingAdviceSummary(originalReadingValue)
+    : shouldUseStarterReadingAdviceFallback
+    ? "这本书可以先看拆书精华，遇到具体困惑时再回到原书查案例、章节和方法细节。"
+    : "";
 
   const openOverviewCard = (targetKey: string) => {
     const nextIndex = immersiveCardList.findIndex((card) => card.key === targetKey);
@@ -3749,6 +3845,10 @@ export default function Home() {
     status: tab.status,
     progressLabel: tab.progressLabel,
   }));
+  const displayedActiveTabId =
+    currentWorkspaceTab && openTabs.some((tab) => tab.id === currentWorkspaceTab.id)
+      ? currentWorkspaceTab.id
+      : activeTabId;
   const hasPendingStarterBooks = experiencedStarterIds.length < starterBooks.length;
   const fullHistoryRecords = recentHistory
     .filter((record) => hasPendingStarterBooks ? !record.isStarterBook : true);
@@ -3847,7 +3947,7 @@ export default function Home() {
   const searchResultClass = (isActiveResult: boolean) =>
     `group w-full rounded-[10px] border px-3.5 py-3 text-left transition-all ${
       isActiveResult
-        ? "border-[#9297a0] bg-[#eef1ef]"
+        ? "border-[#9297a0] bg-[var(--workspace-accent-surface)]"
         : "border-transparent bg-transparent hover:border-[#dfe4e8] hover:bg-[#f8fafc]"
     }`;
 
@@ -3893,7 +3993,7 @@ export default function Home() {
           className={`group rounded-[13px] border px-4 py-4 text-left outline-none transition-all ${
             isDragging
               ? "border-[#9297a0] bg-[#fbfcfd] shadow-[0_10px_28px_rgba(24,29,38,0.08)]"
-              : "cursor-pointer border-transparent bg-[#eef1f2] hover:bg-[#e7ebed] focus-visible:border-[#9297a0] focus-visible:bg-[#fbfcfd] focus-visible:ring-2 focus-visible:ring-[#9297a0]/25"
+              : "cursor-pointer border-transparent bg-[var(--workspace-accent-surface)] hover:bg-[var(--workspace-accent-surface)] focus-visible:border-[#9297a0] focus-visible:bg-[var(--workspace-accent-surface)] focus-visible:ring-2 focus-visible:ring-[#9297a0]/25"
           }`}
         >
           <div className="flex items-start gap-3.5">
@@ -4057,7 +4157,7 @@ export default function Home() {
       topBar={(
         <WorkspaceTopBar
           tabs={topBarTabs}
-          activeTabId={activeTabId}
+          activeTabId={displayedActiveTabId}
           onActivateTab={activateWorkspaceTab}
           onCloseTab={closeWorkspaceTab}
           onCloseAllTabs={closeAllWorkspaceTabs}
@@ -4082,7 +4182,11 @@ export default function Home() {
         const isSuccess = message === "分析完成" && !isAnalyzing;
         const isAzw3Unsupported = analysisErrorCode === "AZW3_UNSUPPORTED";
         const totalAnalysisSteps = visibleAnalysisSteps.length || 6;
-        const activeAnalysisStep = visibleAnalysisSteps.find((step) => step.loading);
+        const activeAnalysisStep =
+          visibleAnalysisSteps.find((step) => step.loading) ||
+          (isLoadingOriginalReadingValue
+            ? { key: "originalReadingValue", label: "原书阅读价值", loading: true, done: false }
+            : undefined);
         const analysisProgressPercent = Math.min(
           100,
           Math.max(isAnalyzing ? 8 : 0, Math.round((completedAnalysisSteps / totalAnalysisSteps) * 100))
@@ -4318,18 +4422,71 @@ export default function Home() {
               title={bookTitle}
               subtitle={currentBookAuthor}
               density="hero"
+              action={(
+                <div className="max-w-[38rem]">
+                  <p className="text-[14px] font-semibold leading-6 text-[var(--ink)]">
+                    <span>原书阅读建议</span>
+                    <span className="mx-2 text-[var(--ink-faint)]">·</span>
+                    <span>
+                      {originalReadingAdviceLevelIndex >= 0
+                        ? ORIGINAL_READING_LEVELS[originalReadingAdviceLevelIndex].label
+                        : isLoadingOriginalReadingValue
+                        ? "判断中"
+                        : "等待生成"}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-[13px] leading-6 text-[var(--ink-soft)]">
+                    {isLoadingOriginalReadingValue
+                      ? "正在根据书的类型、内容密度和原书增量判断是否值得继续读原书"
+                      : originalReadingAdviceSummary || "等待生成阅读建议"}
+                  </p>
+
+                  <div className="mt-3">
+                    <div
+                      className="grid grid-cols-5 gap-1.5"
+                      aria-label={`原书阅读建议：${
+                        originalReadingAdviceLevelIndex >= 0
+                          ? ORIGINAL_READING_LEVELS[originalReadingAdviceLevelIndex].label
+                          : isLoadingOriginalReadingValue
+                          ? "判断中"
+                          : "等待生成"
+                      }`}
+                    >
+                      {ORIGINAL_READING_LEVELS.map((level, index) => {
+                        const isActive = originalReadingAdviceLevelIndex === index;
+                        return (
+                          <div key={level.label} className="min-w-0">
+                            <div
+                              className={`h-1.5 rounded-full transition-colors ${
+                                isActive ? "bg-[var(--accent)]" : "bg-[rgba(119,124,123,0.16)]"
+                              }`}
+                            />
+                            <p
+                              className={`mt-1.5 truncate text-center text-[10px] font-medium ${
+                                isActive ? "text-[var(--ink)]" : "text-[var(--ink-faint)]"
+                              }`}
+                            >
+                              {level.hint}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
               cover={(
-                <div>
-                  <div className="overflow-hidden rounded-[8px] border border-[rgba(24,29,38,0.1)] bg-[#f8fafc] shadow-[0_1px_1px_rgba(24,29,38,0.05)]">
+                <div className="w-full">
+                  <div className="flex h-[196px] w-full overflow-hidden rounded-[8px]">
                     {currentBookCover ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={currentBookCover}
                         alt={bookTitle}
-                        className="aspect-[3/4] w-full object-cover"
+                        className="h-full w-full object-contain drop-shadow-[0_1px_2px_rgba(24,29,38,0.16)]"
                       />
                     ) : (
-                      <div className="flex aspect-[3/4] flex-col justify-between p-4">
+                      <div className="flex h-full w-full flex-col justify-between rounded-[8px] border border-[rgba(24,29,38,0.1)] bg-[#f8fafc] p-4">
                         <div className="archive-kicker">Book</div>
                         <div className="line-clamp-4 font-editorial text-lg font-semibold leading-tight text-[var(--ink)]">
                           {bookTitle}
@@ -4345,7 +4502,7 @@ export default function Home() {
             />
           )}
 
-          <div ref={cardSectionRef} className="p-4 md:p-5 xl:p-5" style={{ scrollMarginTop: "24px" }}>
+          <div ref={cardSectionRef} className="px-4 pb-4 pt-3 md:px-5 md:pb-5 md:pt-3 xl:px-5 xl:pb-5 xl:pt-3" style={{ scrollMarginTop: "24px" }}>
             {isDecisionPanelOpen && decisionScenarios.length > 0 && (
               <DecisionTrainingPanel
                 scenarios={decisionScenarios}
@@ -4437,17 +4594,13 @@ export default function Home() {
 
             {!isDecisionPanelOpen && viewMode === "overview" && overviewCardList.length > 0 && (
               <section className="mx-auto max-w-6xl">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <p className="archive-kicker">精华总览</p>
-                </div>
-
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {overviewCardList.map((card, index) => {
+                  {overviewCardList.map((card) => {
                     const isReady = !card.isLoading && !!card.content.trim();
                     const isPending = !card.isLoading && !isReady;
                     const excerpt = createOverviewExcerpt(card.content);
                     const cardStateClass = isReady
-                      ? "analysis-overview-card-ready border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[#f8fafc] active:scale-[0.99]"
+                      ? "analysis-overview-card-ready border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] active:scale-[0.99]"
                       : card.isLoading
                       ? "analysis-overview-card-active border-[rgba(10,46,14,0.28)] bg-[#eef7f1] shadow-[0_10px_26px_rgba(10,46,14,0.10)]"
                       : "analysis-overview-card-pending cursor-default border-[rgba(24,29,38,0.06)] bg-[#f8fafc]";
@@ -4469,7 +4622,7 @@ export default function Home() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-[11px] font-semibold text-[var(--ink-faint)] tabular-nums">
-                                {String(index + 1).padStart(2, "0")}
+                                {card.orderLabel}
                               </p>
                               <span className="h-1 w-1 rounded-full bg-[rgba(24,29,38,0.18)]" />
                               <h3 className="text-[15px] font-semibold text-[var(--ink)]">
@@ -5009,6 +5162,7 @@ export default function Home() {
         const _sectionDefs: ExportSection[] = [
           { id: "bookSummary", label: "全书摘要" },
           { id: "readingGuide", label: "阅读指南" },
+          { id: "originalReadingValue", label: "原书阅读建议" },
           { id: "viewMap", label: "观点地图" },
           { id: "actionExtraction", label: "行动提炼" },
           { id: "viewValidation", label: "观点校验" },
@@ -5017,6 +5171,7 @@ export default function Home() {
         const _contentMap: Record<string, string> = {
           bookSummary,
           readingGuide,
+          originalReadingValue,
           viewMap,
           actionExtraction,
           viewValidation: criticalExamination,

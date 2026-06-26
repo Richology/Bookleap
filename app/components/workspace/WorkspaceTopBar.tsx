@@ -73,8 +73,8 @@ export function WorkspaceTopBar({
   }, [isMenuOpen]);
 
   return (
-    <div className="border-b border-[#dfe4e8] bg-[#f8fafc] px-2 py-1 md:px-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="border-b border-[#dfe4e8] bg-[#f8fafc] px-2 pb-0 pt-1 md:px-3">
+      <div className="flex items-start justify-between gap-2">
         {isLibraryCollapsed && (
           <button
             type="button"

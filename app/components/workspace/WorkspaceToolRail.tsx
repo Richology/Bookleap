@@ -214,8 +214,8 @@ function WorkspaceContactDock() {
         }}
         className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
           isOpen
-            ? "border-[#9297a0] bg-[#eef1ef] text-[var(--accent)]"
-            : "border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] hover:border-[#9297a0] hover:text-[var(--ink)]"
+            ? "border-[#9297a0] bg-[var(--workspace-accent-surface)] text-[var(--accent)]"
+            : "border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)]"
         }`}
         aria-label={isOpen ? "关闭联系主理人" : "联系主理人"}
       >
@@ -257,8 +257,8 @@ export function WorkspaceToolRail({
         disabled={action.disabled}
         className={`group relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all ${
           action.active
-            ? "border-[#9297a0] bg-[#eef1ef] text-[var(--accent)]"
-            : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
+            ? "border-[#9297a0] bg-[var(--workspace-accent-surface)] text-[var(--accent)]"
+            : "border-transparent bg-transparent text-[var(--ink-soft)] hover:border-[#dfe4e8] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)]"
         } ${action.disabled ? "cursor-not-allowed opacity-40" : "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"}`}
         aria-label={action.label}
       >
@@ -294,7 +294,7 @@ export function WorkspaceToolRail({
       <div className="flex flex-col items-center gap-2">
         <Link
           href="/"
-          className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[#fbfcfd] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
           aria-label="返回首页"
         >
           <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
