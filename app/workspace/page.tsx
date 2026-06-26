@@ -688,24 +688,77 @@ const ORIGINAL_READING_LEVELS = [
   { label: "强烈推荐读原书", hint: "强烈读", description: "原书体验不可替代，文本、思想密度、论证过程或案例本身值得完整阅读" },
 ] as const;
 
-const ORIGINAL_READING_FALLBACK_SUMMARY =
-  "这本书可以先看拆书精华，遇到具体困惑时再回到原书查案例、章节和方法细节。";
-
 const ORIGINAL_READING_LEVEL_HELP = ORIGINAL_READING_LEVELS
   .map((level, index) => `${index + 1}. ${level.label}：${level.description}`)
   .join("\n");
 
 function getOriginalReadingLevelIndex(content: string) {
-  const compact = createOverviewExcerpt(content, 360);
+  const primaryLine = content
+    .split(/\r?\n/)
+    .find((line) => /阅读原书建议\s*[:：]/.test(line));
+  const primaryText = primaryLine
+    ? primaryLine.replace(/[*_~#>|`]/g, " ")
+    : "";
   const matchedIndex = ORIGINAL_READING_LEVELS.findIndex((level) =>
+    primaryText.includes(level.label)
+  );
+  if (matchedIndex >= 0) return matchedIndex;
+
+  const compact = createOverviewExcerpt(content, 360);
+  const fallbackIndex = ORIGINAL_READING_LEVELS.findIndex((level) =>
     compact.includes(level.label)
   );
-  return matchedIndex >= 0 ? matchedIndex : 2;
+  return fallbackIndex >= 0 ? fallbackIndex : 2;
 }
 
-function createOriginalReadingAdviceSummary(content: string) {
+function normalizeOriginalReadingAdviceMarkdown(content: string, levelIndex: number) {
+  const level = ORIGINAL_READING_LEVELS[levelIndex];
+  if (!content.trim() || !level) return content;
+
+  const otherLevelPattern = ORIGINAL_READING_LEVELS
+    .filter((item) => item.label !== level.label)
+    .map((item) => item.label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const canonicalFirstLine = `**阅读原书建议：${level.label}**`;
+  const lines = content.split(/\r?\n/);
+  let hasPrimaryLine = false;
+
+  const normalizedLines = lines.map((line) => {
+    if (/阅读原书建议\s*[:：]/.test(line)) {
+      hasPrimaryLine = true;
+      return canonicalFirstLine;
+    }
+
+    if (!otherLevelPattern || !/读法\s*[:：]/.test(line)) return line;
+
+    return line
+      .replace(new RegExp(`(读法\\s*[:：]\\s*(?:\\*\\*)?\\s*)(${otherLevelPattern})[。；;，,、\\s]*`), "$1")
+      .replace(new RegExp(`^\\s*(${otherLevelPattern})[。；;，,、\\s]*`), "");
+  });
+
+  return hasPrimaryLine
+    ? normalizedLines.join("\n")
+    : [canonicalFirstLine, ...normalizedLines].join("\n");
+}
+
+function createOriginalReadingAdviceSummary(content: string, levelIndex?: number) {
+  const level = typeof levelIndex === "number" ? ORIGINAL_READING_LEVELS[levelIndex] : null;
+  const withoutPrimaryLine = content
+    .split(/\r?\n/)
+    .filter((line) => !/阅读原书建议\s*[:：]/.test(line))
+    .join("\n");
+  const withoutLevelLabels = level
+    ? ORIGINAL_READING_LEVELS.reduce(
+        (text, item) =>
+          item.label === level.label
+            ? text
+            : text.replace(new RegExp(`${item.label}[。；;，,、\\s]*`, "g"), ""),
+        withoutPrimaryLine
+      )
+    : withoutPrimaryLine;
+
   return createOverviewExcerpt(
-    content
+    withoutLevelLabels
       .replace(/\*\*阅读原书建议[:：][^*\n]+?\*\*/g, " ")
       .replace(/阅读原书建议[:：]\s*\S+/g, " "),
     58
@@ -1760,6 +1813,7 @@ export default function Home() {
 
     originalReadingBackfillRef.current.add(currentHistoryRecord.id);
     let cancelled = false;
+    setIsLoadingOriginalReadingValue(true);
 
     const backfillOriginalReadingValue = async () => {
       try {
@@ -1793,6 +1847,10 @@ export default function Home() {
         }
       } catch (error) {
         console.error("历史记录原书阅读建议补生成失败:", error);
+      } finally {
+        if (!cancelled && bookTitle === currentHistoryRecord.title) {
+          setIsLoadingOriginalReadingValue(false);
+        }
       }
     };
 
@@ -3820,22 +3878,16 @@ export default function Home() {
     if (!isLiteMode || isLiteUnlocked) return true;
     return ["bookSummary", "readingGuide"].includes(card.key);
   });
-  const shouldUseOriginalReadingAdviceFallback =
-    !originalReadingValue &&
-    !isLoadingOriginalReadingValue &&
-    !!bookTitle &&
-    !!bookSummary.trim() &&
-    !!readingGuide.trim();
   const originalReadingAdviceLevelIndex = originalReadingValue
     ? getOriginalReadingLevelIndex(originalReadingValue)
-    : shouldUseOriginalReadingAdviceFallback
-    ? 2
     : -1;
   const originalReadingAdviceSummary = originalReadingValue
-    ? createOriginalReadingAdviceSummary(originalReadingValue)
-    : shouldUseOriginalReadingAdviceFallback
-    ? ORIGINAL_READING_FALLBACK_SUMMARY
+    ? createOriginalReadingAdviceSummary(originalReadingValue, originalReadingAdviceLevelIndex)
     : "";
+  const originalReadingAdviceMarkdown =
+    originalReadingValue && originalReadingAdviceLevelIndex >= 0
+      ? normalizeOriginalReadingAdviceMarkdown(originalReadingValue, originalReadingAdviceLevelIndex)
+      : originalReadingValue;
 
   const openOverviewCard = (targetKey: string) => {
     const nextIndex = immersiveCardList.findIndex((card) => card.key === targetKey);
@@ -4637,10 +4689,10 @@ export default function Home() {
                       </span>
                     </span>
                   </p>
-                  {isOriginalReadingAdviceExpanded && (originalReadingValue || originalReadingAdviceSummary) ? (
+                  {isOriginalReadingAdviceExpanded && (originalReadingAdviceMarkdown || originalReadingAdviceSummary) ? (
                     <div className="mt-2 flex items-start gap-2">
                       <div className="min-w-0 flex-1 rounded-[9px] bg-[var(--workspace-hover-surface)] px-3.5 py-3 text-[12px] leading-6 text-[var(--ink-soft)]">
-                        {originalReadingValue ? (
+                        {originalReadingAdviceMarkdown ? (
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm, remarkBreaks]}
                             components={{
@@ -4650,7 +4702,7 @@ export default function Home() {
                               ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4 last:mb-0">{children}</ol>,
                             }}
                           >
-                            {originalReadingValue}
+                            {originalReadingAdviceMarkdown}
                           </ReactMarkdown>
                         ) : (
                           <p>{originalReadingAdviceSummary}</p>
