@@ -10,7 +10,7 @@ type RequestBody = {
   title: string;
   bookSummary: string;
   readingGuide: string;
-  chapters: Chapter[];
+  chapters?: Chapter[];
 };
 
 export async function POST(request: Request) {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       title,
       bookSummary,
       readingGuide,
-      chapters
+      Array.isArray(chapters) ? chapters : []
     );
 
     return NextResponse.json({ success: true, originalReadingValue });
