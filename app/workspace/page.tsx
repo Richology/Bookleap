@@ -593,12 +593,19 @@ function createOverviewExcerpt(content: string, maxLength = 128) {
 }
 
 const ORIGINAL_READING_LEVELS = [
-  { label: "不必读原书", hint: "不必读" },
-  { label: "精华后跳读", hint: "跳读" },
-  { label: "按需查阅", hint: "查阅" },
-  { label: "值得通读", hint: "通读" },
-  { label: "强烈推荐读原书", hint: "强烈读" },
+  { label: "不必读原书", hint: "不必读", description: "拆书已经覆盖核心观点，原书主要是重复论证或案例铺陈" },
+  { label: "精华后跳读", hint: "跳读", description: "核心方法已够用，只需要翻看关键章节、案例或工具表" },
+  { label: "按需查阅", hint: "查阅", description: "先用拆书结果，遇到具体问题时再回原书找细节和上下文" },
+  { label: "值得通读", hint: "通读", description: "原书有明显增量，案例、推理过程或结构比精华版更有价值" },
+  { label: "强烈推荐读原书", hint: "强烈读", description: "原书体验不可替代，文本、思想密度、论证过程或案例本身值得完整阅读" },
 ] as const;
+
+const ORIGINAL_READING_FALLBACK_SUMMARY =
+  "这本书可以先看拆书精华，遇到具体困惑时再回到原书查案例、章节和方法细节。";
+
+const ORIGINAL_READING_LEVEL_HELP = ORIGINAL_READING_LEVELS
+  .map((level, index) => `${index + 1}. ${level.label}：${level.description}`)
+  .join("\n");
 
 function getOriginalReadingLevelIndex(content: string) {
   const compact = createOverviewExcerpt(content, 360);
@@ -967,6 +974,7 @@ export default function Home() {
   // ── Background analysis state ──
   const bgAnalysisRef = useRef<BgAnalysisData | null>(null);
   const bgAnalysisTitleRef = useRef<string>("");
+  const originalReadingBackfillRef = useRef<Set<string>>(new Set());
   const [bgAnalysisStatus, setBgAnalysisStatus] = useState<BgAnalysisStatus>({ active: false });
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
@@ -1665,6 +1673,62 @@ export default function Home() {
     });
     setActiveTabId(currentWorkspaceTab.id);
   }, [currentWorkspaceTab]);
+
+  useEffect(() => {
+    if (!currentHistoryRecord || currentHistoryRecord.originalReadingValue) return;
+    if (originalReadingValue || !bookSummary.trim() || !readingGuide.trim()) return;
+    if (originalReadingBackfillRef.current.has(currentHistoryRecord.id)) return;
+
+    originalReadingBackfillRef.current.add(currentHistoryRecord.id);
+    let cancelled = false;
+
+    const backfillOriginalReadingValue = async () => {
+      try {
+        const response = await fetch("/api/skills/original-reading-value", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: currentHistoryRecord.title,
+            bookSummary,
+            readingGuide,
+            chapters: [],
+          }),
+        });
+        const data = await response.json();
+        if (!data.success || typeof data.originalReadingValue !== "string") return;
+
+        const nextOriginalReadingValue = data.originalReadingValue.trim();
+        if (!nextOriginalReadingValue) return;
+
+        const history = loadHistory();
+        const nextHistory = history.map((record) =>
+          record.id === currentHistoryRecord.id
+            ? { ...record, originalReadingValue: nextOriginalReadingValue }
+            : record
+        );
+        saveHistory(nextHistory);
+        setRecentHistory(nextHistory);
+
+        if (!cancelled && bookTitle === currentHistoryRecord.title) {
+          setOriginalReadingValue(nextOriginalReadingValue);
+        }
+      } catch (error) {
+        console.error("历史记录原书阅读建议补生成失败:", error);
+      }
+    };
+
+    void backfillOriginalReadingValue();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    bookSummary,
+    bookTitle,
+    currentHistoryRecord,
+    originalReadingValue,
+    readingGuide,
+  ]);
 
   // Save to history when analysis completes
   useEffect(() => {
@@ -3634,17 +3698,21 @@ export default function Home() {
     if (!isLiteMode || isLiteUnlocked) return true;
     return ["bookSummary", "readingGuide"].includes(card.key);
   });
-  const shouldUseStarterReadingAdviceFallback =
-    !!currentStarterBookId && !originalReadingValue && !isLoadingOriginalReadingValue;
+  const shouldUseOriginalReadingAdviceFallback =
+    !originalReadingValue &&
+    !isLoadingOriginalReadingValue &&
+    !!bookTitle &&
+    !!bookSummary.trim() &&
+    !!readingGuide.trim();
   const originalReadingAdviceLevelIndex = originalReadingValue
     ? getOriginalReadingLevelIndex(originalReadingValue)
-    : shouldUseStarterReadingAdviceFallback
+    : shouldUseOriginalReadingAdviceFallback
     ? 2
     : -1;
   const originalReadingAdviceSummary = originalReadingValue
     ? createOriginalReadingAdviceSummary(originalReadingValue)
-    : shouldUseStarterReadingAdviceFallback
-    ? "这本书可以先看拆书精华，遇到具体困惑时再回到原书查案例、章节和方法细节。"
+    : shouldUseOriginalReadingAdviceFallback
+    ? ORIGINAL_READING_FALLBACK_SUMMARY
     : "";
 
   const openOverviewCard = (targetKey: string) => {
@@ -4427,12 +4495,24 @@ export default function Home() {
                   <p className="text-[14px] font-semibold leading-6 text-[var(--ink)]">
                     <span>原书阅读建议</span>
                     <span className="mx-2 text-[var(--ink-faint)]">·</span>
-                    <span>
-                      {originalReadingAdviceLevelIndex >= 0
-                        ? ORIGINAL_READING_LEVELS[originalReadingAdviceLevelIndex].label
-                        : isLoadingOriginalReadingValue
-                        ? "判断中"
-                        : "等待生成"}
+                    <span className="group/help relative inline-flex pr-4">
+                      <span>
+                        {originalReadingAdviceLevelIndex >= 0
+                          ? ORIGINAL_READING_LEVELS[originalReadingAdviceLevelIndex].label
+                          : isLoadingOriginalReadingValue
+                          ? "判断中"
+                          : "等待生成"}
+                      </span>
+                      <button
+                        type="button"
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[10px] font-semibold leading-none text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-accent-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                        aria-label="查看原书阅读建议档位说明"
+                      >
+                        ?
+                      </button>
+                      <span className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-30 hidden w-[360px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 whitespace-pre-line text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/help:block group-focus-within/help:block">
+                        {ORIGINAL_READING_LEVEL_HELP}
+                      </span>
                     </span>
                   </p>
                   <p className="mt-1 text-[13px] leading-6 text-[var(--ink-soft)]">
