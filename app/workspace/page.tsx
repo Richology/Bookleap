@@ -1268,11 +1268,14 @@ export default function Home() {
   const [openTabs, setOpenTabs] = useState<WorkspaceTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingDeleteTitle, setPendingDeleteTitle] = useState("");
+  const [pendingDeleteCountdown, setPendingDeleteCountdown] = useState(10);
   const [isWorkspaceSearchOpen, setIsWorkspaceSearchOpen] = useState(false);
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState("");
   const [workspaceSearchActiveIndex, setWorkspaceSearchActiveIndex] = useState(0);
   const [isWorkspaceFullscreen, setIsWorkspaceFullscreen] = useState(false);
   const pendingDeleteTimerRef = useRef<number | null>(null);
+  const pendingDeleteCountdownRef = useRef<number | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isDisclaimerModalOpen, setIsDisclaimerModalOpen] = useState(false);
   const [isBackupNoticeOpen, setIsBackupNoticeOpen] = useState(false);
@@ -2216,11 +2219,28 @@ export default function Home() {
 
   const hasBlockingToast = !!activeToast || toastQueue.length > 0;
 
+  const clearPendingDeleteCountdown = useCallback(() => {
+    if (pendingDeleteCountdownRef.current !== null) {
+      window.clearInterval(pendingDeleteCountdownRef.current);
+      pendingDeleteCountdownRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteTimerRef.current !== null) {
+        window.clearTimeout(pendingDeleteTimerRef.current);
+      }
+      clearPendingDeleteCountdown();
+    };
+  }, [clearPendingDeleteCountdown]);
+
   const commitDelete = useCallback((id: string) => {
     if (pendingDeleteTimerRef.current !== null) {
       window.clearTimeout(pendingDeleteTimerRef.current);
       pendingDeleteTimerRef.current = null;
     }
+    clearPendingDeleteCountdown();
     const history = loadHistory();
     const recordToDelete = history.find((r) => r.id === id);
     const next = history.filter((r) => r.id !== id);
@@ -2232,7 +2252,9 @@ export default function Home() {
     saveHistory(next);
     setRecentHistory(next);
     setPendingDeleteId(null);
-  }, []);
+    setPendingDeleteTitle("");
+    setPendingDeleteCountdown(10);
+  }, [clearPendingDeleteCountdown]);
 
   const applyAddictionState = useCallback((nextState: AddictionState) => {
     setAddictionStateLocal(nextState);
@@ -2257,8 +2279,11 @@ export default function Home() {
       window.clearTimeout(pendingDeleteTimerRef.current);
       pendingDeleteTimerRef.current = null;
     }
+    clearPendingDeleteCountdown();
     setPendingDeleteId(null);
-  }, []);
+    setPendingDeleteTitle("");
+    setPendingDeleteCountdown(10);
+  }, [clearPendingDeleteCountdown]);
 
   const deleteHistoryRecord = useCallback((id: string) => {
     // If there's already a pending delete, finalize it first
@@ -2270,11 +2295,18 @@ export default function Home() {
     const title = record?.title ?? "未知";
 
     setPendingDeleteId(id);
+    setPendingDeleteTitle(title);
+    setPendingDeleteCountdown(10);
 
     // Clear any existing timer
     if (pendingDeleteTimerRef.current !== null) {
       window.clearTimeout(pendingDeleteTimerRef.current);
     }
+    clearPendingDeleteCountdown();
+
+    pendingDeleteCountdownRef.current = window.setInterval(() => {
+      setPendingDeleteCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
 
     // Auto-delete after 10 seconds
     pendingDeleteTimerRef.current = window.setTimeout(() => {
@@ -2284,12 +2316,12 @@ export default function Home() {
     // Show undo toast via unified queue (P0 = SYSTEM, will preempt any lower toast)
     enqueueGuidanceToast({
       id: `delete-undo-${id}`,
-      message: `已删除《${title}》\n10 秒后永久删除`,
+      message: `是否删除《${title}》？\n10 秒后将永久删除`,
       priority: TOAST_PRIORITY.SYSTEM,
       durationMs: 10000,
       showCloseButton: false,
       dismissible: false,
-      actionText: "撤销",
+      actionText: "取消",
       onAction: () => {
         cancelDelete();
         setActiveToast(null);
@@ -2302,7 +2334,7 @@ export default function Home() {
         setLastToastClosedAt(Date.now());
       },
     });
-  }, [pendingDeleteId, recentHistory, commitDelete, cancelDelete, enqueueGuidanceToast]);
+  }, [pendingDeleteId, recentHistory, commitDelete, cancelDelete, enqueueGuidanceToast, clearPendingDeleteCountdown]);
 
   const resetDragState = useCallback(() => {
     dragCounter.current = 0;
@@ -5304,6 +5336,11 @@ export default function Home() {
     </WorkspaceGrowthSidebar>
   );
 
+  const toastMessage =
+    activeToast?.id.startsWith("delete-undo-") && pendingDeleteId
+      ? `是否删除《${pendingDeleteTitle || "这本书"}》？\n${pendingDeleteCountdown} 秒后将永久删除`
+      : activeToast?.message;
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
@@ -5711,7 +5748,7 @@ export default function Home() {
 
       {activeToast && (
         <Toast
-          message={activeToast.message}
+          message={toastMessage ?? activeToast.message}
           actionText={activeToast.actionText}
           onAction={activeToast.onAction ? () => {
             activeToast.onAction?.();
