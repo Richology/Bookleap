@@ -597,6 +597,464 @@ select {
   animation: reader-enter 0.34s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* ── Book disassembly intro ───────────────────────────────────────────────── */
+.book-disassembly-stage {
+  --book-ease: cubic-bezier(0.19, 1, 0.22, 1);
+  --book-duration: 3.8s;
+  --book-half: 84px;
+  --book-width: 168px;
+}
+
+.book-disassembly-scene {
+  position: relative;
+  height: 540px;
+  width: min(100%, 860px);
+  max-width: 860px;
+}
+
+.book-disassembly-desk {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(10, 46, 14, 0.10), transparent 34%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(251, 252, 253, 0));
+  animation: book-disassembly-stage-exit var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-desk::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 286px;
+  width: 250px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(24, 29, 38, 0.10);
+  filter: blur(14px);
+  transform: translateX(-50%);
+}
+
+.book-disassembly-caption {
+  animation: book-disassembly-caption var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-targets,
+.book-disassembly-output {
+  position: absolute;
+  inset: 0;
+}
+
+.book-disassembly-target,
+.book-disassembly-sheet {
+  --target-x: 0px;
+  --target-y: 0px;
+}
+
+.book-disassembly-target:nth-child(1),
+.book-disassembly-sheet:nth-child(1) {
+  --target-x: -280px;
+  --target-y: -134px;
+}
+
+.book-disassembly-target:nth-child(2),
+.book-disassembly-sheet:nth-child(2) {
+  --target-x: 0px;
+  --target-y: -134px;
+}
+
+.book-disassembly-target:nth-child(3),
+.book-disassembly-sheet:nth-child(3) {
+  --target-x: 280px;
+  --target-y: -134px;
+}
+
+.book-disassembly-target:nth-child(4),
+.book-disassembly-sheet:nth-child(4) {
+  --target-x: -280px;
+  --target-y: 134px;
+}
+
+.book-disassembly-target:nth-child(5),
+.book-disassembly-sheet:nth-child(5) {
+  --target-x: 0px;
+  --target-y: 134px;
+}
+
+.book-disassembly-target:nth-child(6),
+.book-disassembly-sheet:nth-child(6) {
+  --target-x: 280px;
+  --target-y: 134px;
+}
+
+.book-disassembly-target {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: flex;
+  height: 244px;
+  width: 168px;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(24, 29, 38, 0.08);
+  border-radius: 11px;
+  background: rgba(251, 252, 253, 0.54);
+  box-shadow: 0 10px 24px rgba(24, 29, 38, 0.04);
+  opacity: 0;
+  padding: 18px 15px;
+  transform: translate(-50%, -50%) translate(var(--target-x), var(--target-y));
+  animation: book-disassembly-target var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-target span,
+.book-disassembly-sheet span {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(10, 46, 14, 0.10);
+}
+
+.book-disassembly-target span:nth-child(1),
+.book-disassembly-sheet span:nth-child(1) {
+  width: 58%;
+}
+
+.book-disassembly-target span:nth-child(2),
+.book-disassembly-sheet span:nth-child(2) {
+  width: 92%;
+}
+
+.book-disassembly-target span:nth-child(3),
+.book-disassembly-sheet span:nth-child(3) {
+  width: 76%;
+}
+
+.book-disassembly-book {
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  z-index: 5;
+  width: 168px;
+  height: 244px;
+  animation: book-disassembly-book var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  overflow: hidden;
+  border: 1px solid rgba(24, 29, 38, 0.12);
+  border-radius: 11px;
+  background:
+    linear-gradient(135deg, rgba(238, 247, 241, 0.96), rgba(251, 252, 253, 0.96)),
+    var(--surface-low);
+  box-shadow:
+    0 22px 46px rgba(24, 29, 38, 0.18),
+    inset 10px 0 18px rgba(10, 46, 14, 0.10);
+  backface-visibility: hidden;
+  transform-origin: left center;
+  animation: book-disassembly-cover var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-cover img {
+  background: #fbfcfd;
+}
+
+.book-disassembly-pages {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  height: 244px;
+  width: 336px;
+  animation: book-disassembly-pages var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-left-page,
+.book-disassembly-right-page {
+  position: absolute;
+  top: 0;
+  display: block;
+  height: 100%;
+  width: calc(50% - 4px);
+  border: 1px solid rgba(24, 29, 38, 0.08);
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 16px,
+      rgba(10, 46, 14, 0.09) 16px,
+      rgba(10, 46, 14, 0.09) 17px
+    ),
+    linear-gradient(90deg, rgba(238, 247, 241, 0.86), rgba(251, 252, 253, 0.98));
+  box-shadow: 0 12px 28px rgba(24, 29, 38, 0.10);
+}
+
+.book-disassembly-left-page {
+  left: 0;
+  transform-origin: right center;
+}
+
+.book-disassembly-right-page {
+  right: 0;
+  transform-origin: left center;
+}
+
+.book-disassembly-page {
+  position: absolute;
+  left: calc(50% + 4px);
+  top: 0;
+  display: block;
+  height: 100%;
+  width: calc(50% - 4px);
+  border: 1px solid rgba(24, 29, 38, 0.08);
+  border-radius: 9px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 16px,
+      rgba(10, 46, 14, 0.09) 16px,
+      rgba(10, 46, 14, 0.09) 17px
+    ),
+    linear-gradient(90deg, rgba(238, 247, 241, 0.86), rgba(251, 252, 253, 0.98));
+  box-shadow: 0 8px 18px rgba(24, 29, 38, 0.10);
+  transform-origin: left center;
+  opacity: 0;
+  animation: book-disassembly-page 1.05s var(--book-ease) 1 both;
+}
+
+.book-disassembly-page:nth-child(3) { animation-delay: 0.90s; }
+.book-disassembly-page:nth-child(4) { animation-delay: 1.03s; }
+.book-disassembly-page:nth-child(5) { animation-delay: 1.16s; }
+.book-disassembly-page:nth-child(6) { animation-delay: 1.29s; }
+.book-disassembly-page:nth-child(7) { animation-delay: 1.42s; }
+
+.book-disassembly-sheet {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  display: flex;
+  width: 168px;
+  height: 244px;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(24, 29, 38, 0.08);
+  border-radius: 11px;
+  background:
+    linear-gradient(90deg, rgba(10, 46, 14, 0.06), transparent 18%),
+    rgba(251, 252, 253, 0.95);
+  box-shadow: 0 12px 24px rgba(24, 29, 38, 0.12);
+  opacity: 0;
+  padding: 18px 15px;
+  transform-origin: center;
+  animation: book-disassembly-sheet var(--book-duration) var(--book-ease) both;
+}
+
+.book-disassembly-sheet:nth-child(1) { animation-delay: 0ms; }
+.book-disassembly-sheet:nth-child(2) { animation-delay: 80ms; }
+.book-disassembly-sheet:nth-child(3) { animation-delay: 160ms; }
+.book-disassembly-sheet:nth-child(4) { animation-delay: 240ms; }
+.book-disassembly-sheet:nth-child(5) { animation-delay: 320ms; }
+.book-disassembly-sheet:nth-child(6) { animation-delay: 400ms; }
+
+@keyframes book-disassembly-target {
+  0%, 64% {
+    opacity: 0;
+  }
+  80%, 100% {
+    opacity: 0.28;
+  }
+}
+
+@keyframes book-disassembly-caption {
+  0%, 48% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  62%, 100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes book-disassembly-book {
+  0% {
+    opacity: 0;
+    transform: translate3d(calc(-50% - var(--book-half)), 18px, 0) scale(0.96);
+  }
+  18%, 52% {
+    opacity: 1;
+    transform: translate3d(calc(-50% - var(--book-half)), 0, 0) scale(1);
+  }
+  58%, 100% {
+    opacity: 0;
+    transform: translate3d(calc(-50% - var(--book-half)), 0, 0) scale(1);
+  }
+}
+
+@keyframes book-disassembly-cover {
+  0%, 24% {
+    opacity: 1;
+    transform: translate3d(var(--book-half), 0, 0) rotateY(0deg);
+  }
+  34% {
+    opacity: 1;
+    transform: translate3d(var(--book-width), 0, 0) rotateY(0deg);
+  }
+  40%, 100% {
+    opacity: 0;
+    transform: translate3d(var(--book-width), 0, 0) rotateY(-156deg);
+  }
+}
+
+@keyframes book-disassembly-pages {
+  0%, 36% {
+    opacity: 0;
+    transform: translateX(0) scale(0.98);
+  }
+  42%, 52% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  58%, 100% {
+    opacity: 0;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes book-disassembly-page {
+  0% {
+    opacity: 0;
+    transform: rotateY(0deg) translateZ(1px);
+  }
+  12% {
+    opacity: 1;
+  }
+  58% {
+    opacity: 1;
+    transform: rotateY(-156deg) translateZ(10px);
+  }
+  100% {
+    opacity: 0;
+    transform: rotateY(-176deg) translateZ(12px);
+  }
+}
+
+@keyframes book-disassembly-sheet {
+  0%, 58% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(92px, -70px) scale(0.24);
+  }
+  68% {
+    opacity: 0.96;
+    transform: translate(-50%, -50%) translate(92px, -70px) scale(0.40);
+  }
+  84%, 100% {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) translate(var(--target-x), var(--target-y)) scale(1);
+  }
+}
+
+@keyframes book-disassembly-stage-exit {
+  0%, 86% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@media (max-width: 760px) {
+  .book-disassembly-stage {
+    --book-half: 66px;
+    --book-width: 132px;
+  }
+
+  .book-disassembly-scene {
+    height: 430px;
+  }
+
+  .book-disassembly-target,
+  .book-disassembly-sheet {
+    width: 132px;
+    height: 192px;
+    padding: 13px 11px;
+  }
+
+  .book-disassembly-target:nth-child(1),
+  .book-disassembly-sheet:nth-child(1) {
+    --target-x: -122px;
+    --target-y: -96px;
+  }
+
+  .book-disassembly-target:nth-child(3),
+  .book-disassembly-sheet:nth-child(3) {
+    --target-x: 122px;
+    --target-y: -96px;
+  }
+
+  .book-disassembly-target:nth-child(4),
+  .book-disassembly-sheet:nth-child(4) {
+    --target-x: -122px;
+    --target-y: 92px;
+  }
+
+  .book-disassembly-target:nth-child(6),
+  .book-disassembly-sheet:nth-child(6) {
+    --target-x: 122px;
+    --target-y: 92px;
+  }
+
+  .book-disassembly-target:nth-child(2),
+  .book-disassembly-sheet:nth-child(2) {
+    --target-y: -96px;
+  }
+
+  .book-disassembly-target:nth-child(5),
+  .book-disassembly-sheet:nth-child(5) {
+    --target-y: 92px;
+  }
+
+  .book-disassembly-book {
+    width: 132px;
+    height: 192px;
+  }
+
+  .book-disassembly-pages {
+    width: 264px;
+    height: 192px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .book-disassembly-book,
+  .book-disassembly-cover,
+  .book-disassembly-pages,
+  .book-disassembly-page,
+  .book-disassembly-sheet,
+  .book-disassembly-target {
+    animation: none;
+  }
+
+  .book-disassembly-book {
+    opacity: 0;
+  }
+
+  .book-disassembly-target,
+  .book-disassembly-sheet {
+    opacity: 0.92;
+    transform: translate(-50%, -50%) translate(var(--target-x), var(--target-y)) scale(1);
+  }
+}
+
 /* ── Status banner pulse ───────────────────────────────────────────────────── */
 @keyframes status-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
