@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -5201,13 +5201,15 @@ export default function Home() {
                   </div>
 
                   <div
-                    className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 md:bottom-6"
-                    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                    className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 pb-[env(safe-area-inset-bottom)] md:bottom-6 xl:left-[calc(var(--workspace-dock-shell-edge)+48px+0.625rem+var(--workspace-reader-inset-left))] xl:right-[calc(var(--workspace-dock-shell-edge)+var(--workspace-reader-inset-right))] xl:px-0"
+                    style={{
+                      "--workspace-dock-shell-edge": "max(1.25rem, calc((100vw - 1760px) / 2 + 1.25rem))",
+                    } as CSSProperties}
                   >
                     <nav
                       role="navigation"
                       aria-label="精华卡片翻页"
-                      className="pointer-events-auto flex w-full max-w-[34rem] items-center justify-between gap-2 rounded-[16px] border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd]/95 px-2.5 py-2 shadow-[0_12px_34px_rgba(24,29,38,0.14),0_1px_2px_rgba(24,29,38,0.08)] backdrop-blur-md md:px-3"
+                      className="pointer-events-auto mx-auto flex w-full max-w-[34rem] items-center justify-between gap-2 rounded-[16px] border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd]/95 px-2.5 py-2 shadow-[0_12px_34px_rgba(24,29,38,0.14),0_1px_2px_rgba(24,29,38,0.08)] backdrop-blur-md md:px-3"
                     >
                       <button
                         type="button"
