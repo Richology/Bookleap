@@ -174,6 +174,7 @@ type WorkspaceReadMode = "overview" | "immersive";
 const HISTORY_KEY = "bookleap_recent_history";
 const HAS_UPLOADED_BOOK_KEY = "bookleap_has_uploaded_book";
 const LAST_ANALYZED_BOOK_TITLE_KEY = "bookleap_last_analyzed_book_title";
+const ANALYSIS_INTRO_DURATION_MS = 3600;
 const STARTER_MODE_SEEN_KEY = "bookleap_has_seen_starter_mode";
 const STARTER_SELECTED_BOOK_KEY = "bookleap_selected_starter_book";
 const STARTER_EXPERIENCED_KEY = "bookleap_experienced_starter_books";
@@ -1171,6 +1172,72 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): 
   ]);
 }
 
+function BookDisassemblyStage({
+  title,
+  coverImage,
+}: {
+  title: string;
+  coverImage: string;
+}) {
+  const displayTitle = title.trim() || "新书";
+
+  return (
+    <div className="book-disassembly-stage mx-auto w-full max-w-4xl px-4 py-4 text-center">
+      <div className="book-disassembly-scene mx-auto" aria-hidden="true">
+        <div className="book-disassembly-desk">
+          <div className="book-disassembly-targets">
+            {[0, 1, 2, 3, 4, 5].map((slot) => (
+              <span key={slot} className="book-disassembly-target">
+                <span />
+                <span />
+                <span />
+              </span>
+            ))}
+          </div>
+
+          <div className="book-disassembly-book">
+            <div className="book-disassembly-cover">
+              {coverImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={coverImage}
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
+              ) : null}
+            </div>
+            <div className="book-disassembly-pages">
+              <span className="book-disassembly-left-page" />
+              <span className="book-disassembly-right-page" />
+              {[0, 1, 2, 3, 4].map((page) => (
+                <span
+                  key={page}
+                  className="book-disassembly-page"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="book-disassembly-output">
+            {[0, 1, 2, 3, 4, 5].map((sheet) => (
+              <span key={sheet} className="book-disassembly-sheet">
+                <span />
+                <span />
+                <span />
+              </span>
+            ))}
+          </div>
+
+        </div>
+      </div>
+
+      <p className="book-disassembly-caption mx-auto mt-4 max-w-[42rem] text-balance text-[15px] font-semibold leading-6 text-[var(--ink)]">
+        正在拆解《{displayTitle}》
+      </p>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1181,6 +1248,7 @@ export default function Home() {
   const readerScrollContainerRef = useRef<HTMLDivElement>(null);
   const immersiveCardsLenRef = useRef(0);
   const shouldScrollToStarterSectionRef = useRef(false);
+  const analysisIntroStartedAtRef = useRef(0);
 
   // ── Background analysis state ──
   const bgAnalysisRef = useRef<BgAnalysisData | null>(null);
@@ -1193,6 +1261,8 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [analysisErrorCode, setAnalysisErrorCode] = useState<string | null>(null);
+  const [analysisIntroTitle, setAnalysisIntroTitle] = useState("");
+  const [analysisIntroCover, setAnalysisIntroCover] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
   const [readingGuide, setReadingGuide] = useState("");
@@ -2396,6 +2466,9 @@ export default function Home() {
     setBookTitle("");
     setBookAuthor("");
     setBookSummary("");
+    setAnalysisIntroTitle("");
+    setAnalysisIntroCover("");
+    analysisIntroStartedAtRef.current = 0;
     setIsLoadingBookSummary(false);
     setReadingGuide("");
     setIsLoadingReadingGuide(false);
@@ -3350,6 +3423,9 @@ export default function Home() {
 
   const handleAnalyze = async (fileOverride?: File | null) => {
     const fileToAnalyze = fileOverride ?? selectedFile;
+    const pendingTitle = fileToAnalyze
+      ? stripSupportedFileExtension(fileToAnalyze.name) || "新书"
+      : "新书";
 
     if (!fileToAnalyze) {
       setMessage("请先选择一本 EPUB、AZW3、TXT 或 PDF 电子书。");
@@ -3359,6 +3435,9 @@ export default function Home() {
     try {
       resetAllState();
 
+      analysisIntroStartedAtRef.current = 0;
+      setAnalysisIntroTitle(pendingTitle);
+      setAnalysisIntroCover("");
       setIsLoading(true);
       setMessage("正在上传文件...");
 
@@ -3371,7 +3450,6 @@ export default function Home() {
       setIsLoadingIdeaSourceTracing(true);
 
       // Initialize background analysis tracker
-      const pendingTitle = stripSupportedFileExtension(fileToAnalyze.name) || "新书";
       const bg: BgAnalysisData = {
         title: pendingTitle, author: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
         originalReadingValue: "",
@@ -3504,8 +3582,25 @@ export default function Home() {
 
       // Helper: only write to display if user is still viewing this book
       const isStillViewing = () => bgAnalysisTitleRef.current === title;
+      const waitForAnalysisIntro = async () => {
+        const introStartedAt = analysisIntroStartedAtRef.current || Date.now();
+        analysisIntroStartedAtRef.current = introStartedAt;
+        const remainingMs = introStartedAt
+          ? ANALYSIS_INTRO_DURATION_MS - (Date.now() - introStartedAt)
+          : 0;
 
-      // Show initial results immediately
+        if (remainingMs > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, remainingMs));
+        }
+      };
+
+      // Keep the first upload reveal long enough to read as an intentional state change.
+      if (isStillViewing() && coverImage) {
+        analysisIntroStartedAtRef.current = Date.now();
+        setAnalysisIntroTitle(title || pendingTitle);
+        setAnalysisIntroCover(coverImage);
+        await waitForAnalysisIntro();
+      }
       if (isStillViewing()) {
         setBookTitle(title);
         setBookAuthor(author);
@@ -4706,33 +4801,16 @@ export default function Home() {
         );
       })()}
 
-      {!bookTitle && isAnalyzing ? (
-        <div className="flex min-h-[300px] items-center justify-center px-6 py-8">
-          <div className="w-full max-w-3xl text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#eef7f1] text-[var(--accent)]">
-              <span className="analysis-progress-orb relative flex h-5 w-5 items-center justify-center rounded-full">
-                <span className="absolute h-4 w-4 rounded-full bg-[rgba(10,46,14,0.12)]" />
-                <span className="relative h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(10,46,14,0.4)]" />
-              </span>
-            </div>
-            <p className="mt-4 text-[15px] font-semibold text-[var(--ink)]">
-              正在准备阅读工作台
-            </p>
-            <p className="mt-1 text-[12px] font-medium text-[var(--ink-faint)]">
-              解析完成后，精华卡片会在这里逐步展开
-            </p>
-
-            <div className="mx-auto mt-7 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
-              {[0, 1, 2].map((item) => (
-                <div key={item} className="space-y-2.5 rounded-[10px] bg-[#f8fafc] px-4 py-3">
-                  <div className="analysis-card-line h-2 w-2/3 rounded-full bg-[rgba(10,46,14,0.12)]" />
-                  <div className="analysis-card-line h-2 w-full rounded-full bg-[rgba(10,46,14,0.08)]" />
-                  <div className="analysis-card-line h-2 w-4/5 rounded-full bg-[rgba(10,46,14,0.08)]" />
-                </div>
-              ))}
-            </div>
-          </div>
+      {!bookTitle && isAnalyzing && analysisIntroCover ? (
+        <div className="flex min-h-[560px] items-center justify-center px-6 py-8">
+          <BookDisassemblyStage
+            key={`${analysisIntroTitle || "new-book"}:${analysisIntroCover}`}
+            title={analysisIntroTitle || (bgAnalysisStatus.active ? bgAnalysisStatus.title : "新书")}
+            coverImage={analysisIntroCover}
+          />
         </div>
+      ) : !bookTitle && isAnalyzing ? (
+        <div className="min-h-[300px]" aria-hidden="true" />
       ) : !bookTitle ? (
         <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
           <div className="max-w-2xl text-center">
