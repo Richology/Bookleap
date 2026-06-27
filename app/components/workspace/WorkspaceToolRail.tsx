@@ -50,11 +50,11 @@ function ToolIcon({ id }: { id: string }) {
 
   if (id === "coffee") {
     return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5.2 7h8.2v3.9a3.6 3.6 0 0 1-3.6 3.6h-1a3.6 3.6 0 0 1-3.6-3.6V7Z" />
-        <path d="M13.4 8.2h1.1a1.7 1.7 0 0 1 0 3.4h-1.1" />
-        <path d="M6.2 16h7" />
-        <path d="M7 4.2c.5.45.5.9 0 1.35M10 4.2c.5.45.5.9 0 1.35M13 4.2c.5.45.5.9 0 1.35" />
+      <svg className="h-[18px] w-[18px] text-[#181d26]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M7.1 2.9c.55-.35 5.45-.35 6 0 .45.3.45 1.4 0 1.7-.55.35-5.45.35-6 0-.45-.3-.45-1.4 0-1.7Z" />
+        <path d="M4.9 5.5c.35-.6 10.35-.6 10.7 0l.35 1.7c.1.45-.15.8-.6.8H5.15c-.45 0-.7-.35-.6-.8l.35-1.7Z" />
+        <path d="M5.8 8h8.9l-.85 8.15c-.08.75-.72 1.35-1.48 1.35H8.13c-.76 0-1.4-.6-1.48-1.35L5.8 8Z" />
+        <path d="M8.1 9.9h4.3l-.48 5.05c-.04.34-.32.6-.66.6H9.24c-.34 0-.62-.26-.66-.6L8.1 9.9Z" fill="currentColor" stroke="none" />
       </svg>
     );
   }
