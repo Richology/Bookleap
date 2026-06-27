@@ -6,17 +6,8 @@ import { WorkspaceTabs, type WorkspaceTabItem } from "./WorkspaceTabs";
 function SidebarToggleIcon({ side }: { side: "left" | "right" }) {
   return (
     <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="3.5" y="3.5" width="13" height="13" rx="3.5" stroke="currentColor" strokeWidth="1.95" />
-      <rect
-        x={side === "left" ? "4.8" : "11.1"}
-        y="4.8"
-        width="4.1"
-        height="10.4"
-        rx="2"
-        fill="currentColor"
-        fillOpacity="0.18"
-      />
-      <path d="M10 4.7V15.3" stroke="currentColor" strokeWidth="1.95" strokeLinecap="round" />
+      <rect x="3.4" y="4" width="13.2" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d={side === "left" ? "M7.1 7.3v5.4" : "M12.9 7.3v5.4"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -131,10 +122,10 @@ export function WorkspaceTopBar({
               onFocus={onPreviewGrowth}
               onBlur={onGrowthTriggerLeave}
               data-workspace-preview-trigger="growth"
-              className={`relative flex h-10 w-10 items-center justify-center rounded-[10px] border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
+              className={`relative flex h-10 w-10 items-center justify-center rounded-[8px] transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
                 hasGrowthUpdate
-                  ? "border-[rgba(10,46,14,0.16)] bg-[rgba(168,216,196,0.28)] text-[var(--accent)] shadow-[0_0_0_3px_rgba(168,216,196,0.14)] hover:bg-[var(--workspace-hover-surface)]"
-                  : "border-transparent bg-transparent text-[#4f555d] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
+                  ? "bg-[rgba(168,216,196,0.28)] text-[var(--accent)] hover:bg-[var(--workspace-hover-surface)]"
+                  : "bg-transparent text-[#4f555d] hover:bg-[#fbfcfd] hover:text-[var(--ink)]"
               }`}
               aria-label={hasGrowthUpdate ? "展开成长区，有新的成长记录" : "展开成长区"}
               title="展开成长区 · ]"
