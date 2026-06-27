@@ -76,6 +76,11 @@ import {
   hasWorkspaceQuoteArtifacts,
   sanitizeWorkspaceQuote,
 } from "@/lib/workspaceQuote";
+import {
+  getIndexedDbHistoryRecords,
+  migrateLegacyHistoryRecordsToIndexedDb,
+  mirrorHistoryRecordsToIndexedDb,
+} from "@/lib/workspaceStorage";
 import { shouldPromptCoffeeSupport } from "@/lib/supportCoffee.mjs";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
@@ -261,8 +266,20 @@ type LocalDataBackup = {
   localStorage: Record<string, string>;
 };
 
+type IndexedDbDataBackup = {
+  app: "bookleap";
+  version: 2;
+  exportedAt: string;
+  source: "indexedDB";
+  historyCount: number;
+  historyRecords: HistoryRecord[];
+  localStorage: Record<string, string>;
+};
+
+type BookleapDataBackup = LocalDataBackup | IndexedDbDataBackup;
+
 type BackupImportPreview = {
-  backup: LocalDataBackup;
+  backup: BookleapDataBackup;
   fileName: string;
   historyCount: number;
   storageKeyCount: number;
@@ -282,13 +299,15 @@ function shouldIncludeBackupStorageKey(key: string) {
   return BACKUP_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix));
 }
 
-function collectBookleapLocalStorage(): Record<string, string> {
+function collectBookleapLocalStorage(options: { includeHistory?: boolean } = {}): Record<string, string> {
   const snapshot: Record<string, string> = {};
+  const includeHistory = options.includeHistory ?? true;
 
   try {
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
       if (!key || !shouldIncludeBackupStorageKey(key)) continue;
+      if (!includeHistory && key === HISTORY_KEY) continue;
 
       const value = localStorage.getItem(key);
       if (value !== null) {
@@ -302,17 +321,27 @@ function collectBookleapLocalStorage(): Record<string, string> {
   return snapshot;
 }
 
-function createLocalDataBackup(): LocalDataBackup {
-  const history = loadHistory();
+async function createIndexedDbDataBackup(): Promise<IndexedDbDataBackup> {
+  let historyRecords: HistoryRecord[];
+
+  try {
+    historyRecords = await getIndexedDbHistoryRecords<HistoryRecord>();
+  } catch {
+    historyRecords = loadHistory();
+  }
+
+  if (historyRecords.length === 0) {
+    historyRecords = loadHistory();
+  }
 
   return {
     app: "bookleap",
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
-    source: "browser-localStorage",
-    historyCount: history.length,
-    history,
-    localStorage: collectBookleapLocalStorage(),
+    source: "indexedDB",
+    historyCount: historyRecords.length,
+    historyRecords,
+    localStorage: collectBookleapLocalStorage({ includeHistory: false }),
   };
 }
 
@@ -358,7 +387,7 @@ function isSupportedHistoryRecord(value: unknown): value is HistoryRecord {
   );
 }
 
-function normalizeLocalDataBackup(value: unknown): LocalDataBackup | null {
+function normalizeBookleapDataBackup(value: unknown): BookleapDataBackup | null {
   if (!isRecordObject(value)) return null;
 
   const localStorageSnapshot: Record<string, string> = {};
@@ -370,29 +399,54 @@ function normalizeLocalDataBackup(value: unknown): LocalDataBackup | null {
     }
   }
 
-  const history = Array.isArray(value.history)
+  const legacyHistory = Array.isArray(value.history)
     ? value.history.filter(isSupportedHistoryRecord)
+    : [];
+  const indexedDbHistory = Array.isArray(value.historyRecords)
+    ? value.historyRecords.filter(isSupportedHistoryRecord)
     : [];
 
   if (
-    value.app !== "bookleap" ||
-    value.version !== 1 ||
-    typeof value.exportedAt !== "string" ||
-    value.source !== "browser-localStorage" ||
-    (!Array.isArray(value.history) && Object.keys(localStorageSnapshot).length === 0)
+    value.app === "bookleap" &&
+    value.version === 2 &&
+    typeof value.exportedAt === "string" &&
+    value.source === "indexedDB" &&
+    (Array.isArray(value.historyRecords) || Object.keys(localStorageSnapshot).length > 0)
   ) {
-    return null;
+    return {
+      app: "bookleap",
+      version: 2,
+      exportedAt: value.exportedAt,
+      source: "indexedDB",
+      historyCount: indexedDbHistory.length,
+      historyRecords: indexedDbHistory,
+      localStorage: localStorageSnapshot,
+    };
   }
 
-  return {
-    app: "bookleap",
-    version: 1,
-    exportedAt: value.exportedAt,
-    source: "browser-localStorage",
-    historyCount: history.length,
-    history,
-    localStorage: localStorageSnapshot,
-  };
+  if (
+    value.app === "bookleap" &&
+    value.version === 1 &&
+    typeof value.exportedAt === "string" &&
+    value.source === "browser-localStorage" &&
+    (Array.isArray(value.history) || Object.keys(localStorageSnapshot).length > 0)
+  ) {
+    return {
+      app: "bookleap",
+      version: 1,
+      exportedAt: value.exportedAt,
+      source: "browser-localStorage",
+      historyCount: legacyHistory.length,
+      history: legacyHistory,
+      localStorage: localStorageSnapshot,
+    };
+  }
+
+  return null;
+}
+
+function getBackupHistoryRecords(backup: BookleapDataBackup): HistoryRecord[] {
+  return backup.version === 2 ? backup.historyRecords : backup.history;
 }
 
 function getHistoryRecordTime(record: HistoryRecord): number {
@@ -434,14 +488,15 @@ function mergeHistoryRecords(current: HistoryRecord[], incoming: HistoryRecord[]
   };
 }
 
-function analyzeBackupImport(backup: LocalDataBackup): BackupImportPreview {
+function analyzeBackupImport(backup: BookleapDataBackup): BackupImportPreview {
   const current = loadHistory();
-  const mergeStats = mergeHistoryRecords(current, backup.history);
+  const backupHistory = getBackupHistoryRecords(backup);
+  const mergeStats = mergeHistoryRecords(current, backupHistory);
 
   return {
     backup,
     fileName: "",
-    historyCount: backup.history.length,
+    historyCount: backupHistory.length,
     storageKeyCount: Object.keys(backup.localStorage).length,
     newHistoryCount: mergeStats.newHistoryCount,
     updatedHistoryCount: mergeStats.updatedHistoryCount,
@@ -474,7 +529,13 @@ function hashString(value: string): number {
   return hash;
 }
 
-function loadHistory(): HistoryRecord[] {
+let historyCache: HistoryRecord[] | null = null;
+
+function setHistoryCache(records: HistoryRecord[]) {
+  historyCache = records;
+}
+
+function loadLegacyHistory(): HistoryRecord[] {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
@@ -483,6 +544,10 @@ function loadHistory(): HistoryRecord[] {
   } catch {
     return [];
   }
+}
+
+function loadHistory(): HistoryRecord[] {
+  return historyCache ?? loadLegacyHistory();
 }
 
 function compactHistoryForStorage(
@@ -507,21 +572,26 @@ function tryWriteHistory(records: HistoryRecord[]) {
 }
 
 function saveHistory(records: HistoryRecord[]) {
-  if (tryWriteHistory(records)) return true;
+  setHistoryCache(records);
+  void mirrorHistoryRecordsToIndexedDb(records).catch((error) => {
+    console.warn("IndexedDB 历史保存失败，尝试使用 localStorage 兜底:", error);
 
-  const attempts = [
-    compactHistoryForStorage(records, { stripPosterContent: true }),
-    compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 30 }),
-    compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 15 }),
-    compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 8 }),
-  ];
+    if (tryWriteHistory(records)) return;
 
-  for (const attempt of attempts) {
-    if (tryWriteHistory(attempt)) return true;
-  }
+    const attempts = [
+      compactHistoryForStorage(records, { stripPosterContent: true }),
+      compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 30 }),
+      compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 15 }),
+      compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 8 }),
+    ];
 
-  console.warn("历史记录保存失败：浏览器本地存储空间不足");
-  return false;
+    for (const attempt of attempts) {
+      if (tryWriteHistory(attempt)) return;
+    }
+
+    console.warn("历史记录保存失败：IndexedDB 和 localStorage 均不可用");
+  });
+  return true;
 }
 
 function hasSeenStarterMode(): boolean {
@@ -1696,14 +1766,15 @@ export default function Home() {
 
   // Load history + onboarding progress on mount
   useEffect(() => {
-    const history = loadHistory();
+    const legacyHistory = loadLegacyHistory();
+    setHistoryCache(legacyHistory);
     const ledger = loadGrowthLedger();
     const onboardingStep = getOnboardingStep();
     const starterBookId = getSelectedStarterBookId();
 
     const returningUserToastSeenThisSession = hasSeenReturningUserToastThisSession();
 
-    setRecentHistory(history);
+    setRecentHistory(legacyHistory);
     setGrowthLedger(ledger);
     setOnboardingProgressState(onboardingStep);
     setSelectedStarterBookIdState(starterBookId);
@@ -1714,10 +1785,36 @@ export default function Home() {
     }
     setHasShownReturningUserToast(returningUserToastSeenThisSession);
     setShowFabRedDot(
-      hasHistoryReorganizedBeenShown() && !hasFabHistoryBeenSeen() && history.length >= 3
+      hasHistoryReorganizedBeenShown() && !hasFabHistoryBeenSeen() && legacyHistory.length >= 3
     );
     // 不再自动进入 starter mode，新用户默认看到上传区
     setIsStarterModeVisible(false);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (legacyHistory.length > 0) {
+          await migrateLegacyHistoryRecordsToIndexedDb(legacyHistory);
+        }
+
+        const indexedDbHistory = await getIndexedDbHistoryRecords<HistoryRecord>();
+        const nextHistory = indexedDbHistory.length > 0 ? indexedDbHistory : legacyHistory;
+        setHistoryCache(nextHistory);
+
+        if (!cancelled) {
+          setRecentHistory(nextHistory);
+          setShowFabRedDot(
+            hasHistoryReorganizedBeenShown() && !hasFabHistoryBeenSeen() && nextHistory.length >= 3
+          );
+        }
+      } catch (error) {
+        console.warn("IndexedDB 历史加载失败，将继续使用 localStorage:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -1964,15 +2061,15 @@ export default function Home() {
     });
   }, []);
 
-  const downloadLocalBackup = useCallback(() => {
+  const downloadLocalBackup = useCallback(async () => {
     try {
-      const backup = createLocalDataBackup();
+      const backup = await createIndexedDbDataBackup();
       const dateStamp = backup.exportedAt.slice(0, 10);
 
       downloadJsonFile(`bookleap-backup-${dateStamp}.json`, backup);
       enqueueGuidanceToast({
         id: `local-backup-${Date.now()}`,
-        message: `已导出本地备份\n包含 ${backup.historyCount} 条解析记录`,
+        message: `已导出本地书库备份\n包含 ${backup.historyCount} 本书`,
         priority: TOAST_PRIORITY.INFO,
         durationMs: 4200,
       });
@@ -1993,7 +2090,7 @@ export default function Home() {
   }, []);
 
   const handleConfirmBackupDownload = useCallback(() => {
-    downloadLocalBackup();
+    void downloadLocalBackup();
   }, [downloadLocalBackup]);
 
   const handleChooseBackupFile = useCallback(() => {
@@ -2010,7 +2107,7 @@ export default function Home() {
 
     try {
       const raw = await file.text();
-      const parsed = normalizeLocalDataBackup(JSON.parse(raw));
+      const parsed = normalizeBookleapDataBackup(JSON.parse(raw));
 
       if (!parsed) {
         setBackupImportError("无法识别这个备份文件。请选择书跃导出的 JSON 备份。");
@@ -2026,17 +2123,17 @@ export default function Home() {
     }
   }, []);
 
-  const handleConfirmBackupImport = useCallback(() => {
+  const handleConfirmBackupImport = useCallback(async () => {
     if (!backupImportPreview) return;
 
     try {
-      const currentBackup = createLocalDataBackup();
+      const currentBackup = await createIndexedDbDataBackup();
       const beforeImportStamp = currentBackup.exportedAt.slice(0, 10);
       downloadJsonFile(`bookleap-before-import-${beforeImportStamp}.json`, currentBackup);
 
       const { backup } = backupImportPreview;
       const currentHistory = loadHistory();
-      const mergeStats = mergeHistoryRecords(currentHistory, backup.history);
+      const mergeStats = mergeHistoryRecords(currentHistory, getBackupHistoryRecords(backup));
 
       for (const [key, value] of Object.entries(backup.localStorage)) {
         if (!shouldIncludeBackupStorageKey(key) || key === HISTORY_KEY) continue;
@@ -2054,7 +2151,7 @@ export default function Home() {
 
       enqueueGuidanceToast({
         id: `local-import-${Date.now()}`,
-        message: `已合并导入备份\n新增 ${mergeStats.newHistoryCount} 条，更新 ${mergeStats.updatedHistoryCount} 条`,
+        message: `已合并导入备份\n新增 ${mergeStats.newHistoryCount} 本，更新 ${mergeStats.updatedHistoryCount} 本`,
         priority: TOAST_PRIORITY.INFO,
         durationMs: 5200,
       });
