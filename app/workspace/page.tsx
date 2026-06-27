@@ -1362,7 +1362,6 @@ export default function Home() {
   const cardSectionRef = useRef<HTMLDivElement>(null);
   const [recentHistory, setRecentHistory] = useState<HistoryRecord[]>([]);
   const [workspaceCardSeed] = useState(() => Math.random().toString(36).slice(2));
-  const [showFullHistory, setShowFullHistory] = useState(false);
   const [isLibraryCollapsed, setIsLibraryCollapsed] = useState(false);
   const [isGrowthPanelCollapsed, setIsGrowthPanelCollapsed] = useState(true);
   const [isLibraryPreviewOpen, setIsLibraryPreviewOpen] = useState(false);
@@ -2130,7 +2129,6 @@ export default function Home() {
         message: "📚 你的分析记录已自动整理到「我的」",
         actionText: "去看看",
         onAction: () => {
-          setShowFullHistory(true);
           setTimeout(() => {
             historyPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }, 80);
@@ -4353,8 +4351,7 @@ export default function Home() {
   const hasPendingStarterBooks = experiencedStarterIds.length < starterBooks.length;
   const fullHistoryRecords = recentHistory
     .filter((record) => hasPendingStarterBooks ? !record.isStarterBook : true);
-  const visibleHistoryRecords = fullHistoryRecords.slice(0, 3);
-  const expandedHistoryRecords = fullHistoryRecords.slice(3);
+  const visibleHistoryRecords = fullHistoryRecords;
   const inProgressLabel = visibleAnalysisSteps.length > 0
     ? `${completedAnalysisSteps}/${visibleAnalysisSteps.length}`
     : "准备中";
@@ -4577,15 +4574,6 @@ export default function Home() {
           <div ref={historyPanelRef}>
             <WorkspaceLibraryGroup
               title="上传历史"
-              actions={expandedHistoryRecords.length > 0 ? (
-                <button
-                  onClick={() => setShowFullHistory((prev) => !prev)}
-                  aria-expanded={showFullHistory}
-                  className="text-[11px] font-medium text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
-                >
-                  {showFullHistory ? "收起" : "展开"}
-                </button>
-              ) : undefined}
             >
               {visibleHistoryRecords.map((record) => (
                 <WorkspaceBookItem
@@ -4599,53 +4587,6 @@ export default function Home() {
                   onDelete={() => deleteHistoryRecord(record.id)}
                 />
               ))}
-
-              {!showFullHistory && expandedHistoryRecords.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowFullHistory(true)}
-                  className="mx-auto mt-1 flex h-7 w-9 items-center justify-center rounded-full text-[var(--ink-faint)] transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-                  aria-label="展开上传历史"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="m5.5 7.5 4.5 4.5 4.5-4.5" />
-                  </svg>
-                </button>
-              )}
-
-              {expandedHistoryRecords.length > 0 && (
-                <div
-                  className={`grid transition-[grid-template-rows,opacity,transform] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-                    showFullHistory
-                      ? "grid-rows-[1fr] opacity-100 translate-y-0"
-                      : "grid-rows-[0fr] opacity-0 -translate-y-1"
-                  }`}
-                >
-                  <div className="min-h-0 overflow-hidden">
-                    <div className="space-y-0.5 pt-0.5">
-                      {expandedHistoryRecords.map((record, index) => (
-                        <div
-                          key={`history-extra-${record.id}`}
-                          className={`transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
-                            showFullHistory ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
-                          }`}
-                          style={{ transitionDelay: showFullHistory ? `${Math.min(index, 5) * 24}ms` : "0ms" }}
-                        >
-                          <WorkspaceBookItem
-                            title={record.title}
-                            subtitle={record.author || `${record.fileType.toUpperCase()} · ${record.mode === "lite" ? "简化版" : "完整版"}`}
-                            coverUrl={record.coverImage || (record.starterBookId ? starterBooksById[record.starterBookId]?.coverImage : "")}
-                            tone={record.title === bookTitle ? "current" : record.isStarterBook ? "gifted" : "default"}
-                            variant="flat"
-                            onClick={() => openHistoryRecord(record)}
-                            onDelete={() => deleteHistoryRecord(record.id)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </WorkspaceLibraryGroup>
           </div>
         )}
