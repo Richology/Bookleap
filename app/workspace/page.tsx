@@ -1238,6 +1238,41 @@ function BookDisassemblyStage({
   );
 }
 
+function AnalysisIntroPendingStage({
+  title,
+  status,
+}: {
+  title: string;
+  status: string;
+}) {
+  const displayTitle = title.trim() || "新书";
+  const displayStatus = status.trim() || "正在读取文件...";
+
+  return (
+    <div className="mx-auto flex min-h-[420px] w-full max-w-3xl items-center justify-center px-4 py-10 text-center">
+      <div className="w-full max-w-xl">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[13px] border border-[rgba(10,46,14,0.16)] bg-[#eef7f1] text-[var(--accent)]">
+          <span className="analysis-progress-orb relative flex h-5 w-5 items-center justify-center rounded-full">
+            <span className="absolute h-4 w-4 rounded-full bg-[rgba(10,46,14,0.12)]" />
+            <span className="relative h-2.5 w-2.5 rounded-full bg-[var(--accent)] shadow-[0_0_16px_rgba(10,46,14,0.42)]" />
+          </span>
+        </div>
+
+        <p className="mt-4 text-[15px] font-semibold text-[var(--ink)]">
+          正在读取《{displayTitle}》
+        </p>
+        <p className="mt-1 text-[12px] font-medium text-[var(--ink-faint)]">
+          {displayStatus}
+        </p>
+
+        <div className="mx-auto mt-7 max-w-md overflow-hidden rounded-full bg-[rgba(10,46,14,0.08)]">
+          <div className="analysis-progress-fill h-2 w-2/5 rounded-full bg-[linear-gradient(90deg,#0a2e0e_0%,#2f8f58_58%,#8bd6aa_100%)]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -4810,7 +4845,10 @@ export default function Home() {
           />
         </div>
       ) : !bookTitle && isAnalyzing ? (
-        <div className="min-h-[300px]" aria-hidden="true" />
+        <AnalysisIntroPendingStage
+          title={analysisIntroTitle || (bgAnalysisStatus.active ? bgAnalysisStatus.title : "新书")}
+          status={message || (bgAnalysisStatus.active ? bgAnalysisStatus.step : "") || "正在读取文件..."}
+        />
       ) : !bookTitle ? (
         <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
           <div className="max-w-2xl text-center">
