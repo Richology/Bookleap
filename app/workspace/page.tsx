@@ -5128,7 +5128,7 @@ export default function Home() {
               immersiveCardList.length > 0 &&
               currentImmersiveCard && (
                 <div
-                  className="mx-auto max-w-[52rem]"
+                  className="mx-auto max-w-[52rem] pb-28 md:pb-24"
                   onTouchStart={handleImmersiveTouchStart}
                   onTouchEnd={handleImmersiveTouchEnd}
                 >
@@ -5200,82 +5200,54 @@ export default function Home() {
                     )}
                   </div>
 
-                  <p className="mt-3 hidden select-none text-center text-[10px] text-[var(--ink-faint)]/70 md:block">
-                    使用键盘 ← → 方向键切换
-                  </p>
-
-                  <div className="mt-5 hidden items-center justify-between gap-4 md:flex">
-                    <button
-                      onClick={() => navigateImmersive("prev")}
-                      className="flex items-center gap-1.5 rounded-[10px] border border-[rgba(24,29,38,0.08)] bg-transparent px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] active:scale-[0.97] select-none"
-                    >
-                      ← 上一篇
-                    </button>
-
-                    <div className="flex items-center gap-1.5">
-                      {immersiveCardList.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            setSlideDir(i > safeImmersiveIndex ? "left" : "right");
-                            setImmersiveIndex(i);
-                            immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                          }}
-                          className={`h-1.5 rounded-full transition-all duration-200 ${
-                            i === safeImmersiveIndex
-                              ? "w-4 bg-[var(--ink)]"
-                              : "w-1.5 bg-[rgba(119,124,123,0.24)] hover:bg-[rgba(119,124,123,0.45)]"
-                          }`}
-                        />
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={() => navigateImmersive("next")}
-                      className="flex items-center gap-1.5 rounded-[10px] border border-[rgba(24,29,38,0.08)] bg-transparent px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] active:scale-[0.97] select-none"
-                    >
-                      下一篇 →
-                    </button>
-                  </div>
-
-                  <div className="h-16 md:hidden" />
                   <div
-                    className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#dfe4e8] bg-[#fbfcfd] px-4 py-3 md:hidden"
-                    style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+                    className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 md:bottom-6"
+                    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
                   >
-                    <div className="mx-auto flex max-w-xl items-center justify-between">
+                    <nav
+                      role="navigation"
+                      aria-label="精华卡片翻页"
+                      className="pointer-events-auto flex w-full max-w-[34rem] items-center justify-between gap-2 rounded-[16px] border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd]/95 px-2.5 py-2 shadow-[0_12px_34px_rgba(24,29,38,0.14),0_1px_2px_rgba(24,29,38,0.08)] backdrop-blur-md md:px-3"
+                    >
                       <button
+                        type="button"
                         onClick={() => navigateImmersive("prev")}
-                        className="flex items-center gap-1.5 rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
+                        className="flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] px-3 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f1f3f5] hover:text-[var(--ink)] active:scale-[0.97] select-none md:px-4"
                       >
-                        ← 上一篇
+                        <span aria-hidden="true">←</span>
+                        <span>上一篇</span>
                       </button>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-1">
                         {immersiveCardList.map((_, i) => (
                           <button
                             key={i}
+                            type="button"
+                            aria-label={`切换到第 ${i + 1} 张精华卡片`}
+                            aria-current={i === safeImmersiveIndex ? "page" : undefined}
                             onClick={() => {
                               setSlideDir(i > safeImmersiveIndex ? "left" : "right");
                               setImmersiveIndex(i);
                               immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                             }}
-                            className={`h-1.5 rounded-full transition-all duration-200 ${
+                            className={`h-2 rounded-full transition-all duration-200 ${
                               i === safeImmersiveIndex
-                                ? "w-4 bg-[var(--ink)]"
-                                : "w-1.5 bg-[rgba(119,124,123,0.24)] hover:bg-[rgba(119,124,123,0.45)]"
+                                ? "w-5 bg-[var(--ink)]"
+                                : "w-2 bg-[rgba(119,124,123,0.24)] hover:bg-[rgba(119,124,123,0.45)]"
                             }`}
                           />
                         ))}
                       </div>
 
                       <button
+                        type="button"
                         onClick={() => navigateImmersive("next")}
-                        className="flex items-center gap-1.5 rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 py-2 text-xs font-medium text-[var(--ink-soft)] transition-all active:scale-[0.97] select-none"
+                        className="flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] px-3 text-xs font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f1f3f5] hover:text-[var(--ink)] active:scale-[0.97] select-none md:px-4"
                       >
-                        下一篇 →
+                        <span>下一篇</span>
+                        <span aria-hidden="true">→</span>
                       </button>
-                    </div>
+                    </nav>
                   </div>
                 </div>
               )}
