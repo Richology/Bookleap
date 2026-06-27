@@ -297,9 +297,9 @@ export function WorkspaceToolRail({
           className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
           aria-label="返回首页"
         >
-          <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11.5 4.5L6 10l5.5 5.5" />
-            <path d="M6.5 10H15" />
+          <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3.8 8.4 9.2 3.7a1.2 1.2 0 0 1 1.6 0l5.4 4.7a1.2 1.2 0 0 1 .4.9v6a1.5 1.5 0 0 1-1.5 1.5H4.9a1.5 1.5 0 0 1-1.5-1.5v-6a1.2 1.2 0 0 1 .4-.9Z" />
+            <path d="M8.1 16.8v-5.2h3.8v5.2" />
           </svg>
           <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
             返回首页

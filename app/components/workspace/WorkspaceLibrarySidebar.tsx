@@ -5,9 +5,8 @@ import type { ReactNode } from "react";
 function LibraryToggleIcon() {
   return (
     <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <rect x="3.5" y="3.5" width="13" height="13" rx="3.5" stroke="currentColor" strokeWidth="1.95" />
-      <rect x="4.8" y="4.8" width="4.1" height="10.4" rx="2" fill="currentColor" fillOpacity="0.18" />
-      <path d="M10 4.7V15.3" stroke="currentColor" strokeWidth="1.95" strokeLinecap="round" />
+      <rect x="3.4" y="4" width="13.2" height="12" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M7.1 7.3v5.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
