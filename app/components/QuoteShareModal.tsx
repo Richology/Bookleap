@@ -15,6 +15,9 @@ type QuoteImageSize = "portrait" | "xiaoyuzhou";
 const PAPER_COLOR = "#d8d3c9";
 const INK_COLOR = "#100f0d";
 const HIGHLIGHT_COLOR = "rgba(213, 197, 0, 0.9)";
+const PAPER_TEXTURE_SRC = "/textures/quote-paper-texture.png";
+
+let paperTexturePromise: Promise<HTMLImageElement | null> | null = null;
 
 const SIZE_OPTIONS: Record<
   QuoteImageSize,
@@ -74,6 +77,20 @@ function createRandom(seed: number) {
 
 function fontStack(size: number, weight = 900) {
   return `${weight} ${size}px "Times New Roman", Georgia, "Songti SC", STSong, serif`;
+}
+
+function loadPaperTexture() {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  if (paperTexturePromise) return paperTexturePromise;
+
+  paperTexturePromise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = PAPER_TEXTURE_SRC;
+  });
+
+  return paperTexturePromise;
 }
 
 function getBodyFontSize(text: string, size: QuoteImageSize) {
@@ -201,41 +218,91 @@ function drawInkText(
   context.restore();
 }
 
+function drawPaperPhotoBackground(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number
+) {
+  const sourceWidth = image.naturalWidth;
+  const sourceHeight = Math.max(
+    1,
+    image.naturalHeight - Math.round(image.naturalHeight * 0.1)
+  );
+  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  const drawX = (width - drawWidth) / 2;
+  const drawY = (height - drawHeight) / 2;
+
+  context.save();
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.filter = "contrast(1.08) saturate(0.86) brightness(1.03)";
+  context.drawImage(
+    image,
+    0,
+    0,
+    sourceWidth,
+    sourceHeight,
+    drawX,
+    drawY,
+    drawWidth,
+    drawHeight
+  );
+  context.filter = "none";
+  context.restore();
+}
+
 function drawPaperTexture(
   context: CanvasRenderingContext2D,
   width: number,
   height: number,
-  seed: number
+  seed: number,
+  textureImage: HTMLImageElement | null
 ) {
   const random = createRandom(seed);
   context.fillStyle = PAPER_COLOR;
   context.fillRect(0, 0, width, height);
 
+  if (textureImage) {
+    drawPaperPhotoBackground(context, textureImage, width, height);
+
+    const photoTone = context.createLinearGradient(0, 0, width, height);
+    photoTone.addColorStop(0, "rgba(244, 240, 229, 0.035)");
+    photoTone.addColorStop(0.5, "rgba(220, 216, 205, 0)");
+    photoTone.addColorStop(1, "rgba(35, 31, 25, 0.055)");
+    context.fillStyle = photoTone;
+    context.fillRect(0, 0, width, height);
+
+    return;
+  }
+
   const paperLight = context.createLinearGradient(0, 0, width, height);
-  paperLight.addColorStop(0, "rgba(236, 234, 225, 0.80)");
-  paperLight.addColorStop(0.38, "rgba(220, 216, 205, 0.34)");
-  paperLight.addColorStop(1, "rgba(111, 105, 92, 0.24)");
+  paperLight.addColorStop(0, "rgba(238, 235, 226, 0.58)");
+  paperLight.addColorStop(0.36, "rgba(223, 219, 209, 0.30)");
+  paperLight.addColorStop(1, "rgba(118, 111, 96, 0.24)");
   context.fillStyle = paperLight;
   context.fillRect(0, 0, width, height);
 
   const sideShade = context.createLinearGradient(0, 0, width, 0);
-  sideShade.addColorStop(0, "rgba(255, 255, 255, 0.30)");
-  sideShade.addColorStop(0.58, "rgba(255, 255, 255, 0)");
-  sideShade.addColorStop(1, "rgba(42, 39, 32, 0.20)");
+  sideShade.addColorStop(0, "rgba(255, 255, 255, 0.34)");
+  sideShade.addColorStop(0.56, "rgba(255, 255, 255, 0.02)");
+  sideShade.addColorStop(1, "rgba(45, 41, 34, 0.22)");
   context.fillStyle = sideShade;
   context.fillRect(0, 0, width, height);
 
   context.save();
-  context.globalAlpha = 0.34;
-  for (let index = 0; index < 46; index += 1) {
+  context.globalAlpha = 0.18;
+  for (let index = 0; index < 70; index += 1) {
     const x = random() * width;
     const y = random() * height;
-    const radiusX = width * (0.08 + random() * 0.20);
-    const radiusY = height * (0.018 + random() * 0.055);
+    const radiusX = width * (0.05 + random() * 0.16);
+    const radiusY = height * (0.015 + random() * 0.045);
     context.translate(x, y);
-    context.rotate(-0.45 + random() * 0.9);
+    context.rotate(-0.32 + random() * 0.64);
     context.fillStyle =
-      random() > 0.5 ? "rgba(255,255,255,0.08)" : "rgba(50,45,36,0.045)";
+      random() > 0.48 ? "rgba(255,255,255,0.10)" : "rgba(64,58,47,0.055)";
     context.beginPath();
     context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
     context.fill();
@@ -251,33 +318,32 @@ function drawPaperTexture(
     height * 0.42,
     width * 0.88
   );
-  vignette.addColorStop(0, "rgba(255, 255, 255, 0.12)");
-  vignette.addColorStop(0.62, "rgba(255, 255, 255, 0)");
-  vignette.addColorStop(1, "rgba(31, 28, 22, 0.14)");
+  vignette.addColorStop(0, "rgba(255, 255, 255, 0.10)");
+  vignette.addColorStop(0.66, "rgba(255, 255, 255, 0)");
+  vignette.addColorStop(1, "rgba(31, 28, 22, 0.18)");
   context.fillStyle = vignette;
   context.fillRect(0, 0, width, height);
 
   context.save();
-  context.globalAlpha = 0.18;
-  for (let index = 0; index < 10400; index += 1) {
+  context.globalAlpha = 0.24;
+  for (let index = 0; index < 18000; index += 1) {
     drawPaperFiber(
       context,
       random() * width,
       random() * height,
-      2 + random() * 10,
-      -0.42 + random() * 0.84,
-      0.07 + random() * 0.11,
+      1.5 + random() * 8,
+      -0.55 + random() * 1.1,
+      0.055 + random() * 0.08,
       random
     );
   }
   context.restore();
 
   context.save();
-  context.globalAlpha = 0.11;
-  for (let index = 0; index < 3200; index += 1) {
-    context.fillStyle =
-      random() > 0.42 ? "rgba(255,255,255,0.42)" : "rgba(96,88,74,0.10)";
-    context.fillRect(random() * width, random() * height, 0.55, 0.55);
+  context.globalAlpha = 0.09;
+  for (let index = 0; index < 1800; index += 1) {
+    context.fillStyle = "rgba(255,255,255,0.55)";
+    context.fillRect(random() * width, random() * height, 0.7, 0.7);
   }
   context.restore();
 }
@@ -347,6 +413,7 @@ function drawBodyText(
 
 async function renderQuoteCardImage(data: QuoteShareData, size: QuoteImageSize) {
   if ("fonts" in document) await document.fonts.ready;
+  const paperTexture = await loadPaperTexture();
 
   const option = SIZE_OPTIONS[size];
   const canvas = document.createElement("canvas");
@@ -385,7 +452,7 @@ async function renderQuoteCardImage(data: QuoteShareData, size: QuoteImageSize) 
         footerY: option.height - 120,
       };
 
-  drawPaperTexture(context, option.width, option.height, seed);
+  drawPaperTexture(context, option.width, option.height, seed, paperTexture);
 
   context.font = fontStack(layout.titleFontSize, 900);
   const titleLines = wrapText(
@@ -427,13 +494,12 @@ async function renderQuoteCardImage(data: QuoteShareData, size: QuoteImageSize) 
   drawBodyText(context, bodyLines, bodyY, bodyFontSize, bodyLineHeight);
 
   context.font = fontStack(isLandscape ? 24 : 27, 800);
-  context.fillStyle = "rgba(16,15,13,0.62)";
-  context.shadowColor = "rgba(16,15,13,0.22)";
-  context.shadowOffsetX = 0.25;
-  context.shadowOffsetY = 0.4;
-  context.fillText("@ bookleap.cn", layout.x, layout.footerY);
+  context.shadowColor = "transparent";
+  context.shadowBlur = 0;
   context.shadowOffsetX = 0;
   context.shadowOffsetY = 0;
+  context.fillStyle = "#000000";
+  context.fillText("@ bookleap.cn", layout.x, layout.footerY);
 
   return canvas.toDataURL("image/png");
 }
