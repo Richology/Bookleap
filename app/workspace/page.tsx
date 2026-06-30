@@ -19,6 +19,7 @@ import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal
 import { SupportCoffeeModal } from "../components/SupportCoffeeModal";
 import { Toast } from "../components/Toast";
 import { FabMenu, type FabMenuHandle } from "../components/FabMenu";
+import { QuoteShareModal } from "../components/QuoteShareModal";
 import { WorkspaceBookItem } from "../components/workspace/WorkspaceBookItem";
 import { WorkspaceGrowthSidebar } from "../components/workspace/WorkspaceGrowthSidebar";
 import { WorkspaceLibraryGroup } from "../components/workspace/WorkspaceLibraryGroup";
@@ -81,6 +82,14 @@ import {
   migrateLegacyHistoryRecordsToIndexedDb,
   mirrorHistoryRecordsToIndexedDb,
 } from "@/lib/workspaceStorage";
+import {
+  addBookHighlight,
+  deleteBookHighlight,
+  hashHighlightContent,
+  loadBookHighlights,
+  normalizeHighlightText,
+  type BookHighlight,
+} from "@/lib/highlights";
 import { shouldPromptCoffeeSupport } from "@/lib/supportCoffee.mjs";
 import type { DecisionOptionKey } from "@/types/decision";
 import {
@@ -168,6 +177,35 @@ type WorkspaceTab = WorkspaceTabItem & {
 
 type WorkspaceReadMode = "overview" | "immersive";
 
+type PendingQuoteSelection = {
+  text: string;
+  startOffset: number;
+  endOffset: number;
+  x: number;
+  y: number;
+};
+
+type QuoteShareSelection = {
+  text: string;
+  cardLabel: string;
+};
+
+type HighlightActionBubble = {
+  highlightId: string;
+  x: number;
+  y: number;
+};
+
+type CssHighlightRegistry = {
+  set: (name: string, highlight: unknown) => void;
+  delete: (name: string) => void;
+};
+
+type RenderedHighlightRange = {
+  highlight: BookHighlight;
+  range: Range;
+};
+
 // ── Share card content helpers ─────────────────────────────────────────────────
 
 // ── Recent history (localStorage) ─────────────────────────────────────────────
@@ -219,8 +257,9 @@ const STARTER_LOADING_STEPS = [
   { text: "正在生成认知卡片…", duration: 900 },
   { text: "正在整理分析结果…", duration: 600 },
 ] as const;
-const DIRECT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
-const BLOB_UPLOAD_TIMEOUT_MS = 90000;
+const DIRECT_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
+const BLOB_UPLOAD_TIMEOUT_MS = 5 * 60 * 1000;
+const BLOB_MULTIPART_MIN_BYTES = 5 * 1024 * 1024;
 const DECISION_STEP_LABELS = [
   "正在生成第 1 题（职场场景）…",
   "正在生成第 2 题（个人成长）…",
@@ -234,6 +273,10 @@ const SEARCHABLE_CARD_FIELDS = [
   { key: "criticalExamination", label: "观点校验" },
   { key: "ideaSourceTracing", label: "思想溯源" },
 ] as const;
+const CARD_HIGHLIGHT_CSS_NAME = "bookleap-card-highlight";
+const CARD_HIGHLIGHT_STYLE_ID = "bookleap-card-highlight-style";
+const MIN_QUOTE_SELECTION_LENGTH = 2;
+const MAX_QUOTE_SELECTION_LENGTH = 600;
 
 type HistoryRecord = {
   id: string;
@@ -256,6 +299,238 @@ type HistoryRecord = {
   starterBookId?: string;
   author?: string;
 };
+
+function getTextNodes(root: HTMLElement) {
+  const nodes: Text[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+
+  while (node) {
+    nodes.push(node as Text);
+    node = walker.nextNode();
+  }
+
+  return nodes;
+}
+
+function getTextOffset(root: HTMLElement, targetNode: Node, targetOffset: number) {
+  let offset = 0;
+  let foundBoundary = false;
+
+  const getNodeTextLength = (node: Node): number => {
+    if (node.nodeType === Node.TEXT_NODE) return (node as Text).data.length;
+    return Array.from(node.childNodes).reduce(
+      (sum, child) => sum + getNodeTextLength(child),
+      0
+    );
+  };
+
+  const walk = (node: Node) => {
+    if (foundBoundary) return;
+
+    if (node === targetNode) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        offset += Math.max(0, Math.min((node as Text).data.length, targetOffset));
+      } else {
+        const childrenBeforeBoundary = Array.from(node.childNodes).slice(
+          0,
+          Math.max(0, targetOffset)
+        );
+        offset += childrenBeforeBoundary.reduce(
+          (sum, child) => sum + getNodeTextLength(child),
+          0
+        );
+      }
+      foundBoundary = true;
+      return;
+    }
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      offset += (node as Text).data.length;
+      return;
+    }
+
+    node.childNodes.forEach(walk);
+  };
+
+  walk(root);
+  return offset;
+}
+
+function getRangeOffsets(root: HTMLElement, range: Range) {
+  const startOffset = getTextOffset(root, range.startContainer, range.startOffset);
+  const endOffset = getTextOffset(root, range.endContainer, range.endOffset);
+  return {
+    startOffset: Math.min(startOffset, endOffset),
+    endOffset: Math.max(startOffset, endOffset),
+  };
+}
+
+function getListItemMarker(item: HTMLLIElement) {
+  const parent = item.parentElement;
+  if (parent?.tagName === "OL") {
+    const start = Number(parent.getAttribute("start") ?? "1");
+    const siblings = Array.from(parent.children).filter(
+      (child): child is HTMLLIElement => child.tagName === "LI"
+    );
+    const index = siblings.indexOf(item);
+    return `${Number.isFinite(start) ? start + Math.max(index, 0) : index + 1}. `;
+  }
+
+  return "• ";
+}
+
+function getStructuredSelectionText(root: HTMLElement, range: Range, fallback: string) {
+  const selectedBlocks = Array.from(
+    root.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, blockquote")
+  ).filter((item) => {
+      try {
+        return range.intersectsNode(item);
+      } catch {
+        return false;
+      }
+    });
+  const hasSelectedListItem = selectedBlocks.some((item) => item.tagName === "LI");
+
+  if (!hasSelectedListItem) return fallback;
+
+  return selectedBlocks
+    .map((item) => {
+      const content = (item as HTMLElement).innerText.trim();
+      if (!content) return "";
+      return item.tagName === "LI"
+        ? `${getListItemMarker(item as HTMLLIElement)}${content}`
+        : content;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function findTextPosition(root: HTMLElement, targetOffset: number) {
+  let cursor = 0;
+
+  for (const node of getTextNodes(root)) {
+    const next = cursor + node.data.length;
+    if (targetOffset <= next) {
+      return {
+        node,
+        offset: Math.max(0, Math.min(node.data.length, targetOffset - cursor)),
+      };
+    }
+    cursor = next;
+  }
+
+  return null;
+}
+
+function createRangeFromOffsets(root: HTMLElement, startOffset: number, endOffset: number) {
+  const start = findTextPosition(root, startOffset);
+  const end = findTextPosition(root, endOffset);
+  if (!start || !end) return null;
+
+  const range = document.createRange();
+  range.setStart(start.node, start.offset);
+  range.setEnd(end.node, end.offset);
+  return range.collapsed ? null : range;
+}
+
+function findFallbackHighlightRange(root: HTMLElement, text: string) {
+  const trimmed = text
+    .trim()
+    .replace(/(^|\n)\s*(?:[-*•]|\d+[.)])\s+/g, "$1");
+  if (!trimmed) return null;
+
+  const fullText = root.innerText;
+  const index = fullText.indexOf(trimmed);
+  if (index < 0) return null;
+
+  return createRangeFromOffsets(root, index, index + trimmed.length);
+}
+
+function getCssHighlightRegistry(): CssHighlightRegistry | null {
+  if (typeof window === "undefined") return null;
+  const cssWithHighlights = CSS as unknown as { highlights?: CssHighlightRegistry };
+  return cssWithHighlights.highlights ?? null;
+}
+
+function createCssHighlight(ranges: Range[]) {
+  const highlightCtor = (window as unknown as {
+    Highlight?: new (...ranges: Range[]) => unknown;
+  }).Highlight;
+  return highlightCtor ? new highlightCtor(...ranges) : null;
+}
+
+function ensureCardHighlightStyle() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(CARD_HIGHLIGHT_STYLE_ID)) return;
+
+  const style = document.createElement("style");
+  style.id = CARD_HIGHLIGHT_STYLE_ID;
+  style.textContent = `
+    ::highlight(${CARD_HIGHLIGHT_CSS_NAME}) {
+      background: rgba(230, 205, 23, 0.46);
+      color: inherit;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function renderCardHighlights(
+  root: HTMLElement | null,
+  highlights: BookHighlight[],
+  contentHash: number
+): RenderedHighlightRange[] {
+  const registry = getCssHighlightRegistry();
+  registry?.delete(CARD_HIGHLIGHT_CSS_NAME);
+  if (!root || highlights.length === 0 || !registry) return [];
+
+  ensureCardHighlightStyle();
+  const rendered = highlights
+    .map((highlight) => {
+      const range =
+        highlight.contentHash === contentHash
+          ? createRangeFromOffsets(root, highlight.startOffset, highlight.endOffset)
+          : findFallbackHighlightRange(root, highlight.selectedText);
+      return range ? { highlight, range } : null;
+    })
+    .filter((item): item is RenderedHighlightRange => !!item);
+
+  const cssHighlight = createCssHighlight(rendered.map((item) => item.range));
+  if (cssHighlight && rendered.length > 0) {
+    registry.set(CARD_HIGHLIGHT_CSS_NAME, cssHighlight);
+  }
+
+  return rendered;
+}
+
+function isPointInsideRange(range: Range, x: number, y: number) {
+  return Array.from(range.getClientRects()).some(
+    (rect) =>
+      x >= rect.left &&
+      x <= rect.right &&
+      y >= rect.top &&
+      y <= rect.bottom
+  );
+}
+
+function getPointerActionPoint(pointerX: number, pointerY: number) {
+  const bubbleWidth = 184;
+  const bubbleHeight = 44;
+  const gap = 6;
+  const x =
+    pointerX + bubbleWidth + gap > window.innerWidth
+      ? pointerX - bubbleWidth - gap
+      : pointerX + gap;
+  const y =
+    pointerY - bubbleHeight - gap < 16
+      ? pointerY + gap
+      : pointerY - bubbleHeight - gap;
+
+  return {
+    x: Math.min(window.innerWidth - bubbleWidth - 16, Math.max(16, x)),
+    y: Math.min(window.innerHeight - bubbleHeight - 16, Math.max(16, y)),
+  };
+}
 
 type LocalDataBackup = {
   app: "bookleap";
@@ -1124,6 +1399,16 @@ function getBlobUploadContentType(filename: string): string | undefined {
   return undefined;
 }
 
+function getBlobUploadPathname(file: File): string {
+  const fileType = getFileTypeFromName(file.name) ?? "epub";
+  const uniqueId =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return `uploads/${Date.now()}-${uniqueId}.${fileType}`;
+}
+
 async function uploadBookDirectly(file: File): Promise<Response> {
   const formData = new FormData();
   formData.append("file", file);
@@ -1143,11 +1428,13 @@ async function uploadBookDirectly(file: File): Promise<Response> {
 async function uploadBookViaBlob(file: File): Promise<Response> {
   const { upload } = await import("@vercel/blob/client");
   const explicitContentType = getBlobUploadContentType(file.name);
+  const pathname = getBlobUploadPathname(file);
   const blob = await withTimeout(
-    upload(file.name, file, {
+    upload(pathname, file, {
       access: "public",
       handleUploadUrl: "/api/upload",
       contentType: explicitContentType,
+      multipart: file.size >= BLOB_MULTIPART_MIN_BYTES,
     }),
     BLOB_UPLOAD_TIMEOUT_MS,
     "Blob 上传超时"
@@ -1280,6 +1567,8 @@ export default function Home() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const touchStartXRef = useRef(0);
   const immersiveContainerRef = useRef<HTMLDivElement>(null);
+  const immersiveContentRef = useRef<HTMLDivElement>(null);
+  const renderedHighlightRangesRef = useRef<RenderedHighlightRange[]>([]);
   const readerScrollContainerRef = useRef<HTMLDivElement>(null);
   const immersiveCardsLenRef = useRef(0);
   const shouldScrollToStarterSectionRef = useRef(false);
@@ -1332,6 +1621,13 @@ export default function Home() {
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
   const [posterContent, setPosterContent] = useState<PosterContent | null>(null);
   const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
+  const [bookHighlights, setBookHighlights] = useState<BookHighlight[]>([]);
+  const [pendingQuoteSelection, setPendingQuoteSelection] =
+    useState<PendingQuoteSelection | null>(null);
+  const [quoteShareSelection, setQuoteShareSelection] =
+    useState<QuoteShareSelection | null>(null);
+  const [highlightActionBubble, setHighlightActionBubble] =
+    useState<HighlightActionBubble | null>(null);
   const [isFeynmanPreviewOpen, setIsFeynmanPreviewOpen] = useState(false);
   const [decisionScenarios, setDecisionScenarios] = useState<DecisionScenario[]>([]);
   const [isDecisionPanelOpen, setIsDecisionPanelOpen] = useState(false);
@@ -1525,12 +1821,17 @@ export default function Home() {
     (selectedFile ? stripSupportedFileExtension(selectedFile.name) : "") ||
     currentStarterBook?.title ||
     "未知书名";
+  const currentHighlightBookRef =
+    currentSessionRecordId ||
+    (currentStarterBookId ? `starter:${currentStarterBookId}` : "") ||
+    (bookTitle ? buildDecisionBookId(bookTitle) : "");
   const isUploadShortcutBlocked =
     isWorkspaceSearchOpen ||
     isExportModalOpen ||
     isSupportCoffeeModalOpen ||
     isPaywallModalOpen ||
     isPosterModalOpen ||
+    !!quoteShareSelection ||
     isFeynmanPreviewOpen ||
     isUpgradeModalOpen ||
     isDisclaimerModalOpen ||
@@ -1941,6 +2242,12 @@ export default function Home() {
 
     setAddictionStateLocal(getAddictionState(currentBookId));
   }, [currentBookId]);
+
+  useEffect(() => {
+    setBookHighlights(currentHighlightBookRef ? loadBookHighlights(currentHighlightBookRef) : []);
+    setPendingQuoteSelection(null);
+    setHighlightActionBubble(null);
+  }, [currentHighlightBookRef]);
 
   useEffect(() => {
     const missingCoverRecords = recentHistory
@@ -2526,6 +2833,10 @@ export default function Home() {
     setSlideDir(null);
     setIsPosterModalOpen(false);
     setPosterContent(null);
+    setPendingQuoteSelection(null);
+    setQuoteShareSelection(null);
+    setHighlightActionBubble(null);
+    setBookHighlights([]);
     setIsFeynmanPreviewOpen(false);
     setIsExportModalOpen(false);
     setExportStatus("idle");
@@ -2536,6 +2847,87 @@ export default function Home() {
     setSeenCardKeys([]);
     setCurrentStarterBookId(null);
     setAddictionStateLocal(DEFAULT_ADDICTION_STATE);
+  }, []);
+
+  const removeAnalysisTabs = useCallback((titles: string[]) => {
+    const analysisIds = new Set(
+      titles
+        .map((title) => title.trim())
+        .filter(Boolean)
+        .map(getAnalysisTabId)
+    );
+
+    if (analysisIds.size === 0) return;
+
+    const isTargetAnalysisTab = (tab: WorkspaceTab) =>
+      tab.source === "analysis" &&
+      (analysisIds.has(tab.id) ||
+        (tab.analysisTitle ? analysisIds.has(getAnalysisTabId(tab.analysisTitle)) : false));
+
+    setOpenTabs((prev) => prev.filter((tab) => !isTargetAnalysisTab(tab)));
+    setActiveTabId((current) => (current && analysisIds.has(current) ? null : current));
+  }, []);
+
+  const failCurrentAnalysis = useCallback((titles: string[]) => {
+    bgAnalysisRef.current = null;
+    bgAnalysisTitleRef.current = "";
+    analysisIntroStartedAtRef.current = 0;
+    setAnalysisIntroTitle("");
+    setAnalysisIntroCover("");
+    setSelectedFile(null);
+    resetAnalysisLoadingStates();
+    setBgAnalysisStatus({ active: false });
+    resetAllState();
+    removeAnalysisTabs(titles);
+  }, [removeAnalysisTabs, resetAllState, resetAnalysisLoadingStates]);
+
+  const promoteAnalysisTabToHistory = useCallback((titles: string[], record: HistoryRecord) => {
+    const analysisIds = new Set(
+      titles
+        .map((title) => title.trim())
+        .filter(Boolean)
+        .map(getAnalysisTabId)
+    );
+    const historyId = `history:${record.id}`;
+    const historyTab: WorkspaceTab = {
+      id: historyId,
+      title: record.title,
+      subtitle: record.author || getFileTypeLabel(record.fileType) || "历史记录",
+      source: "history",
+      recordId: record.id,
+      closable: true,
+    };
+
+    const isTargetAnalysisTab = (tab: WorkspaceTab) =>
+      tab.source === "analysis" &&
+      (analysisIds.has(tab.id) ||
+        (tab.analysisTitle ? analysisIds.has(getAnalysisTabId(tab.analysisTitle)) : false));
+
+    setOpenTabs((prev) => {
+      let inserted = false;
+      const next: WorkspaceTab[] = [];
+
+      prev.forEach((tab) => {
+        const isDuplicateHistory = tab.id === historyId || tab.recordId === record.id;
+
+        if (isTargetAnalysisTab(tab) || isDuplicateHistory) {
+          if (!inserted) {
+            next.push(historyTab);
+            inserted = true;
+          }
+          return;
+        }
+
+        next.push(tab);
+      });
+
+      if (!inserted) {
+        next.push(historyTab);
+      }
+
+      return next;
+    });
+    setActiveTabId((current) => (current && analysisIds.has(current) ? historyId : current));
   }, []);
 
   /** Apply completed background analysis results to display state */
@@ -3561,8 +3953,7 @@ export default function Home() {
           console.error("Blob 上传失败:", blobUploadError);
           setAnalysisErrorCode("UPLOAD_INIT_FAILED");
           setMessage(getUploadFailureMessage());
-          resetAnalysisLoadingStates();
-          setBgAnalysisStatus({ active: false });
+          failCurrentAnalysis([pendingTitle, bg.title]);
           return;
         }
       }
@@ -3578,15 +3969,13 @@ export default function Home() {
         });
         setAnalysisErrorCode("ANALYZE_RESPONSE_INVALID");
         setMessage(getAnalyzeResponseErrorMessage());
-        resetAnalysisLoadingStates();
-        setBgAnalysisStatus({ active: false });
+        failCurrentAnalysis([pendingTitle, bg.title]);
         return;
       }
       if (!data.success) {
         setAnalysisErrorCode(data.errorCode || (res.ok ? "ANALYZE_FAILED" : "ANALYZE_HTTP_ERROR"));
         setMessage(getAnalyzeFailureMessage(res.ok, data.error));
-        resetAnalysisLoadingStates();
-        setBgAnalysisStatus({ active: false });
+        failCurrentAnalysis([pendingTitle, bg.title]);
         return;
       }
       setAnalysisErrorCode(null);
@@ -3706,25 +4095,8 @@ export default function Home() {
 
         if (isStillViewing()) setIsLoadingReadingGuide(false);
         if (isStillViewing()) setIsLoadingOriginalReadingValue(false);
-        saveBgAnalysisToHistory(bg);
-        setOpenTabs((prev) =>
-          prev.map((tab) =>
-            tab.source === "analysis" && tab.analysisTitle === title
-              ? {
-                  ...tab,
-                  id: `history:${title}-${bg.fileType}`,
-                  source: "history",
-                  recordId: `${title}-${bg.fileType}`,
-                  closable: true,
-                  status: undefined,
-                  progressLabel: undefined,
-                }
-              : tab
-          )
-        );
-        setActiveTabId((current) =>
-          current === getAnalysisTabId(title) ? `history:${title}-${bg.fileType}` : current
-        );
+        const record = saveBgAnalysisToHistory(bg);
+        promoteAnalysisTabToHistory([pendingTitle, title], record);
         if (isStillViewing()) setMessage("分析完成");
         setBgAnalysisStatus({ active: false });
         return;
@@ -3841,25 +4213,8 @@ export default function Home() {
 
       // ── Save to history ──
       bgAnalysisRef.current = bg;
-      saveBgAnalysisToHistory(bg);
-      setOpenTabs((prev) =>
-        prev.map((tab) =>
-          tab.source === "analysis" && tab.analysisTitle === title
-            ? {
-                ...tab,
-                id: `history:${title}-${bg.fileType}`,
-                source: "history",
-                recordId: `${title}-${bg.fileType}`,
-                closable: true,
-                status: undefined,
-                progressLabel: undefined,
-              }
-            : tab
-        )
-      );
-      setActiveTabId((current) =>
-        current === getAnalysisTabId(title) ? `history:${title}-${bg.fileType}` : current
-      );
+      const record = saveBgAnalysisToHistory(bg);
+      promoteAnalysisTabToHistory([pendingTitle, title], record);
 
       if (isStillViewing()) {
         // User is still on this book — just mark complete
@@ -3883,7 +4238,7 @@ export default function Home() {
       console.error(error);
       setAnalysisErrorCode("REQUEST_FAILED");
       setMessage(getRequestFailureMessage());
-      resetAnalysisLoadingStates();
+      failCurrentAnalysis([pendingTitle, bgAnalysisRef.current?.title ?? ""]);
     } finally {
       setIsLoading(false);
       setBgAnalysisStatus({ active: false });
@@ -4131,6 +4486,18 @@ export default function Home() {
       : 0;
 
   const currentImmersiveCard = immersiveCardList[safeImmersiveIndex];
+  const currentImmersiveCardKey = currentImmersiveCard?.key ?? "";
+  const currentImmersiveCardIsLoading = currentImmersiveCard?.isLoading ?? false;
+  const currentImmersiveCardHash = currentImmersiveCard
+    ? hashHighlightContent(currentImmersiveCard.content)
+    : 0;
+  const currentCardHighlights = useMemo(
+    () =>
+      currentImmersiveCardKey
+        ? bookHighlights.filter((highlight) => highlight.cardKey === currentImmersiveCardKey)
+        : [],
+    [bookHighlights, currentImmersiveCardKey]
+  );
   const overviewCardList = allImmersiveCardDefs.filter((card) => {
     if (!isLiteMode || isLiteUnlocked) return true;
     return ["bookSummary", "readingGuide"].includes(card.key);
@@ -4306,6 +4673,221 @@ export default function Home() {
     if (Math.abs(delta) > 50) {
       navigateImmersive(delta < 0 ? "next" : "prev");
     }
+  };
+
+  const renderVisibleCardHighlights = useCallback(
+    (highlights = currentCardHighlights) => {
+      const root = immersiveContentRef.current;
+
+      if (viewMode !== "immersive" || !currentImmersiveCardKey || currentImmersiveCardIsLoading) {
+        renderedHighlightRangesRef.current = [];
+        getCssHighlightRegistry()?.delete(CARD_HIGHLIGHT_CSS_NAME);
+        return;
+      }
+
+      renderedHighlightRangesRef.current = renderCardHighlights(
+        root,
+        highlights,
+        currentImmersiveCardHash
+      );
+    },
+    [
+      currentCardHighlights,
+      currentImmersiveCardHash,
+      currentImmersiveCardIsLoading,
+      currentImmersiveCardKey,
+      viewMode,
+    ]
+  );
+
+  useEffect(() => {
+    if (viewMode !== "immersive" || !currentImmersiveCardKey || currentImmersiveCardIsLoading) {
+      renderedHighlightRangesRef.current = [];
+      getCssHighlightRegistry()?.delete(CARD_HIGHLIGHT_CSS_NAME);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      renderVisibleCardHighlights();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      renderedHighlightRangesRef.current = [];
+      getCssHighlightRegistry()?.delete(CARD_HIGHLIGHT_CSS_NAME);
+    };
+  }, [
+    currentImmersiveCardIsLoading,
+    currentImmersiveCardKey,
+    renderVisibleCardHighlights,
+    viewMode,
+  ]);
+
+  const handleReaderTextSelection = useCallback(() => {
+    const root = immersiveContentRef.current;
+    if (!root || !currentImmersiveCard || currentImmersiveCard.isLoading) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!root.contains(range.commonAncestorContainer)) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    const selectedText = getStructuredSelectionText(
+      root,
+      range,
+      selection.toString()
+    ).trim();
+    const normalizedLength = normalizeHighlightText(selectedText).length;
+    if (
+      normalizedLength < MIN_QUOTE_SELECTION_LENGTH ||
+      normalizedLength > MAX_QUOTE_SELECTION_LENGTH
+    ) {
+      setPendingQuoteSelection(null);
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const offsets = getRangeOffsets(root, range);
+    setHighlightActionBubble(null);
+    setPendingQuoteSelection({
+      text: selectedText,
+      startOffset: offsets.startOffset,
+      endOffset: offsets.endOffset,
+      x: Math.min(window.innerWidth - 112, Math.max(16, rect.left + rect.width / 2 - 56)),
+      y: Math.max(16, rect.top - 48),
+    });
+  }, [currentImmersiveCard]);
+
+  useEffect(() => {
+    if (viewMode !== "immersive" || !currentImmersiveCard || currentImmersiveCard.isLoading) {
+      return;
+    }
+
+    const handleSelectionEnd = () => {
+      window.setTimeout(handleReaderTextSelection, 0);
+    };
+
+    document.addEventListener("mouseup", handleSelectionEnd);
+    document.addEventListener("keyup", handleSelectionEnd);
+    return () => {
+      document.removeEventListener("mouseup", handleSelectionEnd);
+      document.removeEventListener("keyup", handleSelectionEnd);
+    };
+  }, [currentImmersiveCard, handleReaderTextSelection, viewMode]);
+
+  const handleCreateQuoteShareFromSelection = () => {
+    if (!pendingQuoteSelection || !currentImmersiveCard || !currentHighlightBookRef) return;
+
+    const highlight: BookHighlight = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      bookRef: currentHighlightBookRef,
+      bookTitle: currentBookDisplayTitle,
+      author: currentBookAuthor,
+      cardKey: currentImmersiveCard.key,
+      cardLabel: currentImmersiveCard.label,
+      selectedText: pendingQuoteSelection.text,
+      startOffset: pendingQuoteSelection.startOffset,
+      endOffset: pendingQuoteSelection.endOffset,
+      contentHash: currentImmersiveCardHash,
+      createdAt: new Date().toISOString(),
+    };
+
+    const nextHighlights = addBookHighlight(highlight);
+    const nextCardHighlights = nextHighlights.filter(
+      (item) => item.cardKey === currentImmersiveCardKey
+    );
+    setBookHighlights(nextHighlights);
+    setQuoteShareSelection({
+      text: highlight.selectedText,
+      cardLabel: highlight.cardLabel,
+    });
+    setPendingQuoteSelection(null);
+    setHighlightActionBubble(null);
+    window.getSelection()?.removeAllRanges();
+    window.setTimeout(() => renderVisibleCardHighlights(nextCardHighlights), 0);
+  };
+
+  const handleOpenQuoteShareFromHighlight = (highlight: BookHighlight) => {
+    setQuoteShareSelection({
+      text: highlight.selectedText,
+      cardLabel: highlight.cardLabel,
+    });
+    setPendingQuoteSelection(null);
+    setHighlightActionBubble(null);
+  };
+
+  const handleHighlightPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      setHighlightActionBubble(null);
+      return;
+    }
+
+    const matched = renderedHighlightRangesRef.current.find((item) =>
+      isPointInsideRange(item.range, event.clientX, event.clientY)
+    );
+    if (!matched) {
+      setHighlightActionBubble(null);
+      return;
+    }
+
+    if (highlightActionBubble?.highlightId === matched.highlight.id) return;
+
+    const point = getPointerActionPoint(event.clientX, event.clientY);
+    setHighlightActionBubble({
+      highlightId: matched.highlight.id,
+      x: point.x,
+      y: point.y,
+    });
+  };
+
+  useEffect(() => {
+    if (!highlightActionBubble) return;
+
+    const handleDocumentPointerMove = (event: PointerEvent) => {
+      const bubble = document.querySelector("[data-highlight-action-bubble]");
+      if (bubble?.contains(event.target as Node)) return;
+
+      const isInsideHighlight = renderedHighlightRangesRef.current.some((item) =>
+        isPointInsideRange(item.range, event.clientX, event.clientY)
+      );
+
+      if (!isInsideHighlight) setHighlightActionBubble(null);
+    };
+
+    document.addEventListener("pointermove", handleDocumentPointerMove);
+    return () => {
+      document.removeEventListener("pointermove", handleDocumentPointerMove);
+    };
+  }, [highlightActionBubble]);
+
+  const activeBubbleHighlight = highlightActionBubble
+    ? bookHighlights.find((highlight) => highlight.id === highlightActionBubble.highlightId) ?? null
+    : null;
+
+  const handleDeleteHighlight = (highlightId: string) => {
+    if (!currentHighlightBookRef) return;
+    setBookHighlights(deleteBookHighlight(currentHighlightBookRef, highlightId));
+    setPendingQuoteSelection(null);
+    setHighlightActionBubble(null);
+  };
+
+  const handleCloseQuoteShareModal = () => {
+    setQuoteShareSelection(null);
+    setPendingQuoteSelection(null);
+    setHighlightActionBubble(null);
+    window.getSelection()?.removeAllRanges();
+    window.setTimeout(() => renderVisibleCardHighlights(), 0);
   };
 
   // ── Onboarding unlock flags ────────────────────────────────────────────────
@@ -5249,13 +5831,65 @@ export default function Home() {
                         </p>
                       </div>
                     ) : (
-                      <div className="md-prose workspace-prose mx-auto max-w-[42rem]">
+                      <div
+                        ref={immersiveContentRef}
+                        onMouseUp={handleReaderTextSelection}
+                        onKeyUp={handleReaderTextSelection}
+                        onPointerMove={handleHighlightPointerMove}
+                        className="md-prose workspace-prose mx-auto max-w-[42rem]"
+                      >
                         <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                           {currentImmersiveCard.content}
                         </ReactMarkdown>
                       </div>
                     )}
                   </div>
+
+                  {pendingQuoteSelection && (
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={handleCreateQuoteShareFromSelection}
+                      className="fixed z-50 rounded-[10px] border border-[rgba(24,29,38,0.12)] bg-[#181d26] px-3 py-2 text-xs font-medium text-[#fbfcfd] shadow-[0_10px_24px_rgba(24,29,38,0.22)] transition hover:bg-[#0d1218] active:scale-[0.98]"
+                      style={{
+                        left: pendingQuoteSelection.x,
+                        top: pendingQuoteSelection.y,
+                      }}
+                    >
+                      生成书摘图
+                    </button>
+                  )}
+
+                  {!pendingQuoteSelection && highlightActionBubble && activeBubbleHighlight && (
+                    <div
+                      data-highlight-action-bubble="true"
+                      className="fixed z-50 flex items-center gap-1.5 rounded-[10px] border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd] p-1 shadow-[0_10px_24px_rgba(24,29,38,0.16)]"
+                      style={{
+                        left: highlightActionBubble.x,
+                        top: highlightActionBubble.y,
+                      }}
+                      onPointerLeave={() => setHighlightActionBubble(null)}
+                      onMouseDown={(event) => event.preventDefault()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleOpenQuoteShareFromHighlight(activeBubbleHighlight);
+                          setHighlightActionBubble(null);
+                        }}
+                        className="rounded-[8px] bg-[#181d26] px-2.5 py-1.5 text-[11px] font-medium text-[#fbfcfd] transition hover:bg-[#0d1218]"
+                      >
+                        生成书摘图
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHighlight(activeBubbleHighlight.id)}
+                        className="rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--ink-faint)] transition hover:bg-[#f1f3f5] hover:text-[var(--ink)]"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  )}
 
                   <div
                     className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 pb-[env(safe-area-inset-bottom)] md:bottom-6 xl:left-[calc(var(--workspace-dock-shell-edge)+48px+0.625rem+var(--workspace-reader-inset-left))] xl:right-[calc(var(--workspace-dock-shell-edge)+var(--workspace-reader-inset-right))] xl:px-0"
@@ -5772,6 +6406,36 @@ export default function Home() {
               console.error("海报内容重新生成失败:", err);
             } finally {
               setIsGeneratingPoster(false);
+            }
+          }}
+        />
+      )}
+
+      {quoteShareSelection && (
+        <QuoteShareModal
+          data={{
+            bookTitle: currentBookDisplayTitle,
+            author: currentBookAuthor,
+            cardLabel: quoteShareSelection.cardLabel,
+            text: quoteShareSelection.text,
+          }}
+          onClose={handleCloseQuoteShareModal}
+          onSaveSuccess={() => {
+            if (!currentBookId) return;
+            const expressionGrowth = awardGrowth("expression", {
+              bookId: currentBookId,
+              bookTitle: currentBookDisplayTitle,
+              action: "海报导出",
+            });
+            if (expressionGrowth.changed) {
+              setGrowthLedger(expressionGrowth.ledger);
+              markGrowthInspectorUpdated();
+              setActiveToast({
+                id: `growth-quote-share-${currentBookId}`,
+                message: `表达力印记 +1\n来自《${currentBookDisplayTitle}》的划线书摘`,
+                priority: TOAST_PRIORITY.INFO,
+                durationMs: 4500,
+              });
             }
           }}
         />
