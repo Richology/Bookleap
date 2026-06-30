@@ -1336,6 +1336,29 @@ function cleanBookTitle(raw: string): string {
   return title || raw.slice(0, 20);
 }
 
+function buildFallbackBookSummary(title: string, chapters: Chapter[]): string {
+  const chapterTitles = chapters
+    .map((chapter) => chapter.title.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const chapterSnippets = chapters
+    .map((chapter) => chapter.text.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((text) => text.slice(0, 48));
+
+  const titleLine = chapterTitles.length > 0
+    ? `《${title}》当前已提取出 ${chapters.length} 个核心章节，内容主要围绕 ${chapterTitles.join("、")} 展开。`
+    : `《${title}》当前已提取出 ${chapters.length} 个核心章节，已经可以进入阅读与后续分析。`;
+
+  const excerptLine = chapterSnippets.length > 0
+    ? `先给你一版提取摘要：${chapterSnippets.join(" / ")}。`
+    : "当前摘要服务暂时不可用，但正文内容已经成功提取。";
+
+  return `${titleLine}${excerptLine}`.slice(0, 220);
+}
+
 function getAnalyzeResponseErrorMessage(): string {
   if (typeof window === "undefined") {
     return "解析服务返回异常。请刷新页面后重试；如果还失败，请稍后再试。";
@@ -4077,7 +4100,7 @@ export default function Home() {
       const title = cleanBookTitle(data.title || "");
       const author = (data.author || "").replace(/\s+/g, " ").trim();
       const coverImage = data.coverImage || "";
-      const bkSummary = data.bookSummary || "";
+      let bkSummary = data.bookSummary || "";
       const chaps: Chapter[] = data.chapters || [];
       const liteMode = data.mode === "lite";
 
@@ -4089,7 +4112,6 @@ export default function Home() {
       bg.liteMode = liteMode;
       bgAnalysisRef.current = bg;
       saveBgAnalysisSnapshotToHistory(bg);
-      stepsCompleted = 1;
       const shouldAttachAnalysisToDisplay =
         bgAnalysisTitleRef.current === pendingTitle || bgAnalysisTitleRef.current === title;
       if (shouldAttachAnalysisToDisplay) {
@@ -4125,7 +4147,7 @@ export default function Home() {
         setBookSummary(bkSummary);
         setChapters(chaps);
         setIsLiteMode(liteMode);
-        setIsLoadingBookSummary(false);
+        setIsLoadingBookSummary(!liteMode && !bkSummary);
       }
 
       if (liteMode) {
@@ -4196,6 +4218,36 @@ export default function Home() {
         setBgAnalysisStatus({ active: false });
         return;
       }
+
+      // ── Book Summary ──
+      updateProgress("全书摘要…");
+      if (isStillViewing()) setMessage("正在生成全书摘要...");
+      if (!bkSummary) {
+        try {
+          const summaryRes = await fetch("/api/skills/book-summary", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, chapters: chaps }),
+          });
+          const summaryData = await summaryRes.json();
+          if (summaryData.success) {
+            bkSummary = summaryData.bookSummary || "";
+          }
+        } catch (e) {
+          console.error("全书摘要生成失败:", e);
+        }
+      }
+      if (!bkSummary) {
+        bkSummary = buildFallbackBookSummary(title, chaps);
+      }
+      bg.bookSummary = bkSummary;
+      bgAnalysisRef.current = bg;
+      saveBgAnalysisSnapshotToHistory(bg);
+      if (isStillViewing()) {
+        setBookSummary(bkSummary);
+        setIsLoadingBookSummary(false);
+      }
+      stepsCompleted = 1;
 
       // ── Reading Guide ──
       updateProgress("阅读指南…");
