@@ -1603,11 +1603,6 @@ function AnalysisIntroPendingStage({
             style={{ width: `${normalizedProgress ?? 40}%` }}
           />
         </div>
-        {normalizedProgress !== null && (
-          <p className="mt-2 text-[11px] font-medium tabular-nums text-[var(--ink-faint)]">
-            上传进度 {normalizedProgress}%
-          </p>
-        )}
         {waitNotice && (
           <p className="mx-auto mt-4 max-w-md text-balance text-[12px] font-medium leading-5 text-[var(--ink-soft)]">
             {waitNotice}

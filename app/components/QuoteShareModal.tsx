@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useModalTransition } from "@/app/hooks/useModalTransition";
 
 type QuoteShareData = {
@@ -11,6 +11,10 @@ type QuoteShareData = {
 };
 
 type QuoteImageSize = "portrait" | "xiaoyuzhou";
+
+const PAPER_COLOR = "#d8d3c9";
+const INK_COLOR = "#100f0d";
+const HIGHLIGHT_COLOR = "rgba(213, 197, 0, 0.9)";
 
 const SIZE_OPTIONS: Record<
   QuoteImageSize,
@@ -30,6 +34,11 @@ const SIZE_OPTIONS: Record<
   },
 };
 
+type WrappedLine = {
+  text: string;
+  x: number;
+};
+
 function sanitizeFilename(value: string) {
   return value.replace(/[/\\:*?"<>|]/g, "").trim() || "BookLeap";
 }
@@ -43,125 +52,390 @@ function normalizeQuoteText(value: string) {
     .join("\n");
 }
 
+function hashString(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function createRandom(seed: number) {
+  let value = seed || 1;
+  return () => {
+    value += 0x6d2b79f5;
+    let next = value;
+    next = Math.imul(next ^ (next >>> 15), next | 1);
+    next ^= next + Math.imul(next ^ (next >>> 7), next | 61);
+    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function fontStack(size: number, weight = 900) {
+  return `${weight} ${size}px "Times New Roman", Georgia, "Songti SC", STSong, serif`;
+}
+
 function getBodyFontSize(text: string, size: QuoteImageSize) {
   const length = text.replace(/\s/g, "").length;
   if (size === "xiaoyuzhou") {
-    if (length > 260) return 44;
-    if (length > 160) return 52;
-    return 60;
+    if (length > 260) return 42;
+    if (length > 160) return 49;
+    return 56;
   }
 
-  if (length > 360) return 40;
-  if (length > 220) return 46;
-  if (length < 70) return 56;
-  return 51;
+  if (length > 360) return 38;
+  if (length > 220) return 44;
+  if (length < 70) return 54;
+  return 48;
 }
 
-function QuoteCard({
-  data,
-  size,
-}: {
-  data: QuoteShareData;
-  size: QuoteImageSize;
-}) {
+function splitTextUnits(text: string) {
+  return text.match(/\s+|[A-Za-z0-9]+(?:[’'._:%+-][A-Za-z0-9]+)*|./gu) ?? [];
+}
+
+function getListIndent(line: string, fontSize: number) {
+  const marker = line.match(
+    /^(\s*(?:[-*•·]\s+|\d+[、.]\s+|[（(]?[一二三四五六七八九十]+[）)、.]\s*))/
+  );
+  if (!marker) return 0;
+  return Math.min(
+    fontSize * 1.35,
+    Math.max(
+      fontSize * 0.82,
+      fontSize * 0.42 + marker[0].length * fontSize * 0.22
+    )
+  );
+}
+
+function wrapLine(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  maxWidth: number,
+  fontSize: number
+) {
+  const trimmedLine = text.trimEnd();
+  const indent = getListIndent(trimmedLine, fontSize);
+  const units = splitTextUnits(trimmedLine).flatMap((unit) =>
+    context.measureText(unit).width > maxWidth ? Array.from(unit) : [unit]
+  );
+  const lines: WrappedLine[] = [];
+  let current = "";
+  let currentX = x;
+  let currentMaxWidth = maxWidth;
+
+  units.forEach((unit) => {
+    if (!current && /^\s+$/.test(unit)) return;
+
+    const next = current + unit;
+    if (current && context.measureText(next).width > currentMaxWidth) {
+      lines.push({ text: current.trimEnd(), x: currentX });
+      current = unit.trimStart();
+      currentX = x + indent;
+      currentMaxWidth = maxWidth - indent;
+      return;
+    }
+    current = next;
+  });
+
+  if (current.trim().length > 0) {
+    lines.push({ text: current.trimEnd(), x: currentX });
+  }
+  return lines;
+}
+
+function wrapText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  maxWidth: number,
+  fontSize: number
+) {
+  return text
+    .split("\n")
+    .flatMap((line) => wrapLine(context, line, x, maxWidth, fontSize));
+}
+
+function drawPaperFiber(
+  context: CanvasRenderingContext2D,
+  startX: number,
+  startY: number,
+  length: number,
+  angle: number,
+  alpha: number,
+  random: () => number
+) {
+  const bend = length * (-0.08 + random() * 0.16);
+  const endX = startX + Math.cos(angle) * length;
+  const endY = startY + Math.sin(angle) * length;
+  const controlX =
+    startX + Math.cos(angle) * length * 0.55 - Math.sin(angle) * bend;
+  const controlY =
+    startY + Math.sin(angle) * length * 0.55 + Math.cos(angle) * bend;
+
+  context.lineCap = "round";
+  context.lineWidth = 0.35 + random() * 0.55;
+  context.strokeStyle =
+    random() > 0.58
+      ? `rgba(255,255,255,${alpha * 1.45})`
+      : `rgba(44,39,32,${alpha})`;
+  context.beginPath();
+  context.moveTo(startX, startY);
+  context.quadraticCurveTo(controlX, controlY, endX, endY);
+  context.stroke();
+}
+
+function drawInkText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number
+) {
+  context.save();
+  context.fillStyle = "rgba(16,15,13,0.30)";
+  context.fillText(text, x + 0.55, y + 0.45);
+  context.fillText(text, x - 0.25, y + 0.22);
+  context.fillStyle = INK_COLOR;
+  context.fillText(text, x, y);
+  context.restore();
+}
+
+function drawPaperTexture(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  seed: number
+) {
+  const random = createRandom(seed);
+  context.fillStyle = PAPER_COLOR;
+  context.fillRect(0, 0, width, height);
+
+  const paperLight = context.createLinearGradient(0, 0, width, height);
+  paperLight.addColorStop(0, "rgba(236, 234, 225, 0.80)");
+  paperLight.addColorStop(0.38, "rgba(220, 216, 205, 0.34)");
+  paperLight.addColorStop(1, "rgba(111, 105, 92, 0.24)");
+  context.fillStyle = paperLight;
+  context.fillRect(0, 0, width, height);
+
+  const sideShade = context.createLinearGradient(0, 0, width, 0);
+  sideShade.addColorStop(0, "rgba(255, 255, 255, 0.30)");
+  sideShade.addColorStop(0.58, "rgba(255, 255, 255, 0)");
+  sideShade.addColorStop(1, "rgba(42, 39, 32, 0.20)");
+  context.fillStyle = sideShade;
+  context.fillRect(0, 0, width, height);
+
+  context.save();
+  context.globalAlpha = 0.34;
+  for (let index = 0; index < 46; index += 1) {
+    const x = random() * width;
+    const y = random() * height;
+    const radiusX = width * (0.08 + random() * 0.20);
+    const radiusY = height * (0.018 + random() * 0.055);
+    context.translate(x, y);
+    context.rotate(-0.45 + random() * 0.9);
+    context.fillStyle =
+      random() > 0.5 ? "rgba(255,255,255,0.08)" : "rgba(50,45,36,0.045)";
+    context.beginPath();
+    context.ellipse(0, 0, radiusX, radiusY, 0, 0, Math.PI * 2);
+    context.fill();
+    context.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  context.restore();
+
+  const vignette = context.createRadialGradient(
+    width * 0.40,
+    height * 0.35,
+    width * 0.18,
+    width * 0.48,
+    height * 0.42,
+    width * 0.88
+  );
+  vignette.addColorStop(0, "rgba(255, 255, 255, 0.12)");
+  vignette.addColorStop(0.62, "rgba(255, 255, 255, 0)");
+  vignette.addColorStop(1, "rgba(31, 28, 22, 0.14)");
+  context.fillStyle = vignette;
+  context.fillRect(0, 0, width, height);
+
+  context.save();
+  context.globalAlpha = 0.18;
+  for (let index = 0; index < 10400; index += 1) {
+    drawPaperFiber(
+      context,
+      random() * width,
+      random() * height,
+      2 + random() * 10,
+      -0.42 + random() * 0.84,
+      0.07 + random() * 0.11,
+      random
+    );
+  }
+  context.restore();
+
+  context.save();
+  context.globalAlpha = 0.11;
+  for (let index = 0; index < 3200; index += 1) {
+    context.fillStyle =
+      random() > 0.42 ? "rgba(255,255,255,0.42)" : "rgba(96,88,74,0.10)";
+    context.fillRect(random() * width, random() * height, 0.55, 0.55);
+  }
+  context.restore();
+}
+
+function drawHighlightedTitle(
+  context: CanvasRenderingContext2D,
+  lines: string[],
+  x: number,
+  y: number,
+  fontSize: number,
+  random: () => number
+) {
+  const lineHeight = fontSize * 1.22;
+  context.font = fontStack(fontSize, 900);
+  context.textBaseline = "alphabetic";
+
+  lines.forEach((line, index) => {
+    const baseline = y + index * lineHeight;
+    const textWidth = context.measureText(line).width;
+    const highlightX = x - 13 + random() * 3;
+    const highlightY = baseline - fontSize * 0.78 + random() * 2;
+    const highlightHeight = fontSize * 0.94;
+
+    context.fillStyle = HIGHLIGHT_COLOR;
+    context.fillRect(highlightX, highlightY, textWidth + 28, highlightHeight);
+    context.fillStyle = "rgba(150, 136, 0, 0.26)";
+    context.fillRect(
+      highlightX,
+      highlightY + highlightHeight - 5,
+      textWidth + 28,
+      5
+    );
+
+    context.shadowColor = "rgba(16,15,13,0.36)";
+    context.shadowBlur = 0;
+    context.shadowOffsetX = 0.45;
+    context.shadowOffsetY = 0.7;
+    drawInkText(context, line, x, baseline);
+    context.shadowOffsetX = 0;
+    context.shadowOffsetY = 0;
+  });
+
+  return y + lines.length * lineHeight;
+}
+
+function drawBodyText(
+  context: CanvasRenderingContext2D,
+  lines: WrappedLine[],
+  y: number,
+  fontSize: number,
+  lineHeight: number
+) {
+  context.font = fontStack(fontSize, 900);
+  context.textBaseline = "alphabetic";
+  context.shadowColor = "rgba(16,15,13,0.34)";
+  context.shadowBlur = 0;
+  context.shadowOffsetX = 0.55;
+  context.shadowOffsetY = 0.8;
+
+  lines.forEach((line, index) => {
+    drawInkText(context, line.text, line.x, y + index * lineHeight);
+  });
+
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = 0;
+}
+
+async function renderQuoteCardImage(data: QuoteShareData, size: QuoteImageSize) {
+  if ("fonts" in document) await document.fonts.ready;
+
   const option = SIZE_OPTIONS[size];
+  const canvas = document.createElement("canvas");
+  canvas.width = option.width;
+  canvas.height = option.height;
+
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+
   const quote = normalizeQuoteText(data.text);
   const titleLine = data.author
     ? `《${data.bookTitle}》 · ${data.author}`
     : `《${data.bookTitle}》`;
+  const seed = hashString(`${size}:${titleLine}:${quote}`);
+  const random = createRandom(seed);
   const isLandscape = size === "xiaoyuzhou";
-  const bodyFontSize = getBodyFontSize(quote, size);
+  const bodyMaxWidth = isLandscape ? 1120 : 790;
+  const contentX = Math.round((option.width - bodyMaxWidth) / 2);
+  const layout = isLandscape
+    ? {
+        x: contentX,
+        titleY: 172,
+        titleFontSize: 40,
+        bodyY: 308,
+        bodyMaxWidth,
+        bodyMaxHeight: 430,
+        footerY: option.height - 76,
+      }
+    : {
+        x: contentX,
+        titleY: 276,
+        titleFontSize: 50,
+        bodyY: 446,
+        bodyMaxWidth,
+        bodyMaxHeight: 760,
+        footerY: option.height - 120,
+      };
 
-  return (
-    <div
-      style={{
-        width: option.width,
-        height: option.height,
-        position: "relative",
-        overflow: "hidden",
-        color: "#15120e",
-        backgroundColor: "#e6dec9",
-        backgroundImage:
-          "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.50) 0 1px, transparent 1.4px), radial-gradient(circle at 74% 36%, rgba(84,70,46,0.12) 0 1px, transparent 1.3px), radial-gradient(circle at 46% 78%, rgba(44,35,23,0.08) 0 1px, transparent 1.2px), linear-gradient(100deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.08) 34%, rgba(103,84,50,0.13) 100%), linear-gradient(180deg, #eee8d8 0%, #dfd5bd 100%)",
-        backgroundSize: "7px 7px, 11px 11px, 13px 13px, 100% 100%, 100% 100%",
-        fontFamily:
-          "Georgia, 'Times New Roman', var(--font-serif), 'Songti SC', STSong, serif",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(90deg, rgba(34,24,14,0.12), transparent 18%, transparent 82%, rgba(34,24,14,0.16)), radial-gradient(circle at 44% 34%, rgba(255,255,255,0.22), transparent 38%)",
-          boxShadow:
-            "inset 0 0 120px rgba(47,35,19,0.20), inset 0 0 22px rgba(47,35,19,0.16)",
-          pointerEvents: "none",
-        }}
-      />
+  drawPaperTexture(context, option.width, option.height, seed);
 
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          minHeight: "100%",
-          flexDirection: "column",
-          padding: isLandscape ? "122px 148px 72px" : "184px 140px 116px",
-        }}
-      >
-        <div>
-          <span
-            style={{
-              display: "inline",
-              boxDecorationBreak: "clone",
-              WebkitBoxDecorationBreak: "clone",
-              background:
-                "linear-gradient(180deg, transparent 18%, rgba(219,196,18,0.88) 18%, rgba(219,196,18,0.88) 84%, transparent 84%)",
-              padding: "0 9px 0 8px",
-              fontSize: isLandscape ? 36 : 42,
-              fontWeight: 700,
-              lineHeight: 1.36,
-              letterSpacing: 0,
-              textShadow: "0.35px 0 rgba(21,18,14,0.62)",
-            }}
-          >
-            {titleLine}
-          </span>
-        </div>
-
-        <div
-          style={{
-            marginTop: isLandscape ? 62 : 82,
-            maxWidth: isLandscape ? 1180 : 790,
-            fontSize: bodyFontSize,
-            fontWeight: 700,
-            lineHeight: isLandscape ? 1.48 : 1.54,
-            letterSpacing: 0,
-            textShadow: "0.42px 0 rgba(21,18,14,0.74)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
-          {quote}
-        </div>
-
-        <p
-          style={{
-            margin: "auto 0 0",
-            paddingTop: isLandscape ? 54 : 70,
-            fontFamily:
-              "var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            fontSize: isLandscape ? 23 : 25,
-            fontWeight: 600,
-            letterSpacing: 0,
-            color: "rgba(21,18,14,0.58)",
-          }}
-        >
-          @ bookleap.cn
-        </p>
-      </div>
-    </div>
+  context.font = fontStack(layout.titleFontSize, 900);
+  const titleLines = wrapText(
+    context,
+    titleLine,
+    layout.x,
+    layout.bodyMaxWidth,
+    layout.titleFontSize
+  ).map((line) => line.text);
+  const titleBottom = drawHighlightedTitle(
+    context,
+    titleLines,
+    layout.x,
+    layout.titleY,
+    layout.titleFontSize,
+    random
   );
+
+  let bodyFontSize = getBodyFontSize(quote, size);
+  let bodyLineHeight = bodyFontSize * (isLandscape ? 1.38 : 1.44);
+  const bodyY = Math.max(layout.bodyY, titleBottom + (isLandscape ? 72 : 86));
+  let bodyLines: WrappedLine[] = [];
+
+  while (bodyFontSize >= 30) {
+    context.font = fontStack(bodyFontSize, 900);
+    bodyLineHeight = bodyFontSize * (isLandscape ? 1.38 : 1.44);
+    bodyLines = wrapText(
+      context,
+      quote,
+      layout.x,
+      layout.bodyMaxWidth,
+      bodyFontSize
+    );
+    const totalHeight = Math.max(1, bodyLines.length) * bodyLineHeight;
+    if (totalHeight <= layout.bodyMaxHeight) break;
+    bodyFontSize -= 2;
+  }
+
+  drawBodyText(context, bodyLines, bodyY, bodyFontSize, bodyLineHeight);
+
+  context.font = fontStack(isLandscape ? 24 : 27, 800);
+  context.fillStyle = "rgba(16,15,13,0.62)";
+  context.shadowColor = "rgba(16,15,13,0.22)";
+  context.shadowOffsetX = 0.25;
+  context.shadowOffsetY = 0.4;
+  context.fillText("@ bookleap.cn", layout.x, layout.footerY);
+  context.shadowOffsetX = 0;
+  context.shadowOffsetY = 0;
+
+  return canvas.toDataURL("image/png");
 }
 
 export function QuoteShareModal({
@@ -173,14 +447,13 @@ export function QuoteShareModal({
   onClose: () => void;
   onSaveSuccess?: () => void;
 }) {
-  const exportRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activeSize, setActiveSize] = useState<QuoteImageSize>("portrait");
   const [previewW, setPreviewW] = useState(360);
+  const [previewSrc, setPreviewSrc] = useState("");
   const { handleClose, overlayStyle, panelStyle } = useModalTransition(onClose);
   const option = SIZE_OPTIONS[activeSize];
-  const scale = previewW / option.width;
-  const previewH = Math.round(option.height * scale);
+  const previewH = Math.round(option.height * (previewW / option.width));
 
   const measure = useCallback(() => {
     const currentOption = SIZE_OPTIONS[activeSize];
@@ -205,6 +478,19 @@ export function QuoteShareModal({
   }, [measure]);
 
   useEffect(() => {
+    let cancelled = false;
+    setPreviewSrc("");
+
+    renderQuoteCardImage(data, activeSize).then((imageSrc) => {
+      if (!cancelled) setPreviewSrc(imageSrc);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSize, data]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") handleClose();
     };
@@ -213,29 +499,12 @@ export function QuoteShareModal({
   }, [handleClose]);
 
   const handleSave = async () => {
-    const node = exportRef.current;
-    if (!node) return;
     setIsSaving(true);
 
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      if ("fonts" in document) await document.fonts.ready;
-      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-
-      const canvas = await html2canvas(node, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#e6dec9",
-        logging: false,
-        width: option.width,
-        height: option.height,
-        windowWidth: option.width,
-        windowHeight: option.height,
-        scrollX: 0,
-        scrollY: 0,
-      });
+      const imageSrc = previewSrc || (await renderQuoteCardImage(data, activeSize));
       const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
+      link.href = imageSrc;
       link.download = `${sanitizeFilename(data.bookTitle.slice(0, 18))}-${SIZE_OPTIONS[activeSize].label}-BookLeap.png`;
       link.click();
       onSaveSuccess?.();
@@ -279,22 +548,6 @@ export function QuoteShareModal({
           ...panelStyle,
         }}
       >
-        <div
-          style={{
-            position: "fixed",
-            left: -9999,
-            top: 0,
-            width: option.width,
-            height: option.height,
-            pointerEvents: "none",
-          }}
-          aria-hidden
-        >
-          <div ref={exportRef}>
-            <QuoteCard data={data} size={activeSize} />
-          </div>
-        </div>
-
         <div
           style={{
             display: "flex",
@@ -355,25 +608,41 @@ export function QuoteShareModal({
             width: previewW,
             height: previewH,
             overflow: "hidden",
-            borderRadius: 10,
-            background: "#e6dec9",
+            borderRadius: 0,
+            background: PAPER_COLOR,
             boxShadow: "0 18px 44px rgba(24,29,38,0.2)",
             position: "relative",
           }}
         >
-          <div
-            style={{
-              width: option.width,
-              height: option.height,
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-              position: "absolute",
-              left: 0,
-              top: 0,
-            }}
-          >
-            <QuoteCard data={data} size={activeSize} />
-          </div>
+          {previewSrc ? (
+            // The preview and saved file use the exact same generated image.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              alt="划线书摘预览"
+              src={previewSrc}
+              style={{
+                display: "block",
+                width: previewW,
+                height: previewH,
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                width: "100%",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "rgba(16,15,13,0.62)",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              生成中...
+            </div>
+          )}
         </div>
 
         <div
@@ -403,15 +672,15 @@ export function QuoteShareModal({
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !previewSrc}
             style={{
               flex: 1,
               height: 42,
               borderRadius: 10,
               border: "none",
-              background: isSaving ? "#9297a0" : "#181d26",
+              background: isSaving || !previewSrc ? "#9297a0" : "#181d26",
               color: "#fbfcfd",
-              cursor: isSaving ? "default" : "pointer",
+              cursor: isSaving || !previewSrc ? "default" : "pointer",
               fontSize: 14,
               fontWeight: 600,
             }}
