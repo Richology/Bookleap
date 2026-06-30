@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import Epub from "epub2";
 import { initKf8File } from "@lingo-reader/mobi-parser";
-import { generateBookSummary } from "@/lib/skills/generateBookSummary";
 import {
   MAX_UPLOAD_SIZE_BYTES,
   getFileTypeFromName,
@@ -115,10 +114,6 @@ export async function POST(request: Request) {
       fs.writeFileSync(filePath, buffer);
 
       const epubData = await parseEpub(filePath);
-      const bookSummary = await generateBookSummaryWithFallback(
-        epubData.title,
-        epubData.chapters
-      );
 
       return NextResponse.json({
         success: true,
@@ -128,7 +123,7 @@ export async function POST(request: Request) {
         title: epubData.title,
         author: epubData.author,
         coverImage: epubData.coverImage,
-        bookSummary,
+        bookSummary: "",
         chapters: epubData.chapters,
       });
     }
@@ -150,11 +145,6 @@ export async function POST(request: Request) {
         );
       }
 
-      const bookSummary = await generateBookSummaryWithFallback(
-        azw3Data.title,
-        azw3Data.chapters
-      );
-
       return NextResponse.json({
         success: true,
         type: "azw3",
@@ -162,7 +152,7 @@ export async function POST(request: Request) {
         filename,
         title: azw3Data.title,
         author: azw3Data.author,
-        bookSummary,
+        bookSummary: "",
         chapters: azw3Data.chapters,
       });
     }
@@ -420,50 +410,6 @@ async function parseAzw3(
   } finally {
     kf8.destroy();
   }
-}
-
-async function generateBookSummaryWithFallback(
-  title: string,
-  chapters: ChapterItem[]
-): Promise<string> {
-  const chapterContextForSummary = chapters.map((chapter, index) => ({
-    index: index + 1,
-    title: chapter.title,
-    summary: chapter.text.slice(0, 800),
-  }));
-
-  try {
-    return await generateBookSummary(title, chapterContextForSummary);
-  } catch (error) {
-    console.error("全书摘要生成失败，使用备用摘要:", error);
-    return buildFallbackBookSummary(title, chapters);
-  }
-}
-
-function buildFallbackBookSummary(
-  title: string,
-  chapters: ChapterItem[]
-): string {
-  const chapterTitles = chapters
-    .map((chapter) => chapter.title.trim())
-    .filter(Boolean)
-    .slice(0, 3);
-
-  const chapterSnippets = chapters
-    .map((chapter) => chapter.text.replace(/\s+/g, " ").trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((text) => text.slice(0, 48));
-
-  const titleLine = chapterTitles.length > 0
-    ? `《${title}》当前已提取出 ${chapters.length} 个核心章节，内容主要围绕 ${chapterTitles.join("、")} 展开。`
-    : `《${title}》当前已提取出 ${chapters.length} 个核心章节，已经可以进入阅读与后续分析。`;
-
-  const excerptLine = chapterSnippets.length > 0
-    ? `先给你一版提取摘要：${chapterSnippets.join(" / ")}。`
-    : "当前摘要服务暂时不可用，但正文内容已经成功提取。";
-
-  return `${titleLine}${excerptLine}`.slice(0, 220);
 }
 
 function getChapterText(epub: Epub, chapterId: string): Promise<string> {
