@@ -196,6 +196,8 @@ type HighlightActionBubble = {
   y: number;
 };
 
+type UploadFailureStage = "upload" | "analyze" | "parse" | "request" | null;
+
 type CssHighlightRegistry = {
   set: (name: string, highlight: unknown) => void;
   delete: (name: string) => void;
@@ -257,7 +259,6 @@ const STARTER_LOADING_STEPS = [
   { text: "正在生成认知卡片…", duration: 900 },
   { text: "正在整理分析结果…", duration: 600 },
 ] as const;
-const DIRECT_UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
 const BLOB_UPLOAD_TIMEOUT_MS = 5 * 60 * 1000;
 const BLOB_MULTIPART_MIN_BYTES = 5 * 1024 * 1024;
 const DECISION_STEP_LABELS = [
@@ -1425,7 +1426,10 @@ async function uploadBookDirectly(file: File): Promise<Response> {
   return response;
 }
 
-async function uploadBookViaBlob(file: File): Promise<Response> {
+async function uploadBookViaBlob(
+  file: File,
+  onProgress?: (percentage: number) => void
+): Promise<Response> {
   const { upload } = await import("@vercel/blob/client");
   const explicitContentType = getBlobUploadContentType(file.name);
   const pathname = getBlobUploadPathname(file);
@@ -1435,6 +1439,9 @@ async function uploadBookViaBlob(file: File): Promise<Response> {
       handleUploadUrl: "/api/upload",
       contentType: explicitContentType,
       multipart: file.size >= BLOB_MULTIPART_MIN_BYTES,
+      onUploadProgress: ({ percentage }) => {
+        onProgress?.(percentage);
+      },
     }),
     BLOB_UPLOAD_TIMEOUT_MS,
     "Blob 上传超时"
@@ -1528,12 +1535,18 @@ function BookDisassemblyStage({
 function AnalysisIntroPendingStage({
   title,
   status,
+  progressPercent,
 }: {
   title: string;
   status: string;
+  progressPercent?: number | null;
 }) {
   const displayTitle = title.trim() || "新书";
   const displayStatus = status.trim() || "正在读取文件...";
+  const normalizedProgress =
+    typeof progressPercent === "number"
+      ? Math.max(3, Math.min(100, Math.round(progressPercent)))
+      : null;
 
   return (
     <div className="mx-auto flex min-h-[420px] w-full max-w-3xl items-center justify-center px-4 py-10 text-center">
@@ -1553,8 +1566,16 @@ function AnalysisIntroPendingStage({
         </p>
 
         <div className="mx-auto mt-7 max-w-md overflow-hidden rounded-full bg-[rgba(10,46,14,0.08)]">
-          <div className="analysis-progress-fill h-2 w-2/5 rounded-full bg-[linear-gradient(90deg,#0a2e0e_0%,#2f8f58_58%,#8bd6aa_100%)]" />
+          <div
+            className="analysis-progress-fill h-2 rounded-full bg-[linear-gradient(90deg,#0a2e0e_0%,#2f8f58_58%,#8bd6aa_100%)] transition-[width] duration-300 ease-out"
+            style={{ width: `${normalizedProgress ?? 40}%` }}
+          />
         </div>
+        {normalizedProgress !== null && (
+          <p className="mt-2 text-[11px] font-medium tabular-nums text-[var(--ink-faint)]">
+            上传进度 {normalizedProgress}%
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1584,6 +1605,9 @@ export default function Home() {
   const dragCounter = useRef(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
+  const [uploadProgressPercent, setUploadProgressPercent] = useState<number | null>(null);
+  const [failedUploadFile, setFailedUploadFile] = useState<File | null>(null);
+  const [uploadFailureStage, setUploadFailureStage] = useState<UploadFailureStage>(null);
   const [analysisErrorCode, setAnalysisErrorCode] = useState<string | null>(null);
   const [analysisIntroTitle, setAnalysisIntroTitle] = useState("");
   const [analysisIntroCover, setAnalysisIntroCover] = useState("");
@@ -2806,6 +2830,7 @@ export default function Home() {
     setBookTitle("");
     setBookAuthor("");
     setBookSummary("");
+    setUploadProgressPercent(null);
     setAnalysisIntroTitle("");
     setAnalysisIntroCover("");
     analysisIntroStartedAtRef.current = 0;
@@ -3172,6 +3197,8 @@ export default function Home() {
       resetAllState();
       return;
     }
+    setFailedUploadFile(null);
+    setUploadFailureStage(null);
     setSelectedFile(file);
     setMessage("");
     setAnalysisErrorCode(null);
@@ -3860,9 +3887,12 @@ export default function Home() {
     try {
       resetAllState();
 
+      setFailedUploadFile(null);
+      setUploadFailureStage(null);
       analysisIntroStartedAtRef.current = 0;
       setAnalysisIntroTitle(pendingTitle);
       setAnalysisIntroCover("");
+      setUploadProgressPercent(null);
       setIsLoading(true);
       setMessage("正在上传文件...");
 
@@ -3932,26 +3962,39 @@ export default function Home() {
       updateProgress("上传解析中…");
 
       let res: Response;
+      const handleBlobUploadProgress = (percentage: number) => {
+        const nextProgress = Math.max(1, Math.min(99, Math.round(percentage)));
+        setUploadProgressPercent(nextProgress);
+        setMessage(`正在上传文件 ${nextProgress}%...`);
+      };
+      const shouldUseBlobUpload = !isLocalRuntimeHost(window.location.hostname);
       try {
-        if (fileToAnalyze.size > DIRECT_UPLOAD_MAX_BYTES && !isLocalRuntimeHost(window.location.hostname)) {
-          setMessage("文件较大，正在使用稳定上传通道...");
+        if (shouldUseBlobUpload) {
+          setUploadProgressPercent(1);
+          setMessage("正在上传文件 1%...");
           updateProgress("稳定上传中…");
-          res = await uploadBookViaBlob(fileToAnalyze);
-          setMessage("上传成功，正在解析章节...");
+          res = await uploadBookViaBlob(fileToAnalyze, handleBlobUploadProgress);
+          setUploadProgressPercent(100);
+          setMessage("上传成功，正在解析章节和生成摘要...");
         } else {
+          setUploadProgressPercent(null);
           setMessage("正在上传并解析章节...");
           res = await uploadBookDirectly(fileToAnalyze);
         }
       } catch (directUploadError) {
         console.error("直接上传失败，尝试 Blob 上传:", directUploadError);
         try {
-          setMessage("上传通道较慢，正在切换稳定上传方式...");
+          setUploadProgressPercent(1);
+          setMessage("正在切换稳定上传方式，上传文件 1%...");
           updateProgress("稳定上传中…");
-          res = await uploadBookViaBlob(fileToAnalyze);
-          setMessage("上传成功，正在解析章节...");
+          res = await uploadBookViaBlob(fileToAnalyze, handleBlobUploadProgress);
+          setUploadProgressPercent(100);
+          setMessage("上传成功，正在解析章节和生成摘要...");
         } catch (blobUploadError) {
           console.error("Blob 上传失败:", blobUploadError);
           setAnalysisErrorCode("UPLOAD_INIT_FAILED");
+          setUploadFailureStage("upload");
+          setFailedUploadFile(fileToAnalyze);
           setMessage(getUploadFailureMessage());
           failCurrentAnalysis([pendingTitle, bg.title]);
           return;
@@ -3968,17 +4011,23 @@ export default function Home() {
           preview: rawResponse.slice(0, 300),
         });
         setAnalysisErrorCode("ANALYZE_RESPONSE_INVALID");
+        setUploadFailureStage("analyze");
+        setFailedUploadFile(fileToAnalyze);
         setMessage(getAnalyzeResponseErrorMessage());
         failCurrentAnalysis([pendingTitle, bg.title]);
         return;
       }
       if (!data.success) {
         setAnalysisErrorCode(data.errorCode || (res.ok ? "ANALYZE_FAILED" : "ANALYZE_HTTP_ERROR"));
+        setUploadFailureStage("parse");
+        setFailedUploadFile(fileToAnalyze);
         setMessage(getAnalyzeFailureMessage(res.ok, data.error));
         failCurrentAnalysis([pendingTitle, bg.title]);
         return;
       }
       setAnalysisErrorCode(null);
+      setUploadFailureStage(null);
+      setFailedUploadFile(null);
       const title = cleanBookTitle(data.title || "");
       const author = (data.author || "").replace(/\s+/g, " ").trim();
       const coverImage = data.coverImage || "";
@@ -4237,6 +4286,8 @@ export default function Home() {
     } catch (error) {
       console.error(error);
       setAnalysisErrorCode("REQUEST_FAILED");
+      setUploadFailureStage("request");
+      setFailedUploadFile(fileToAnalyze);
       setMessage(getRequestFailureMessage());
       failCurrentAnalysis([pendingTitle, bgAnalysisRef.current?.title ?? ""]);
     } finally {
@@ -4244,6 +4295,16 @@ export default function Home() {
       setBgAnalysisStatus({ active: false });
       bgAnalysisRef.current = null;
     }
+  };
+
+  const handleRetryFailedUpload = () => {
+    if (!failedUploadFile || isAnalyzing) return;
+
+    setSelectedFile(failedUploadFile);
+    setMessage("");
+    setAnalysisErrorCode(null);
+    setUploadFailureStage(null);
+    void handleAnalyze(failedUploadFile);
   };
 
   // ── Derived state ───────────────────────────────────────────────────────────
@@ -5205,6 +5266,16 @@ export default function Home() {
           message.includes("请先选择");
         const isSuccess = message === "分析完成" && !isAnalyzing;
         const isAzw3Unsupported = analysisErrorCode === "AZW3_UNSUPPORTED";
+        const failureStageMessage =
+          uploadFailureStage === "upload"
+            ? "文件还没有完整上传。可以直接重试这本书，不需要重新选择文件。"
+            : uploadFailureStage === "analyze"
+            ? "文件已上传，但解析服务返回异常。可以先重试一次。"
+            : uploadFailureStage === "parse"
+            ? "文件已上传，但这本书暂时没有解析成功。"
+            : uploadFailureStage === "request"
+            ? "上传或解析请求中断。网络恢复后可以直接重试。"
+            : "请检查文件后重试。";
         const totalAnalysisSteps = visibleAnalysisSteps.length || 6;
         const activeAnalysisStep =
           visibleAnalysisSteps.find((step) => step.loading) ||
@@ -5338,19 +5409,27 @@ export default function Home() {
               </span>
             </div>
 
-            {isAzw3Unsupported && (
+            {isError && (
               <div className="mt-3 border-t border-red-200/70 pt-3 text-[13px] leading-6 text-red-500/90">
-                <p>这不代表我们已经确认它带有版权保护，也可能只是当前 AZW3 结构暂不兼容。</p>
+                <p>
+                  {isAzw3Unsupported
+                    ? "这不代表我们已经确认它带有版权保护，也可能只是当前 AZW3 结构暂不兼容。"
+                    : failureStageMessage}
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={failedUploadFile ? handleRetryFailedUpload : handleOpenUploadPicker}
                     className="rounded-[9px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
                   >
-                    重新上传
+                    {failedUploadFile ? "重试这本书" : "重新选择文件"}
                   </button>
                   <span className="text-xs text-red-500/75">
-                    建议优先换成 EPUB，或尝试 TXT / PDF
+                    {isAzw3Unsupported
+                      ? "建议优先换成 EPUB，或尝试 TXT / PDF"
+                      : failedUploadFile
+                      ? failedUploadFile.name
+                      : "EPUB / TXT / PDF 通常更稳定"}
                   </span>
                 </div>
               </div>
@@ -5371,6 +5450,7 @@ export default function Home() {
         <AnalysisIntroPendingStage
           title={analysisIntroTitle || (bgAnalysisStatus.active ? bgAnalysisStatus.title : "新书")}
           status={message || (bgAnalysisStatus.active ? bgAnalysisStatus.step : "") || "正在读取文件..."}
+          progressPercent={uploadProgressPercent}
         />
       ) : !bookTitle ? (
         <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
