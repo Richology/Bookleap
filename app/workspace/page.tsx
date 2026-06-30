@@ -198,6 +198,11 @@ type HighlightActionBubble = {
 
 type UploadFailureStage = "upload" | "analyze" | "parse" | "request" | null;
 
+type BlobUploadCallbacks = {
+  onProgress?: (percentage: number) => void;
+  onUploaded?: () => void;
+};
+
 type CssHighlightRegistry = {
   set: (name: string, highlight: unknown) => void;
   delete: (name: string) => void;
@@ -1428,7 +1433,7 @@ async function uploadBookDirectly(file: File): Promise<Response> {
 
 async function uploadBookViaBlob(
   file: File,
-  onProgress?: (percentage: number) => void
+  callbacks: BlobUploadCallbacks = {}
 ): Promise<Response> {
   const { upload } = await import("@vercel/blob/client");
   const explicitContentType = getBlobUploadContentType(file.name);
@@ -1440,12 +1445,14 @@ async function uploadBookViaBlob(
       contentType: explicitContentType,
       multipart: file.size >= BLOB_MULTIPART_MIN_BYTES,
       onUploadProgress: ({ percentage }) => {
-        onProgress?.(percentage);
+        callbacks.onProgress?.(percentage);
       },
     }),
     BLOB_UPLOAD_TIMEOUT_MS,
     "Blob 上传超时"
   );
+
+  callbacks.onUploaded?.();
 
   return fetch("/api/analyze", {
     method: "POST",
@@ -1536,10 +1543,12 @@ function AnalysisIntroPendingStage({
   title,
   status,
   progressPercent,
+  waitNotice,
 }: {
   title: string;
   status: string;
   progressPercent?: number | null;
+  waitNotice?: string;
 }) {
   const displayTitle = title.trim() || "新书";
   const displayStatus = status.trim() || "正在读取文件...";
@@ -1576,6 +1585,11 @@ function AnalysisIntroPendingStage({
             上传进度 {normalizedProgress}%
           </p>
         )}
+        {waitNotice && (
+          <p className="mx-auto mt-4 max-w-md text-balance text-[12px] font-medium leading-5 text-[var(--ink-soft)]">
+            {waitNotice}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1606,6 +1620,7 @@ export default function Home() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [uploadProgressPercent, setUploadProgressPercent] = useState<number | null>(null);
+  const [analysisWaitNotice, setAnalysisWaitNotice] = useState("");
   const [failedUploadFile, setFailedUploadFile] = useState<File | null>(null);
   const [uploadFailureStage, setUploadFailureStage] = useState<UploadFailureStage>(null);
   const [analysisErrorCode, setAnalysisErrorCode] = useState<string | null>(null);
@@ -1727,6 +1742,25 @@ export default function Home() {
     isLoadingActionExtraction ||
     isLoadingViewValidation ||
     isLoadingIdeaSourceTracing;
+
+  useEffect(() => {
+    if (!isAnalyzing || bookTitle || uploadProgressPercent !== 100) {
+      setAnalysisWaitNotice("");
+      return;
+    }
+
+    const slowTimer = window.setTimeout(() => {
+      setAnalysisWaitNotice("这本书较大，解析会多花一点时间。请保持页面打开，我们会自动继续。");
+    }, 20000);
+    const verySlowTimer = window.setTimeout(() => {
+      setAnalysisWaitNotice("还在处理，不需要重新上传。网络或书籍结构较复杂时会更久。");
+    }, 60000);
+
+    return () => {
+      window.clearTimeout(slowTimer);
+      window.clearTimeout(verySlowTimer);
+    };
+  }, [bookTitle, isAnalyzing, uploadProgressPercent]);
 
   const currentBookId = bookTitle ? buildDecisionBookId(bookTitle) : null;
   const currentStarterBook = currentStarterBookId
@@ -2831,6 +2865,7 @@ export default function Home() {
     setBookAuthor("");
     setBookSummary("");
     setUploadProgressPercent(null);
+    setAnalysisWaitNotice("");
     setAnalysisIntroTitle("");
     setAnalysisIntroCover("");
     analysisIntroStartedAtRef.current = 0;
@@ -3893,6 +3928,7 @@ export default function Home() {
       setAnalysisIntroTitle(pendingTitle);
       setAnalysisIntroCover("");
       setUploadProgressPercent(null);
+      setAnalysisWaitNotice("");
       setIsLoading(true);
       setMessage("正在上传文件...");
 
@@ -3967,15 +4003,22 @@ export default function Home() {
         setUploadProgressPercent(nextProgress);
         setMessage(`正在上传文件 ${nextProgress}%...`);
       };
+      const handleBlobUploaded = () => {
+        setUploadProgressPercent(100);
+        setAnalysisWaitNotice("");
+        setMessage("文件已上传，正在拆解目录和章节...");
+        updateProgress("拆解目录和章节…");
+      };
       const shouldUseBlobUpload = !isLocalRuntimeHost(window.location.hostname);
       try {
         if (shouldUseBlobUpload) {
           setUploadProgressPercent(1);
           setMessage("正在上传文件 1%...");
           updateProgress("稳定上传中…");
-          res = await uploadBookViaBlob(fileToAnalyze, handleBlobUploadProgress);
-          setUploadProgressPercent(100);
-          setMessage("上传成功，正在解析章节和生成摘要...");
+          res = await uploadBookViaBlob(fileToAnalyze, {
+            onProgress: handleBlobUploadProgress,
+            onUploaded: handleBlobUploaded,
+          });
         } else {
           setUploadProgressPercent(null);
           setMessage("正在上传并解析章节...");
@@ -3987,9 +4030,10 @@ export default function Home() {
           setUploadProgressPercent(1);
           setMessage("正在切换稳定上传方式，上传文件 1%...");
           updateProgress("稳定上传中…");
-          res = await uploadBookViaBlob(fileToAnalyze, handleBlobUploadProgress);
-          setUploadProgressPercent(100);
-          setMessage("上传成功，正在解析章节和生成摘要...");
+          res = await uploadBookViaBlob(fileToAnalyze, {
+            onProgress: handleBlobUploadProgress,
+            onUploaded: handleBlobUploaded,
+          });
         } catch (blobUploadError) {
           console.error("Blob 上传失败:", blobUploadError);
           setAnalysisErrorCode("UPLOAD_INIT_FAILED");
@@ -4028,6 +4072,8 @@ export default function Home() {
       setAnalysisErrorCode(null);
       setUploadFailureStage(null);
       setFailedUploadFile(null);
+      setUploadProgressPercent(null);
+      setAnalysisWaitNotice("");
       const title = cleanBookTitle(data.title || "");
       const author = (data.author || "").replace(/\s+/g, " ").trim();
       const coverImage = data.coverImage || "";
@@ -5424,6 +5470,15 @@ export default function Home() {
                   >
                     {failedUploadFile ? "重试这本书" : "重新选择文件"}
                   </button>
+                  {failedUploadFile && (
+                    <button
+                      type="button"
+                      onClick={handleOpenUploadPicker}
+                      className="rounded-[9px] border border-red-200/70 bg-transparent px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-50/70"
+                    >
+                      重新选择文件
+                    </button>
+                  )}
                   <span className="text-xs text-red-500/75">
                     {isAzw3Unsupported
                       ? "建议优先换成 EPUB，或尝试 TXT / PDF"
@@ -5451,6 +5506,7 @@ export default function Home() {
           title={analysisIntroTitle || (bgAnalysisStatus.active ? bgAnalysisStatus.title : "新书")}
           status={message || (bgAnalysisStatus.active ? bgAnalysisStatus.step : "") || "正在读取文件..."}
           progressPercent={uploadProgressPercent}
+          waitNotice={analysisWaitNotice}
         />
       ) : !bookTitle ? (
         <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
