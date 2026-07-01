@@ -1,5 +1,7 @@
 "use client";
 
+import { DeleteIcon } from "../icons/AdminIcons";
+
 type ItemTone = "default" | "gifted" | "current";
 
 export function WorkspaceBookItem({
@@ -80,9 +82,7 @@ export function WorkspaceBookItem({
             className="rounded-[7px] p-1 text-[var(--ink-faint)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[#dfe5e7] hover:text-[var(--ink)] focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label={`删除 ${title}`}
           >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M5 5L15 15M15 5L5 15" />
-            </svg>
+            <DeleteIcon className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         )}
       </div>

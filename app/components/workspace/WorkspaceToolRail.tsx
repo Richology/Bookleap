@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import {
+  CloseIcon,
+  DownloadIcon,
+  HomeIcon,
+  ImageIcon,
+  MessageIcon,
+  OrderIcon,
+  SearchIcon,
+} from "../icons/AdminIcons";
 
 type WorkspaceToolAction = {
   id: string;
@@ -19,12 +28,7 @@ const WORKSPACE_WECHAT_ID = "iwbr1988";
 
 function ToolIcon({ id }: { id: string }) {
   if (id === "search") {
-    return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="10.8" cy="10.8" r="6.8" />
-        <path d="m16 16 4.1 4.1" />
-      </svg>
-    );
+    return <SearchIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   if (id === "fullscreen") {
@@ -71,33 +75,15 @@ function ToolIcon({ id }: { id: string }) {
   }
 
   if (id === "training") {
-    return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M6 4.5h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 14 15.5H6A1.5 1.5 0 0 1 4.5 14V6A1.5 1.5 0 0 1 6 4.5Z" />
-        <path d="M8 8.2h4M8 11.8h2.2" />
-      </svg>
-    );
+    return <OrderIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   if (id === "export") {
-    return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 3.8v8.4" />
-        <path d="M6.8 9l3.2 3.2L13.2 9" />
-        <path d="M4.8 14.5h10.4" />
-      </svg>
-    );
+    return <DownloadIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   if (id === "share") {
-    return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="6" cy="10" r="1.8" />
-        <circle cx="14" cy="5.5" r="1.8" />
-        <circle cx="14" cy="14.5" r="1.8" />
-        <path d="M7.7 9.1l4.7-2.5M7.7 10.9l4.7 2.5" />
-      </svg>
-    );
+    return <ImageIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   if (id === "feynman") {
@@ -220,15 +206,11 @@ function WorkspaceContactDock() {
         aria-label={isOpen ? "关闭联系主理人" : "联系主理人"}
       >
         {isOpen ? (
-          <svg className="h-[17px] w-[17px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-            <path d="M5 5 15 15M15 5 5 15" />
-          </svg>
+          <CloseIcon className="h-[17px] w-[17px]" aria-hidden="true" />
         ) : (
           <>
             <span className="need-a-hand-pulse absolute inset-0 rounded-[10px] bg-[var(--ink)] opacity-10" />
-            <svg className="relative h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+            <MessageIcon className="relative h-[18px] w-[18px]" aria-hidden="true" />
           </>
         )}
         {!isOpen && (
@@ -279,9 +261,7 @@ export function WorkspaceToolRail({
               className="absolute right-1.5 top-1.5 rounded-[6px] p-1 text-[var(--ink-faint)] transition-colors hover:bg-[#f1f3f4] hover:text-[var(--ink)]"
               aria-label="关闭提示"
             >
-              <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
-                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
+              <CloseIcon className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -297,10 +277,7 @@ export function WorkspaceToolRail({
           className="group relative flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#fbfcfd] text-[var(--ink-soft)] shadow-[0_1px_2px_rgba(24,29,38,0.04)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
           aria-label="返回首页"
         >
-          <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M3.8 8.4 9.2 3.7a1.2 1.2 0 0 1 1.6 0l5.4 4.7a1.2 1.2 0 0 1 .4.9v6a1.5 1.5 0 0 1-1.5 1.5H4.9a1.5 1.5 0 0 1-1.5-1.5v-6a1.2 1.2 0 0 1 .4-.9Z" />
-            <path d="M8.1 16.8v-5.2h3.8v5.2" />
-          </svg>
+          <HomeIcon className="h-[18px] w-[18px]" aria-hidden="true" />
           <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[80] hidden -translate-y-1/2 rounded-[7px] border border-[#9297a0] bg-[#fbfcfd] px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-[var(--ink)] shadow-[0_8px_18px_rgba(24,29,38,0.12)] group-hover:block">
             返回首页
           </span>

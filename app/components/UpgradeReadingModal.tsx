@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CloseIcon } from "./icons/AdminIcons";
 
 export function UpgradeReadingModal({
   isOpen,
@@ -54,9 +55,7 @@ export function UpgradeReadingModal({
           className="absolute right-5 top-5 z-10 rounded-[8px] border border-[#dddddd] bg-[#f8fafc] p-2 text-[var(--ink-faint)] transition hover:border-[#9297a0] hover:text-[var(--ink)]"
           aria-label="关闭"
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <CloseIcon className="h-4 w-4" aria-hidden="true" />
         </button>
 
         <div className="relative max-h-[90vh] overflow-y-auto p-6 text-center scrollbar-hide sm:p-8">

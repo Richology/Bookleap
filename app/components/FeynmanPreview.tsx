@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useModalTransition } from "@/app/hooks/useModalTransition";
+import { CloseIcon } from "./icons/AdminIcons";
 import type {
   FeynmanCardsInput,
   FeynmanDecisionExerciseInput,
@@ -155,7 +156,7 @@ export function FeynmanPreview({
             aria-label={isDownloading ? "生成中，暂时不能关闭" : "关闭"}
             title={isDownloading ? "生成中，请稍候，完成后会自动下载" : "关闭"}
           >
-            x
+            <CloseIcon className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 

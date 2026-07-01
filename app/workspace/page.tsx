@@ -20,6 +20,15 @@ import { SupportCoffeeModal } from "../components/SupportCoffeeModal";
 import { Toast } from "../components/Toast";
 import { FabMenu, type FabMenuHandle } from "../components/FabMenu";
 import { QuoteShareModal } from "../components/QuoteShareModal";
+import {
+  CloseIcon,
+  ExternalLinkIcon,
+  HelpIcon,
+  PlusCircleIcon,
+  RefreshIcon,
+  SearchIcon,
+  UploadIcon,
+} from "../components/icons/AdminIcons";
 import { WorkspaceBookItem } from "../components/workspace/WorkspaceBookItem";
 import { WorkspaceGrowthSidebar } from "../components/workspace/WorkspaceGrowthSidebar";
 import { WorkspaceLibraryGroup } from "../components/workspace/WorkspaceLibraryGroup";
@@ -5242,20 +5251,7 @@ export default function Home() {
           }`}
         >
           <div className="flex items-start gap-3.5">
-            <svg
-              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ink-soft)]"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-                <path d="M10 4v8" />
-                <path d="M6.8 7.2 10 4l3.2 3.2" />
-                <path d="M4.8 15.2h10.4" />
-            </svg>
+            <UploadIcon className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ink-soft)]" aria-hidden="true" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-[var(--ink)]">
                 {selectedFile ? selectedFile.name : "把新书放进书库"}
@@ -5268,7 +5264,7 @@ export default function Home() {
                   {isDragging ? "松开即可添加到书库" : "拖拽文件到这里，或点击选择"}
                 </p>
                 <span className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[9px] bg-[var(--accent)] px-3 text-xs font-medium text-[#fbfcfd] shadow-[0_4px_12px_rgba(10,46,14,0.16)] transition group-hover:bg-[#123f1a]">
-                  <span className="text-base leading-none">+</span>
+                  <PlusCircleIcon className="h-4 w-4" aria-hidden="true" />
                   上传书籍
                 </span>
               </div>
@@ -5524,8 +5520,9 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={failedUploadFile ? handleRetryFailedUpload : handleOpenUploadPicker}
-                    className="rounded-[9px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
+                    className="inline-flex items-center gap-1.5 rounded-[9px] border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-100/60"
                   >
+                    {failedUploadFile && <RefreshIcon className="h-3.5 w-3.5" aria-hidden="true" />}
                     {failedUploadFile ? "重试这本书" : "重新选择文件"}
                   </button>
                   {failedUploadFile && (
@@ -5620,11 +5617,7 @@ export default function Home() {
                       className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-transparent text-[var(--ink-soft)] transition-colors hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                       aria-label={`生成《${card.title}》的书摘图`}
                     >
-                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M6.5 7.5 10 4l3.5 3.5" />
-                        <path d="M10 4v8.5" />
-                        <path d="M5 11.5v3.8c0 .7.5 1.2 1.2 1.2h7.6c.7 0 1.2-.5 1.2-1.2v-3.8" />
-                      </svg>
+                      <ExternalLinkIcon className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
 
@@ -5665,7 +5658,7 @@ export default function Home() {
                         className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[10px] font-semibold leading-none text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                         aria-label="查看原书阅读建议档位说明"
                       >
-                        ?
+                        <HelpIcon className="h-3 w-3" aria-hidden="true" />
                       </button>
                     <span className="pointer-events-none absolute left-0 top-[calc(100%+8px)] z-30 hidden w-[360px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 whitespace-pre-line text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/help:block group-focus-within/help:block">
                         {ORIGINAL_READING_LEVEL_HELP}
@@ -6264,9 +6257,7 @@ export default function Home() {
               className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-transparent text-[var(--ink-faint)] transition hover:border-[#dfe4e8] hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
               aria-label="关闭旧域名迁移提醒"
             >
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                <path d="M5 5 15 15M15 5 5 15" />
-              </svg>
+              <CloseIcon className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </aside>
@@ -6321,9 +6312,7 @@ export default function Home() {
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-faint)] transition hover:border-[#9297a0] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                 aria-label="关闭备份说明"
               >
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-                  <path d="M5 5 15 15M15 5 5 15" />
-                </svg>
+                <CloseIcon className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -6701,10 +6690,7 @@ export default function Home() {
           <div className="relative w-full max-w-5xl overflow-hidden rounded-[12px] border border-[#9297a0] bg-[#fbfcfd] p-3 shadow-[0_18px_44px_rgba(24,29,38,0.18)]">
             <div className="flex items-center gap-2">
               <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 py-3 focus-within:border-[#9297a0]">
-                <svg className="h-5 w-5 shrink-0 text-[var(--ink-soft)] md:h-5 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="10.8" cy="10.8" r="6.8" />
-                  <path d="m16 16 4.1 4.1" />
-                </svg>
+                <SearchIcon className="h-5 w-5 shrink-0 text-[var(--ink-soft)] md:h-5 md:w-5" aria-hidden="true" />
                 <input
                   ref={searchInputRef}
                   value={workspaceSearchQuery}
@@ -6755,9 +6741,7 @@ export default function Home() {
                 className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-soft)] transition-all hover:border-[#9297a0] hover:text-[var(--ink)]"
                 aria-label="关闭搜索"
               >
-                <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-                  <path d="M5 5l10 10M15 5 5 15" />
-                </svg>
+                <CloseIcon className="h-4.5 w-4.5" aria-hidden="true" />
               </button>
             </div>
 

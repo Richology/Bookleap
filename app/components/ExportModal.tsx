@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useModalTransition } from "@/app/hooks/useModalTransition";
+import { CloseIcon } from "./icons/AdminIcons";
 
 export type ExportFormat = "md" | "txt" | "json";
 export type ExportStructure = "multi" | "single";
@@ -201,7 +202,9 @@ export function ExportModal({
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px 16px", borderBottom: "1px solid #dddddd" }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#181d26" }}>导出知识包</p>
-            <button onClick={handleClose} style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid #dddddd", background: "#f8fafc", cursor: "pointer", color: "#7b8088", fontSize: 14 }}>✕</button>
+            <button onClick={handleClose} style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid #dddddd", background: "#f8fafc", cursor: "pointer", color: "#7b8088", fontSize: 14 }}>
+              <CloseIcon style={{ width: 14, height: 14 }} aria-hidden="true" />
+            </button>
           </div>
 
           {/* Body */}
@@ -268,7 +271,7 @@ export function ExportModal({
             disabled={isExporting}
             style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid #dddddd", background: "#f8fafc", cursor: isExporting ? "default" : "pointer", color: "#7b8088", fontSize: 14 }}
           >
-            ✕
+            <CloseIcon style={{ width: 14, height: 14 }} aria-hidden="true" />
           </button>
         </div>
 
