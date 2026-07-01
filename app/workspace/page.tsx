@@ -190,6 +190,13 @@ type QuoteShareSelection = {
   cardLabel: string;
 };
 
+type HomeQuoteShareSelection = {
+  bookTitle: string;
+  author: string;
+  text: string;
+  cardLabel: string;
+};
+
 type HighlightActionBubble = {
   highlightId: string;
   x: number;
@@ -1683,6 +1690,8 @@ export default function Home() {
     useState<PendingQuoteSelection | null>(null);
   const [quoteShareSelection, setQuoteShareSelection] =
     useState<QuoteShareSelection | null>(null);
+  const [homeQuoteShareSelection, setHomeQuoteShareSelection] =
+    useState<HomeQuoteShareSelection | null>(null);
   const [highlightActionBubble, setHighlightActionBubble] =
     useState<HighlightActionBubble | null>(null);
   const [isFeynmanPreviewOpen, setIsFeynmanPreviewOpen] = useState(false);
@@ -1908,6 +1917,7 @@ export default function Home() {
     isPaywallModalOpen ||
     isPosterModalOpen ||
     !!quoteShareSelection ||
+    !!homeQuoteShareSelection ||
     isFeynmanPreviewOpen ||
     isUpgradeModalOpen ||
     isDisclaimerModalOpen ||
@@ -5038,6 +5048,7 @@ export default function Home() {
 
   const handleCloseQuoteShareModal = () => {
     setQuoteShareSelection(null);
+    setHomeQuoteShareSelection(null);
     setPendingQuoteSelection(null);
     setHighlightActionBubble(null);
     window.getSelection()?.removeAllRanges();
@@ -5571,29 +5582,50 @@ export default function Home() {
                   key={card.id}
                   className="rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] p-5 shadow-[0_1px_2px_rgba(24,29,38,0.04)]"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] text-[var(--accent)]">
-                      {index === 0 ? (
-                        <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M4.5 5.5h11" />
-                          <path d="M4.5 10h8.5" />
-                          <path d="M4.5 14.5h6.5" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M10 3.8a4 4 0 0 1 4 4c0 1.3-.6 2.4-1.5 3.2L10 13.2 7.5 11C6.6 10.2 6 9.1 6 7.8a4 4 0 0 1 4-4Z" />
-                          <path d="M10 13.2v3" />
-                        </svg>
-                      )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] text-[var(--accent)]">
+                        {index === 0 ? (
+                          <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M4.5 5.5h11" />
+                            <path d="M4.5 10h8.5" />
+                            <path d="M4.5 14.5h6.5" />
+                          </svg>
+                        ) : (
+                          <svg className="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M10 3.8a4 4 0 0 1 4 4c0 1.3-.6 2.4-1.5 3.2L10 13.2 7.5 11C6.6 10.2 6 9.1 6 7.8a4 4 0 0 1 4-4Z" />
+                            <path d="M10 13.2v3" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-[var(--accent)]">
+                          {index === 0 ? "书中金句" : "阅读回响"}
+                        </p>
+                        <p className="mt-0.5 truncate text-[12px] text-[var(--ink-faint)]">
+                          《{card.title}》{card.author ? ` · ${card.author}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-medium text-[var(--accent)]">
-                        {index === 0 ? "书中金句" : "阅读回响"}
-                      </p>
-                      <p className="mt-0.5 truncate text-[12px] text-[var(--ink-faint)]">
-                        《{card.title}》{card.author ? ` · ${card.author}` : ""}
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHomeQuoteShareSelection({
+                          bookTitle: card.title,
+                          author: card.author,
+                          text: card.quote,
+                          cardLabel: index === 0 ? "书中金句" : "阅读回响",
+                        });
+                      }}
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-transparent text-[var(--ink-soft)] transition-colors hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                      aria-label={`生成《${card.title}》的书摘图`}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M6.5 7.5 10 4l3.5 3.5" />
+                        <path d="M10 4v8.5" />
+                        <path d="M5 11.5v3.8c0 .7.5 1.2 1.2 1.2h7.6c.7 0 1.2-.5 1.2-1.2v-3.8" />
+                      </svg>
+                    </button>
                   </div>
 
                   <div className="mt-4 bg-[#fbfcfd] px-3 py-4">
@@ -6594,16 +6626,26 @@ export default function Home() {
         />
       )}
 
-      {quoteShareSelection && (
+      {(quoteShareSelection || homeQuoteShareSelection) && (
         <QuoteShareModal
-          data={{
-            bookTitle: currentBookDisplayTitle,
-            author: currentBookAuthor,
-            cardLabel: quoteShareSelection.cardLabel,
-            text: quoteShareSelection.text,
-          }}
+          data={
+            homeQuoteShareSelection
+              ? {
+                  bookTitle: homeQuoteShareSelection.bookTitle,
+                  author: homeQuoteShareSelection.author,
+                  cardLabel: homeQuoteShareSelection.cardLabel,
+                  text: homeQuoteShareSelection.text,
+                }
+              : {
+                  bookTitle: currentBookDisplayTitle,
+                  author: currentBookAuthor,
+                  cardLabel: quoteShareSelection!.cardLabel,
+                  text: quoteShareSelection!.text,
+                }
+          }
           onClose={handleCloseQuoteShareModal}
           onSaveSuccess={() => {
+            if (homeQuoteShareSelection) return;
             if (!currentBookId) return;
             const expressionGrowth = awardGrowth("expression", {
               bookId: currentBookId,
