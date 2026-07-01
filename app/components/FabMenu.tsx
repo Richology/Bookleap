@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { DeleteIcon } from "./icons/AdminIcons";
 
 type HistoryItem = {
   id: string;
@@ -267,9 +268,7 @@ export const FabMenu = forwardRef<FabMenuHandle, {
                               className="shrink-0 rounded-full p-1 text-gray-300 opacity-0 transition-all group-hover:opacity-100 hover:text-red-400 hover:bg-red-50"
                               aria-label="删除记录"
                             >
-                              <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                                <path d="M5 5L15 15M15 5L5 15" />
-                              </svg>
+                              <DeleteIcon className="h-3.5 w-3.5" aria-hidden="true" />
                             </button>
                           )}
                         </div>

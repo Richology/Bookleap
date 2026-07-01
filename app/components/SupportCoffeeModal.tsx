@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CloseIcon } from "./icons/AdminIcons";
 
 const SUPPORT_AMOUNTS = ["9.9", "29.9", "99.9", "任意金额"] as const;
 
@@ -32,14 +33,7 @@ export function SupportCoffeeModal({ onClose }: { onClose: () => void }) {
             className="shrink-0 rounded-[8px] p-1.5 text-[var(--ink-faint)] transition-colors hover:bg-[#f1f3f4] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
             aria-label="关闭赞赏弹窗"
           >
-            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-              <path
-                d="M5 5L15 15M15 5L5 15"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
+            <CloseIcon className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 

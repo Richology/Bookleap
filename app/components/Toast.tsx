@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { CloseIcon } from "./icons/AdminIcons";
 
 export function Toast({
   message,
@@ -109,14 +110,7 @@ export function Toast({
             className="shrink-0 rounded-[8px] p-1 text-[var(--ink-faint)] transition-colors hover:bg-[#f8fafc] hover:text-[var(--ink)]"
             aria-label="关闭提示"
           >
-            <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-              <path
-                d="M5 5L15 15M15 5L5 15"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
+            <CloseIcon className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
       </div>

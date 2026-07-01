@@ -1,5 +1,7 @@
 "use client";
 
+import { CloseIcon } from "../icons/AdminIcons";
+
 export type WorkspaceTabItem = {
   id: string;
   title: string;
@@ -75,9 +77,7 @@ export function WorkspaceTabs({
                   } hover:bg-[#edf0f2] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]`}
                   aria-label={`关闭 ${tab.title}`}
                 >
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                    <path d="M5 5L15 15M15 5L5 15" />
-                  </svg>
+                  <CloseIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               )}
             </div>

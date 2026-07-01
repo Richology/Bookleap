@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CloseIcon } from "../icons/AdminIcons";
 import { WorkspaceTabs, type WorkspaceTabItem } from "./WorkspaceTabs";
 
 function SidebarToggleIcon({ side }: { side: "left" | "right" }) {
@@ -176,9 +177,7 @@ export function WorkspaceTopBar({
                           className="shrink-0 rounded-[7px] p-1.5 text-[var(--ink-faint)] opacity-70 transition-all hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] group-hover:opacity-100"
                           aria-label={`关闭 ${tab.title}`}
                         >
-                          <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                            <path d="M5 5L15 15M15 5L5 15" />
-                          </svg>
+                          <CloseIcon className="h-3.5 w-3.5" aria-hidden="true" />
                         </button>
                       ) : (
                         <span className="shrink-0 px-1 text-[10px] font-medium text-[var(--ink-faint)]">

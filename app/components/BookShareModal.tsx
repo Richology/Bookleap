@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useModalTransition } from "@/app/hooks/useModalTransition";
+import { CloseIcon } from "./icons/AdminIcons";
 
 const CARD_W = 540;
 const CARD_FONT =
@@ -155,7 +156,7 @@ export function BookShareModal({
               fontSize: 14,
             }}
           >
-            ✕
+            <CloseIcon style={{ width: 14, height: 14 }} aria-hidden="true" />
           </button>
         </div>
 
