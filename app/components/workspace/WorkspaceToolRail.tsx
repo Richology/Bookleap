@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   CloseIcon,
   CoinIcon,
-  CommonFileShareIcon,
   DownloadIcon,
   HomeIcon,
   MessageIcon,
@@ -78,7 +77,16 @@ function ToolIcon({ id }: { id: string }) {
   }
 
   if (id === "share") {
-    return <CommonFileShareIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
+    return (
+      <span
+        className="block h-[18px] w-[18px] bg-current"
+        style={{
+          WebkitMask: "url('/icons/book-share-streamline-ultimate.png') center / contain no-repeat",
+          mask: "url('/icons/book-share-streamline-ultimate.png') center / contain no-repeat",
+        }}
+        aria-hidden="true"
+      />
+    );
   }
 
   if (id === "feynman") {
