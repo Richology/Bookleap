@@ -18,19 +18,6 @@ export function CoinIcon(props: IconProps) {
   );
 }
 
-export function CommonFileShareIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" {...props}>
-      <path d="M11.25 18a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 1 0 -4.5 0" />
-      <path d="M18.75 21a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 1 0 -4.5 0" />
-      <path d="M18.75 13.5a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 1 0 -4.5 0" />
-      <path d="m15.425 16.845 3.65 -2.19" />
-      <path d="m15.588 18.835 3.324 1.33" />
-      <path d="M8.25 20.25h-6a1.5 1.5 0 0 1 -1.5 -1.5V2.25a1.5 1.5 0 0 1 1.5 -1.5h10.629a1.5 1.5 0 0 1 1.06 0.439l2.872 2.872a1.5 1.5 0 0 1 0.439 1.06V8.25" />
-    </svg>
-  );
-}
-
 export function HelpIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
