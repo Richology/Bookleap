@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   CloseIcon,
+  CoinIcon,
+  CommonFileShareIcon,
   DownloadIcon,
   HomeIcon,
-  ImageIcon,
   MessageIcon,
   OrderIcon,
   SearchIcon,
@@ -43,13 +44,7 @@ function ToolIcon({ id }: { id: string }) {
   }
 
   if (id === "backup") {
-    return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4.8 5.2c0-1.1 2.3-2 5.2-2s5.2.9 5.2 2-2.3 2-5.2 2-5.2-.9-5.2-2Z" />
-        <path d="M4.8 5.2v4.6c0 1.1 2.3 2 5.2 2s5.2-.9 5.2-2V5.2" />
-        <path d="M4.8 9.8v4.6c0 1.1 2.3 2 5.2 2s5.2-.9 5.2-2V9.8" />
-      </svg>
-    );
+    return <CoinIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   if (id === "coffee") {
@@ -83,7 +78,7 @@ function ToolIcon({ id }: { id: string }) {
   }
 
   if (id === "share") {
-    return <ImageIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
+    return <CommonFileShareIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   if (id === "feynman") {
