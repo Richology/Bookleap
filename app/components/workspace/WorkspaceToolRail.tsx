@@ -6,6 +6,7 @@ import {
   CloseIcon,
   CoinIcon,
   DownloadIcon,
+  FilePptIcon,
   HomeIcon,
   MessageIcon,
   OrderIcon,
@@ -90,14 +91,7 @@ function ToolIcon({ id }: { id: string }) {
   }
 
   if (id === "feynman") {
-    return (
-      <svg className="h-[18px] w-[18px]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 4.5h10a1.2 1.2 0 0 1 1.2 1.2v8.6a1.2 1.2 0 0 1-1.2 1.2H5a1.2 1.2 0 0 1-1.2-1.2V5.7A1.2 1.2 0 0 1 5 4.5Z" />
-        <path d="M6.8 8h6.4" />
-        <path d="M6.8 11h3.8" />
-        <path d="M13.2 11.2 15 13l-1.8 1.8" />
-      </svg>
-    );
+    return <FilePptIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }
 
   return <span className="text-xs font-semibold">{id.slice(0, 1)}</span>;
