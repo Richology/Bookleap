@@ -1,47 +1,47 @@
-# Book Analysis Refactor Design
+# 拆书分析重构设计
 
-Date: 2026-07-17
+日期：2026-07-17
 
-## Goal
+## 目标
 
-Upgrade the backend book-analysis pipeline so each uploaded book is analyzed from a broader, more representative view of the whole book, and the six output cards become denser and less repetitive.
+升级后端拆书分析链路，让每本上传的书都能基于更完整、更有代表性的全书视角生成分析结果，并让现有 6 张卡片的信息量更大、职责更清晰、重复更少。
 
-This change does not add an AI reader, a new frontend surface, or complete EPUB reading. The existing workspace UI and six-card experience remain the product surface.
+这次改造不做 AI 阅读器，不新增前端页面或控件，也不做完整 EPUB 阅读体验。现有工作台 UI 和 6 张卡片仍然是产品表层。
 
-## Current Problems
+## 当前问题
 
-The current pipeline creates a stronger product promise than the backend evidence supports:
+当前链路的产品承诺强于后端实际依据：
 
-- EPUB parsing keeps only the first 8 usable chapters.
-- Each parsed chapter keeps only the first 3000 characters.
-- Chapter summaries are generated only for the first 3 chapters.
-- Later chapters receive a placeholder summary, which downstream card APIs filter out.
-- `book-summary` uses chapter text snippets directly, while the other cards use generated summaries.
-- The six card prompts overlap around summary, key claims, usage scenarios, and final evaluation.
+- EPUB 解析只保留前 8 个可用章节。
+- 每个解析出的章节只保留前 3000 字。
+- 章节摘要只真正生成前 3 章。
+- 后续章节会得到“暂未生成”的占位摘要，下游卡片接口会过滤这些占位内容。
+- `book-summary` 直接使用章节正文片段，而其他卡片使用生成后的章节摘要。
+- 6 张卡片的 prompt 在摘要、关键观点、适用场景和最终评价上存在重叠。
 
-The result is effectively a front-loaded analysis. It can work for some books, but it is weaker for books whose main cases, methods, objections, or conclusions appear later.
+结果是：当前分析更接近“前置章节拆解”。它对某些书能工作，但对关键案例、方法、反例或结论出现在后半部分的书会比较弱。
 
-## Success Criteria
+## 成功标准
 
-1. The backend no longer bases the core card outputs primarily on the first 3 chapters.
-2. The analysis context includes whole-book structure and representative samples from different positions in the book.
-3. All six cards consume a consistent analysis context instead of each route rebuilding a different context.
-4. The six cards have clearer responsibilities and less repeated content.
-5. The quote extraction feature returns only original sentences from parsed source text.
-6. The frontend API shape remains compatible with the current workspace flow.
-7. Fallback behavior remains available when parsing or model generation fails.
+1. 后端核心卡片输出不再主要依赖前 3 章。
+2. 分析上下文包含全书结构，以及来自不同位置的代表性样本。
+3. 6 张卡片使用一致的分析上下文，而不是每个接口各自临时拼上下文。
+4. 6 张卡片职责更清晰，重复内容明显减少。
+5. 金句提取只返回来自解析原文的原句。
+6. 前端 API 形状保持兼容，不要求工作台改交互。
+7. 解析或模型生成失败时仍保留 fallback，不影响现有分析流程。
 
-## Non-Goals
+## 非目标
 
-- Do not add a full EPUB reader.
-- Do not save or expose the whole uploaded EPUB as a readable cloud library.
-- Do not add new frontend panels or controls in this iteration.
-- Do not require every word of the book to be sent to the model.
-- Do not claim perfect full-book understanding. The product should remain a high-quality rapid analysis.
+- 不新增完整 EPUB 阅读器。
+- 不把上传的完整 EPUB 保存或暴露成云端电子书库。
+- 不新增前端面板、按钮或控件。
+- 不要求把整本书每一个字都传给模型。
+- 不宣称模型已经完美理解整本书。产品定位仍然是高质量的快速拆解。
 
-## Backend Architecture
+## 后端架构
 
-Add a shared internal `BookContext` layer between file parsing and card generation.
+在文件解析和卡片生成之间新增一层共享的内部 `BookContext`。
 
 ```ts
 type BookContext = {
@@ -77,76 +77,76 @@ type BookContext = {
 };
 ```
 
-The existing `chapters` response remains the compatibility carrier. The backend may attach optional metadata to chapter objects, but the current frontend must be able to ignore it safely. Each skill route should normalize the received chapters into `BookContext` before prompting, so the frontend does not need to send a new payload shape.
+现有 `chapters` 响应字段继续作为兼容载体。后端可以在 chapter 对象上附加可选元数据，但当前前端必须可以安全忽略这些字段。每个 skill 路由在调用 prompt 前，把收到的 chapters 归一化成 `BookContext`，因此前端不需要发送新的 payload 结构。
 
-## Sampling Strategy
+## 取样策略
 
-Replace "first 8 chapters" with "whole-book structure plus representative sampling."
+把“取前 8 章”替换成“全书结构 + 代表性抽样”。
 
-The parser should:
+解析器应该：
 
-1. Read the full spine or generated chunk list.
-2. Build an outline for every usable chapter or text chunk.
-3. Select representative chapter positions across the book: beginning, early-middle, middle, late-middle, and ending.
-4. For long chapters, sample opening, middle, and ending slices.
-5. For short chapters, use the whole useful text where budget allows.
-6. Keep a total text budget to control latency and token cost.
+1. 读取完整 spine，或读取生成后的完整 chunk 列表。
+2. 为每个可用章节或文本块建立 outline。
+3. 从全书不同位置选择代表性章节：开头、中前段、中段、中后段、结尾。
+4. 对长章节取开头、中段和结尾片段。
+5. 对短章节，在预算允许时使用完整可用文本。
+6. 控制总文本预算，避免延迟和 token 成本失控。
 
-Recommended first budget:
+第一版推荐预算：
 
-- Target 12-20 sampled chapter positions for EPUB/AZW3 when available.
-- Target 60k-100k source characters before summarization.
-- Cap each sample around 1200-1800 characters.
-- Keep enough source text to extract real quote candidates.
+- EPUB/AZW3 可用时，目标覆盖 12-20 个章节位置。
+- 摘要前的源文本总量目标控制在 60k-100k 字符。
+- 每个样本片段控制在约 1200-1800 字符。
+- 保留足够原文，用于提取真实金句候选。
 
-For TXT and PDF, generate logical chunks first, then apply the same position-based sampling.
+TXT 和 PDF 先生成逻辑 chunk，再使用同一套位置抽样策略。
 
-## Context Generation
+## 上下文生成
 
-Chapter brief generation should no longer stop after 3 chapters or insert "not generated" placeholders.
+章节摘要生成不再只处理前 3 章，也不再插入“暂未生成”占位。
 
-Instead:
+新的规则：
 
-1. Generate `chapterBriefs` only for sampled chapters or chunks.
-2. Each brief should contain:
-   - concise summary
-   - 2-4 key points
-   - 1-3 evidence hints or notable examples
-3. If generation fails for one brief, use a deterministic fallback summary from the sample text.
-4. Do not pass placeholder summaries to downstream prompts.
+1. 只为被抽样的章节或文本块生成 `chapterBriefs`。
+2. 每个 brief 包含：
+   - 简洁摘要
+   - 2-4 个关键点
+   - 1-3 个依据提示或代表性例子
+3. 如果某个 brief 生成失败，使用样本文本生成确定性的 fallback 摘要。
+4. 不把占位摘要传给下游 prompt。
 
-All six card generators should receive a normalized context string derived from `BookContext`, including:
+6 张卡片都应该接收一个由 `BookContext` 派生的标准化上下文字符串，包含：
 
-- coverage metadata
-- outline digest
-- sampled chapter briefs
-- selected evidence hints
-- quote candidates where relevant
+- 覆盖范围元数据
+- 目录摘要
+- 抽样章节 brief
+- 关键依据提示
+- 需要时附带金句候选
 
-## Six Card Responsibilities
+## 6 张卡片职责
 
-### 1. Book Summary
+### 1. 全书摘要
 
-Keep the current intent mostly unchanged.
+基本保留当前意图。
 
-Purpose:
+职责：
 
-- Explain what problem the book addresses.
-- State the core judgment.
-- Describe the overall direction or path.
+- 说明这本书试图解决什么问题。
+- 提炼核心判断。
+- 描述整体方向或推进路径。
 
-Constraints:
+约束：
 
-- Do not output action advice.
-- Do not output reading advice.
-- Do not output critique.
-- Keep it concise and overview-oriented.
+- 不输出行动建议。
+- 不输出阅读建议。
+- 不输出批判意见。
+- 保持简洁，聚焦总览。
 
-### 2. Reading Guide
+### 2. 阅读指南
 
-Upgrade this card without turning it into another summary.
+升级这张卡，但不要把它变成另一张摘要。
 
-Required structure:
+要求结构：
 
 ```md
 ## 阅读定位
@@ -156,23 +156,23 @@ Required structure:
 ## 当代意义
 ```
 
-Purpose:
+职责：
 
-- Help the user know how to enter the book.
-- Preserve "阅读三问" and "当代意义".
-- Add reading order, key chapters, and skip/jump-reading guidance.
+- 帮助用户知道应该如何进入这本书。
+- 保留“阅读三问”和“当代意义”。
+- 增加阅读顺序、重点章节、跳读建议。
 
-Constraints:
+约束：
 
-- "阅读定位" must be short and should not repeat the book summary.
-- "阅读三问" must contain 3 specific questions.
-- "重点章节" should use outline or sampled chapter evidence where possible.
+- “阅读定位”必须短，不重复全书摘要。
+- “阅读三问”必须给出 3 个具体问题。
+- “重点章节”应尽量基于 outline 或抽样章节证据。
 
-### 3. View Map
+### 3. 观点地图
 
-Keep the current strength of this card, but remove "信息噪声".
+保留当前这张卡的优势，但移除“信息噪声”。
 
-Required structure:
+要求结构：
 
 ```md
 ## 中心观点
@@ -182,23 +182,23 @@ Required structure:
 ## 结构判断
 ```
 
-Purpose:
+职责：
 
-- Map the book's idea structure.
-- Explain how key claims support or depend on each other.
-- Ground the map in chapter-level evidence.
+- 映射一本书的思想结构。
+- 解释关键观点之间如何支撑、依赖或递进。
+- 用章节级依据支撑观点地图。
 
-Constraints:
+约束：
 
-- Do not output action advice.
-- Do not critique the book here.
-- Do not include "信息噪声"; that belongs to View Validation.
+- 不输出行动建议。
+- 不在这里批判这本书。
+- 不包含“信息噪声”，该模块归入观点校验。
 
-### 4. Action Extraction
+### 4. 行动提炼
 
-Keep the current direction and add trigger conditions.
+保留当前方向，增加触发条件。
 
-Required structure:
+要求结构：
 
 ```md
 ## 核心原则
@@ -207,22 +207,22 @@ Required structure:
 ## 适用场景
 ```
 
-Purpose:
+职责：
 
-- Translate the book into practical behavior.
-- Explain when the user should apply each idea.
+- 把书中的洞见转译成可执行行为。
+- 说明用户应该在什么时候想起并使用这些观点。
 
-Constraints:
+约束：
 
-- Avoid repeating the View Map.
-- Actions must be concrete.
-- Trigger conditions should answer: "When should I remember and use this?"
+- 避免重复观点地图。
+- 行动必须具体。
+- 触发条件要回答：“什么情况下我应该想起并使用这本书里的道理？”
 
-### 5. View Validation
+### 5. 观点校验
 
-Keep the current critical-analysis direction and move "信息噪声" here.
+保留当前批判性分析方向，并把“信息噪声”移到这里。
 
-Required structure:
+要求结构：
 
 ```md
 ## 核心观点复述
@@ -232,22 +232,22 @@ Required structure:
 ## 适用边界
 ```
 
-Purpose:
+职责：
 
-- Help the user understand limitations, weak assumptions, and boundaries.
-- Identify repetitive, low-increment, or rhetorically padded parts.
+- 帮助用户理解书中观点的限制、前提和边界。
+- 识别重复表达、低增量内容和修辞性填充。
 
-Constraints:
+约束：
 
-- Be specific rather than generically skeptical.
-- Allow "current evidence is insufficient" when samples do not support a strong claim.
-- Keep applicable and non-applicable scenarios separated.
+- 要具体，不做泛泛怀疑。
+- 当样本证据不足以支持强判断时，允许明确写“当前依据不足”。
+- 适用场景和不适用场景必须分开。
 
-### 6. Idea Source Tracing
+### 6. 思想溯源
 
-Narrow the card to reduce unsupported speculation, but keep a final synthesis.
+收窄这张卡，减少无依据推测，但保留最后的总结。
 
-Required structure:
+要求结构：
 
 ```md
 ## 关键思想谱系
@@ -258,37 +258,37 @@ Required structure:
 ## 总结
 ```
 
-Purpose:
+职责：
 
-- Place the book in a broader knowledge tradition.
-- Judge whether the book is original thinking, synthesis, translation, packaging, or popularization.
-- End the six-card sequence with a concise final synthesis.
-- Include 5 original quotes from the book.
+- 把这本书放进更大的知识传统中理解。
+- 判断这本书更接近原创思考、思想整合、转译包装还是知识传播。
+- 作为 6 张卡片的最后一张，用简短总结形成收束。
+- 提取 5 条书中原句作为金句。
 
-Constraints:
+约束：
 
-- Do not repeat the first card's summary in "关键思想谱系".
-- Do not invent specific source books, authors, or schools when evidence is insufficient.
-- "原文金句" must only select from supplied quote candidates.
-- Quotes must be copied exactly from source candidates, with no rewriting.
-- If fewer than 5 reliable quote candidates exist, output fewer rather than inventing.
+- “关键思想谱系”不要重复第一张卡的全书摘要。
+- 证据不足时，不编造具体书名、作者名或思想流派名。
+- “原文金句”只能从提供的 quote candidates 中选择。
+- 金句必须逐字复制候选原句，不能改写。
+- 如果可靠候选不足 5 条，就少给，不能补编。
 
-## Quote Extraction
+## 金句提取
 
-The system should extract candidate quote sentences before model generation.
+系统应该在模型生成前先从原文中抽取候选句。
 
-Candidate rules:
+候选规则：
 
-- Source must be parsed book text.
-- Prefer complete sentences between roughly 30 and 100 Chinese characters, or equivalent English sentence length.
-- Exclude headings, copyright pages, navigation text, footers, URLs, boilerplate, and obvious OCR garbage.
-- Prefer sentences with clear claims, vivid phrasing, definitions, warnings, or memorable contrast.
+- 来源必须是已解析出的书籍文本。
+- 优先选择完整句子，中文约 30-100 字；英文按等价长度控制。
+- 排除标题、版权页、导航文字、页眉页脚、URL、模板文本和明显 OCR 噪声。
+- 优先选择表达完整、有判断力、有定义、有警示、有鲜明对比或句式有记忆点的句子。
 
-The model may rank and select candidates, but it must not compose new quotes.
+模型可以对候选句进行排序和选择，但不能创作新金句。
 
-## API Compatibility
+## API 兼容
 
-Keep the current frontend-compatible fields:
+保持当前前端兼容字段：
 
 - `title`
 - `author`
@@ -297,57 +297,57 @@ Keep the current frontend-compatible fields:
 - `chapters`
 - `mode`
 
-The internal richer context should be reconstructed from `chapters` during skill generation. A route may accept optional richer fields if present, but it must not require frontend changes.
+内部更丰富的上下文应在 skill 生成阶段从 `chapters` 重建。路由可以接受可选的更丰富字段，但不能要求前端改动。
 
-Implementation decision for this iteration:
+本轮实现决策：
 
-- `/api/analyze` returns representative sampled chapter units in the existing `chapters` field.
-- Each returned chapter still has `id`, `title`, and `text`.
-- Optional metadata such as chapter index, sample position, total chapter count, and quote candidates may be included on the chapter objects.
-- Skill routes normalize these chapter objects into `BookContext`.
-- History storage does not need a schema migration in this iteration.
+- `/api/analyze` 在现有 `chapters` 字段中返回代表性抽样后的章节单元。
+- 每个返回的 chapter 仍然包含 `id`、`title`、`text`。
+- chapter 对象可以附带章节索引、样本位置、总章节数、金句候选等可选元数据。
+- skill 路由负责把这些 chapter 对象归一化为 `BookContext`。
+- 本轮不需要做 history 存储 schema 迁移。
 
-Preferred implementation path:
+建议实现路径：
 
-1. Add shared backend context utilities in `lib/bookAnalysis`.
-2. Update `/api/analyze` to produce better sampled chapters and source material.
-3. Update skill generators to normalize context consistently.
-4. Rewrite prompts to enforce the six card boundaries.
-5. Keep frontend rendering unchanged.
+1. 在 `lib/bookAnalysis` 新增共享后端上下文工具。
+2. 更新 `/api/analyze`，产出更好的代表性抽样章节和源文本。
+3. 更新 skill generator，让它们统一归一化上下文。
+4. 重写 prompt，强化 6 张卡片的职责边界。
+5. 保持前端渲染不变。
 
-## Testing And Verification
+## 测试和验证
 
-Unit tests should cover:
+单元测试覆盖：
 
-- Representative chapter selection across a 20+ chapter book.
-- Short-book behavior where fewer chapters exist.
-- Long-chapter opening/middle/ending sampling.
-- Quote candidate extraction returns source substrings only.
-- Prompt context builders exclude placeholder summaries.
+- 20 章以上书籍的代表性章节选择。
+- 章节较少的短书行为。
+- 长章节的开头、中段、结尾抽样。
+- 金句候选必须是源文本子串。
+- prompt 上下文构建器必须排除占位摘要。
 
-Manual verification should compare at least 3 books:
+人工验证至少比较 3 类书：
 
-- A business or self-improvement method book.
-- A dense conceptual nonfiction book.
-- A narrative or biography-style book.
+- 商业或自我成长方法论书。
+- 高密度概念型非虚构书。
+- 叙事类或传记类书。
 
-For each, compare current output against the new output for:
+每本书比较新旧输出：
 
-- broader coverage
-- less repeated card content
-- more useful reading guide
-- clearer trigger conditions in action extraction
-- information noise moved into validation
-- original quotes appearing only as source text
+- 覆盖范围是否更广。
+- 卡片之间重复是否减少。
+- 阅读指南是否更有用。
+- 行动提炼是否出现更清晰的触发条件。
+- 信息噪声是否已移入观点校验。
+- 原文金句是否只来自源文本。
 
-## Rollout
+## 上线方式
 
-Implement behind existing APIs without frontend changes.
+在现有 API 后面实现，不改前端。
 
-If latency rises too much, reduce sample count before reducing coverage diversity. It is better to sample fewer characters across the whole book than many characters from only the opening chapters.
+如果延迟明显上升，优先减少样本数量，而不是牺牲覆盖多样性。相比从开头章节取很多字，更应该从全书不同位置取较少但更有代表性的文本。
 
-## Deferred Decisions
+## 延后决策
 
-1. Whether to store full `BookContext` in history later for richer auditability.
-2. Whether "思想溯源" should become optional if source tracing is weak for a given book. This iteration keeps it as a default card, but narrows unsupported claims.
-3. Whether to expose coverage metadata to the frontend later. This iteration keeps it internal.
+1. 后续是否把完整 `BookContext` 存入 history，以便更强的可追溯性。
+2. 当某本书的思想溯源证据较弱时，是否把“思想溯源”改成可选卡片。本轮仍保留为默认卡，但收窄无依据推测。
+3. 后续是否把覆盖范围元数据展示给前端。本轮保持内部使用。
