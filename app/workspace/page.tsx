@@ -92,6 +92,9 @@ import {
   mirrorHistoryRecordsToIndexedDb,
 } from "@/lib/workspaceStorage";
 import {
+  buildStoredBookContext,
+} from "@/lib/bookAnalysis/context.mjs";
+import {
   addBookHighlight,
   deleteBookHighlight,
   hashHighlightContent,
@@ -320,7 +323,10 @@ type HistoryRecord = {
   isStarterBook?: boolean;
   starterBookId?: string;
   author?: string;
+  analysisContext?: StoredBookContext;
 };
+
+type StoredBookContext = ReturnType<typeof buildStoredBookContext>;
 
 function getTextNodes(root: HTMLElement) {
   const nodes: Text[] = [];
@@ -850,14 +856,41 @@ function loadHistory(): HistoryRecord[] {
 
 function compactHistoryForStorage(
   records: HistoryRecord[],
-  options: { stripPosterContent?: boolean; maxRecords?: number } = {}
+  options: {
+    stripPosterContent?: boolean;
+    stripAnalysisContext?: boolean;
+    maxRecords?: number;
+  } = {}
 ) {
   const nextRecords = options.maxRecords ? records.slice(0, options.maxRecords) : records;
 
   return nextRecords.map((record) => ({
     ...record,
     posterContent: options.stripPosterContent ? null : record.posterContent,
+    analysisContext: options.stripAnalysisContext ? undefined : record.analysisContext,
   }));
+}
+
+function buildHistoryAnalysisContext({
+  title,
+  author,
+  chapters,
+}: {
+  title: string;
+  author?: string;
+  chapters: Chapter[];
+}): StoredBookContext | undefined {
+  if (!chapters.length) return undefined;
+
+  try {
+    return buildStoredBookContext({
+      title,
+      author: author || "",
+      chapters,
+    });
+  } catch {
+    return undefined;
+  }
 }
 
 function tryWriteHistory(records: HistoryRecord[]) {
@@ -878,9 +911,10 @@ function saveHistory(records: HistoryRecord[]) {
 
     const attempts = [
       compactHistoryForStorage(records, { stripPosterContent: true }),
-      compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 30 }),
-      compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 15 }),
-      compactHistoryForStorage(records, { stripPosterContent: true, maxRecords: 8 }),
+      compactHistoryForStorage(records, { stripPosterContent: true, stripAnalysisContext: true }),
+      compactHistoryForStorage(records, { stripPosterContent: true, stripAnalysisContext: true, maxRecords: 30 }),
+      compactHistoryForStorage(records, { stripPosterContent: true, stripAnalysisContext: true, maxRecords: 15 }),
+      compactHistoryForStorage(records, { stripPosterContent: true, stripAnalysisContext: true, maxRecords: 8 }),
     ];
 
     for (const attempt of attempts) {
@@ -2500,6 +2534,11 @@ export default function Home() {
       isStarterBook: !!currentStarterBook,
       starterBookId: currentStarterBook?.id,
       author: currentStarterBook?.author || bookAuthor || currentHistoryRecord?.author || undefined,
+      analysisContext: buildHistoryAnalysisContext({
+        title: bookTitle,
+        author: currentStarterBook?.author || bookAuthor || currentHistoryRecord?.author,
+        chapters,
+      }),
     };
     const prev = loadHistory().filter((r) => r.id !== record.id);
     const next = [record, ...prev];
@@ -3078,6 +3117,11 @@ export default function Home() {
       isStarterBook: !!starterBook,
       starterBookId: starterBook?.id,
       author: starterBook?.author || bg.author || undefined,
+      analysisContext: buildHistoryAnalysisContext({
+        title: bg.title,
+        author: starterBook?.author || bg.author,
+        chapters: bg.chapters,
+      }),
     };
     const prev = loadHistory().filter((r) => r.id !== record.id);
     const next = [record, ...prev];
@@ -3137,6 +3181,11 @@ export default function Home() {
       isStarterBook: !!starterBook,
       starterBookId: starterBook?.id,
       author: starterBook?.author || bg.author || undefined,
+      analysisContext: buildHistoryAnalysisContext({
+        title: bg.title,
+        author: starterBook?.author || bg.author,
+        chapters: bg.chapters,
+      }),
     };
     const next = [record, ...prev];
     saveHistory(next);
