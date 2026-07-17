@@ -22,17 +22,24 @@ export function StarterModePanel({
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    const timers: Array<ReturnType<typeof setTimeout>> = [];
+    const scheduleProgress = (value: number, delay: number) => {
+      timers.push(setTimeout(() => setProgress(value), delay));
+    };
+
     if (!isLoading) {
-      setProgress(0);
-      return;
+      scheduleProgress(0, 0);
+      return () => timers.forEach(clearTimeout);
     }
+
     // 缓动进度条：快速到 60%，然后慢慢到 90%，完成时跳到 100%
-    setProgress(0);
-    const t1 = setTimeout(() => setProgress(30), 200);
-    const t2 = setTimeout(() => setProgress(55), 800);
-    const t3 = setTimeout(() => setProgress(75), 1600);
-    const t4 = setTimeout(() => setProgress(90), 2400);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    scheduleProgress(0, 0);
+    scheduleProgress(30, 200);
+    scheduleProgress(55, 800);
+    scheduleProgress(75, 1600);
+    scheduleProgress(90, 2400);
+
+    return () => timers.forEach(clearTimeout);
   }, [isLoading]);
 
   return (

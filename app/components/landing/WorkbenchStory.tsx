@@ -162,23 +162,37 @@ export function WorkbenchStory() {
   }, []);
 
   useEffect(() => {
+    let raf = 0;
+    let visibleRaf = 0;
+    let timeout = 0;
+
     if (activeHotspot) {
-      setRenderHotspot(activeHotspot);
-      const raf = window.requestAnimationFrame(() => {
-        setIsHotspotCardVisible(true);
+      raf = window.requestAnimationFrame(() => {
+        setRenderHotspot(activeHotspot);
+        visibleRaf = window.requestAnimationFrame(() => {
+          setIsHotspotCardVisible(true);
+        });
       });
-      return () => window.cancelAnimationFrame(raf);
+      return () => {
+        window.cancelAnimationFrame(raf);
+        window.cancelAnimationFrame(visibleRaf);
+      };
     }
 
-    setIsHotspotCardVisible(false);
+    raf = window.requestAnimationFrame(() => {
+      setIsHotspotCardVisible(false);
+    });
 
-    if (!renderHotspot) return;
+    if (renderHotspot) {
+      timeout = window.setTimeout(() => {
+        setRenderHotspot(null);
+      }, 220);
+    }
 
-    const timeout = window.setTimeout(() => {
-      setRenderHotspot(null);
-    }, 220);
-
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(timeout);
+    };
   }, [activeHotspot, renderHotspot]);
 
   const hoveredFeature =

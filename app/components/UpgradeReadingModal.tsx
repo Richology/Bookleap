@@ -18,13 +18,19 @@ export function UpgradeReadingModal({
   const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     if (isOpen) {
-      setTimeout(() => setIsVisible(true), 10);
+      timer = setTimeout(() => setIsVisible(true), 10);
       document.body.style.overflow = "hidden";
     } else {
-      setIsVisible(false);
+      timer = setTimeout(() => setIsVisible(false), 0);
       document.body.style.overflow = "unset";
     }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isOpen]);
 
   if (!isOpen && !isVisible) return null;

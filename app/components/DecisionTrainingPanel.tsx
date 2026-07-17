@@ -113,9 +113,13 @@ export function DecisionTrainingPanel({
   const [viewMode, setViewMode] = useState<"scenario" | "feedback" | "done">("scenario");
 
   useEffect(() => {
-    setCurrentIndex(0);
-    setSelectedOption(null);
-    setViewMode("scenario");
+    const timeout = window.setTimeout(() => {
+      setCurrentIndex(0);
+      setSelectedOption(null);
+      setViewMode("scenario");
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [scenarios]);
 
   const currentScenario = scenarios[currentIndex];
