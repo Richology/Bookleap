@@ -44,10 +44,20 @@ export type BookContext = {
     positionRatio: number;
   }>;
   samples: Array<{
+    sourceId: string;
     chapterIndex: number;
     chapterTitle: string;
     position: SamplePosition;
     text: string;
+  }>;
+  evidenceBriefs: Array<{
+    sourceId: string;
+    chapterIndex: number;
+    chapterTitle: string;
+    position: SamplePosition;
+    summary: string;
+    evidencePreview: string;
+    quoteCandidates: string[];
   }>;
   chapterBriefs: Array<{
     chapterIndex: number;
@@ -66,10 +76,19 @@ export type StoredBookContext = {
   coverage: BookContext["coverage"];
   outline: BookContext["outline"];
   samples: Array<{
+    sourceId: string;
     chapterIndex: number;
     chapterTitle: string;
     position: SamplePosition;
     preview: string;
+  }>;
+  evidenceBriefs: Array<{
+    sourceId: string;
+    chapterIndex: number;
+    chapterTitle: string;
+    position: SamplePosition;
+    preview: string;
+    quoteCandidates: string[];
   }>;
   quoteCandidates: string[];
 };
