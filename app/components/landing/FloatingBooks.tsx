@@ -48,13 +48,8 @@ interface Bubble {
 
 export function FloatingBooks({ starterBooks, experiencedIds, onStarterBookDrop }: FloatingBooksProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [bubbles, setBubbles] = useState<Bubble[]>([]);
-  const animRef = useRef<number>(0);
-  const [draggedBook, setDraggedBook] = useState<string | null>(null);
-
-  // Initialize bubbles
-  useEffect(() => {
-    const initial: Bubble[] = BOOK_NAMES.map((name, i) => ({
+  const [bubbles, setBubbles] = useState<Bubble[]>(() =>
+    BOOK_NAMES.map((name, i) => ({
       id: i,
       text: name,
       x: Math.random() * 100,
@@ -63,9 +58,10 @@ export function FloatingBooks({ starterBooks, experiencedIds, onStarterBookDrop 
       opacity: 0.08 + Math.random() * 0.14, // 0.08-0.22
       speed: 0.015 + Math.random() * 0.025, // slow upward drift
       drift: (Math.random() - 0.5) * 0.01, // slight horizontal drift
-    }));
-    setBubbles(initial);
-  }, []);
+    }))
+  );
+  const animRef = useRef<number>(0);
+  const [draggedBook, setDraggedBook] = useState<string | null>(null);
 
   // Animate bubbles
   useEffect(() => {

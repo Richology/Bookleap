@@ -1,6 +1,9 @@
 import { generateWithOllama } from "@/lib/ollama";
 import { IDEA_SOURCE_TRACING_PROMPT } from "@/lib/prompts/ideaSourceTracing";
-import { cleanupIdeaSourceTracingMarkdown } from "@/lib/skills/markdownCleanup.mjs";
+import {
+  cleanupIdeaSourceTracingMarkdown,
+  extractQuoteCandidatesFromAnalysisContext,
+} from "@/lib/skills/markdownCleanup.mjs";
 
 const FALLBACK = `## 核心思想来源
 暂时无法确定来源
@@ -26,6 +29,7 @@ export async function generateIdeaSourceTracing(
   const prompt = IDEA_SOURCE_TRACING_PROMPT(title, bookSummary, viewMap, analysisContext);
   const result = await generateWithOllama(prompt);
   const trimmed = result.trim();
+  const quoteCandidates = extractQuoteCandidatesFromAnalysisContext(analysisContext);
 
-  return trimmed ? cleanupIdeaSourceTracingMarkdown(trimmed) : FALLBACK;
+  return trimmed ? cleanupIdeaSourceTracingMarkdown(trimmed, quoteCandidates) : FALLBACK;
 }
