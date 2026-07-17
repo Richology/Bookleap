@@ -19,9 +19,10 @@ const FALLBACK = `## 关键思想
 export async function generateIdeaSourceTracing(
   title: string,
   bookSummary: string,
-  viewMap: string
+  viewMap: string,
+  analysisContext = ""
 ): Promise<string> {
-  const prompt = IDEA_SOURCE_TRACING_PROMPT(title, bookSummary, viewMap);
+  const prompt = IDEA_SOURCE_TRACING_PROMPT(title, bookSummary, viewMap, analysisContext);
   const result = await generateWithOllama(prompt);
   const trimmed = result.trim();
 

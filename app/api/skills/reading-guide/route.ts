@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { generateReadingGuide } from "@/lib/skills/generateReadingGuide";
+import {
+  buildBookContext,
+  formatBookContextForPrompt,
+} from "@/lib/bookAnalysis/context.mjs";
 
 type ChapterInput = {
   id: string;
@@ -19,15 +23,9 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
     const { title, bookSummary, chapters } = body;
 
-    const validChapterSummaries = chapters
-      .filter((c) => c.summary && !c.summary.includes("暂未生成"))
-      .map((c, index) => ({
-        index: index + 1,
-        title: c.title,
-        summary: c.summary as string,
-      }));
-
-    const readingGuide = await generateReadingGuide(title, bookSummary, validChapterSummaries);
+    const context = buildBookContext({ title, chapters });
+    const analysisContext = formatBookContextForPrompt(context);
+    const readingGuide = await generateReadingGuide(title, bookSummary, analysisContext);
 
     return NextResponse.json({ success: true, readingGuide });
   } catch (error) {

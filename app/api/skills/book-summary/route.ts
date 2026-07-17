@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { generateBookSummary } from "@/lib/skills/generateBookSummary";
+import {
+  buildBookContext,
+  formatBookContextForPrompt,
+} from "@/lib/bookAnalysis/context.mjs";
 
 type ChapterInput = {
   id: string;
   title: string;
   text: string;
+  summary?: string;
 };
 
 type RequestBody = {
@@ -21,13 +26,9 @@ export async function POST(request: Request) {
     title = typeof body.title === "string" ? body.title : "";
     chapters = Array.isArray(body.chapters) ? body.chapters : [];
 
-    const chapterContextForSummary = chapters.map((c, index) => ({
-      index: index + 1,
-      title: typeof c.title === "string" ? c.title : "",
-      summary: typeof c.text === "string" ? c.text.slice(0, 800) : "",
-    }));
-
-    const bookSummary = await generateBookSummary(title, chapterContextForSummary);
+    const context = buildBookContext({ title, chapters });
+    const analysisContext = formatBookContextForPrompt(context);
+    const bookSummary = await generateBookSummary(title, analysisContext);
 
     return NextResponse.json({ success: true, bookSummary });
   } catch (error) {

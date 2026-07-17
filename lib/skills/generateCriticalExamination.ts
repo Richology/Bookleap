@@ -1,12 +1,6 @@
 import { generateWithOllama } from "@/lib/ollama";
 import { CRITICAL_EXAMINATION_PROMPT } from "@/lib/prompts/criticalExamination";
 
-type ChapterSummaryItem = {
-  index: number;
-  title: string;
-  summary: string;
-};
-
 function normalizeBoundarySection(markdown: string): string {
   const marker = "## 适用边界";
   const start = markdown.indexOf(marker);
@@ -36,13 +30,9 @@ function normalizeBoundarySection(markdown: string): string {
 export async function generateCriticalExamination(
   title: string,
   bookSummary: string,
-  chapterSummaries: ChapterSummaryItem[]
+  analysisContext: string
 ): Promise<string> {
-  const summariesText = chapterSummaries
-    .map((item) => `第${item.index}章：${item.title}\n摘要：${item.summary}`)
-    .join("\n\n");
-
-  const prompt = CRITICAL_EXAMINATION_PROMPT(title, bookSummary, summariesText);
+  const prompt = CRITICAL_EXAMINATION_PROMPT(title, bookSummary, analysisContext);
   const result = await generateWithOllama(prompt);
   return normalizeBoundarySection(result.trim());
 }

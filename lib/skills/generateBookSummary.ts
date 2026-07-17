@@ -1,21 +1,11 @@
 import { generateWithOllama } from "@/lib/ollama";
 import { BOOK_SUMMARY_PROMPT } from "@/lib/prompts/bookSummary";
 
-type ChapterSummaryItem = {
-  index: number;
-  title: string;
-  summary: string;
-};
-
 export async function generateBookSummary(
   title: string,
-  chapterSummaries: ChapterSummaryItem[]
+  analysisContext: string
 ): Promise<string> {
-  const summariesText = chapterSummaries
-    .map((item) => `第${item.index}章：${item.title}\n摘要：${item.summary}`)
-    .join("\n\n");
-
-  const prompt = BOOK_SUMMARY_PROMPT(title, summariesText);
+  const prompt = BOOK_SUMMARY_PROMPT(title, analysisContext);
   const result = await generateWithOllama(prompt);
   return result.trim();
 }

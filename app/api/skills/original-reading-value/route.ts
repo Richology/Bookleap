@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { generateOriginalReadingValue } from "@/lib/skills/generateOriginalReadingValue";
+import {
+  buildBookContext,
+  formatBookContextForPrompt,
+} from "@/lib/bookAnalysis/context.mjs";
 
 type Chapter = {
+  id?: string;
   title: string;
+  text?: string;
   summary?: string;
 };
 
@@ -18,11 +24,23 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
     const { title, bookSummary, readingGuide, chapters } = body;
 
+    const context = buildBookContext({
+      title,
+      chapters: Array.isArray(chapters)
+        ? chapters.map((chapter, index) => ({
+            id: chapter.id || `chapter-${index + 1}`,
+            title: chapter.title,
+            text: chapter.text || chapter.summary || "",
+            summary: chapter.summary,
+          }))
+        : [],
+    });
+    const analysisContext = formatBookContextForPrompt(context);
     const originalReadingValue = await generateOriginalReadingValue(
       title,
       bookSummary,
       readingGuide,
-      Array.isArray(chapters) ? chapters : []
+      analysisContext
     );
 
     return NextResponse.json({ success: true, originalReadingValue });

@@ -3328,14 +3328,15 @@ export default function Home() {
   const fetchIdeaSourceTracing = async (
     title: string,
     bookSummary: string,
-    viewMap: string
+    viewMap: string,
+    chapters: Chapter[]
   ) => {
     try {
       setIsLoadingIdeaSourceTracing(true);
       const res = await fetch("/api/skills/idea-source-tracing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, bookSummary, viewMap }),
+        body: JSON.stringify({ title, bookSummary, viewMap, chapters }),
       });
       const data = await res.json();
       if (data.success) {
@@ -3424,7 +3425,7 @@ export default function Home() {
     await Promise.all([
       fetchActionExtraction(title, bookSummary, chapters),
       fetchViewValidation(title, bookSummary, chapters),
-      fetchIdeaSourceTracing(title, bookSummary, viewMapResult),
+      fetchIdeaSourceTracing(title, bookSummary, viewMapResult, chapters),
     ]);
     setMessage("分析完成");
   };
@@ -4320,7 +4321,12 @@ export default function Home() {
         fetch("/api/skills/idea-source-tracing", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, bookSummary: bkSummary, viewMap: bg.viewMap || "" }),
+          body: JSON.stringify({
+            title,
+            bookSummary: bkSummary,
+            viewMap: bg.viewMap || "",
+            chapters: chaps,
+          }),
         }).then(r => r.json()),
         fetch("/api/skills/original-reading-value", {
           method: "POST",

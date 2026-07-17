@@ -2,12 +2,12 @@ export function ORIGINAL_READING_VALUE_PROMPT(
   title: string,
   bookSummary: string,
   readingGuide: string,
-  summariesText: string
+  analysisContext: string
 ): string {
   return `
 你是一位克制、严格的阅读顾问。
 
-请根据拆书结果，判断用户读完精华后，是否还值得继续阅读原书。注意：这不是评价一本书好不好，而是评价“原书相对拆书精华还有多少增量价值”。
+请根据拆书结果与代表性分析上下文，判断用户读完精华后，是否还值得继续阅读原书。注意：这不是评价一本书好不好，而是评价“原书相对拆书精华还有多少增量价值”。
 
 判断重点：
 1. 如果一本书用一场 PPT 或一篇长文就能讲清，且原书大量重复同一套方法论，推荐度要低。
@@ -43,7 +43,7 @@ ${bookSummary}
 阅读指南：
 ${readingGuide}
 
-章节摘要：
-${summariesText}
+分析上下文：
+${analysisContext}
 `;
 }
