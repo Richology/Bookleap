@@ -5,7 +5,7 @@ import { cleanupIdeaSourceTracingMarkdown } from "@/lib/skills/markdownCleanup.m
 const FALLBACK = `## 核心思想来源
 暂时无法确定来源
 
-## 可能来源
+## 思想来源拆解
 当前基于已有信息，暂时无法可靠判断这本书的明确思想来源。
 
 ## 作者处理方式
