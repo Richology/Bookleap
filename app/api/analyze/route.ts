@@ -8,11 +8,26 @@ import {
   getFileTypeFromName,
   stripSupportedFileExtension,
 } from "@/lib/fileFormats";
+import {
+  toAnalysisChapters,
+} from "@/lib/bookAnalysis/context.mjs";
 
 type ChapterItem = {
   id: string;
   title: string;
   text: string;
+  summary?: string;
+  analysisMeta?: {
+    chapterIndex: number;
+    originalChapterId: string;
+    originalTitle: string;
+    totalChapters: number;
+    estimatedChars: number;
+    positionRatio: number;
+    sampleIndex: number;
+    samplePosition: "opening" | "middle" | "ending" | "full";
+    quoteCandidates: string[];
+  };
 };
 
 type ParsedBookData = {
@@ -114,6 +129,7 @@ export async function POST(request: Request) {
       fs.writeFileSync(filePath, buffer);
 
       const epubData = await parseEpub(filePath);
+      const chapters = toAnalysisChapters(epubData.chapters);
 
       return NextResponse.json({
         success: true,
@@ -124,7 +140,7 @@ export async function POST(request: Request) {
         author: epubData.author,
         coverImage: epubData.coverImage,
         bookSummary: "",
-        chapters: epubData.chapters,
+        chapters,
       });
     }
 
@@ -153,7 +169,7 @@ export async function POST(request: Request) {
         title: azw3Data.title,
         author: azw3Data.author,
         bookSummary: "",
-        chapters: azw3Data.chapters,
+        chapters: toAnalysisChapters(azw3Data.chapters),
       });
     }
 
@@ -169,7 +185,7 @@ export async function POST(request: Request) {
         title: txtTitle,
         author: "",
         bookSummary: "",
-        chapters: txtChapters,
+        chapters: toAnalysisChapters(txtChapters),
       });
     }
 
@@ -184,7 +200,7 @@ export async function POST(request: Request) {
       title: pdfTitle,
       author: "",
       bookSummary: "",
-      chapters: pdfChapters,
+      chapters: toAnalysisChapters(pdfChapters),
     });
   } catch (error) {
     console.error("分析失败:", error);
@@ -220,7 +236,7 @@ function parseEpub(
 
           const chapterId = item.id;
           const rawText = await getChapterText(epub, chapterId);
-          const cleanText = cleanHtmlText(rawText).slice(0, 3000);
+          const cleanText = cleanHtmlText(rawText);
           const chapterTitle =
             extractHeadingFromHtml(rawText) ||
             item.title?.trim() ||
@@ -240,9 +256,6 @@ function parseEpub(
             text: cleanText,
           });
 
-          if (chapters.length >= 8) {
-            break;
-          }
         }
 
         resolve({
@@ -385,11 +398,11 @@ async function parseAzw3(
     walkToc(kf8.getToc() || []);
 
     const chapters: ChapterItem[] = [];
-    for (const [index, item] of kf8.getSpine().slice(0, 8).entries()) {
+    for (const [index, item] of kf8.getSpine().entries()) {
       const chapter = kf8.loadChapter(item.id);
       if (!chapter?.html) continue;
 
-      const text = cleanHtmlText(chapter.html).slice(0, 3000);
+      const text = cleanHtmlText(chapter.html);
       if (text.length < 80) continue;
 
       chapters.push({
@@ -471,10 +484,10 @@ function parseTxt(buffer: Buffer): ChapterItem[] {
   pushSection();
 
   if (groupedSections.length > 0) {
-    return groupedSections.slice(0, 8).map((section, index) => ({
+    return groupedSections.map((section, index) => ({
       id: `txt-${index + 1}`,
       title: section.title || `第 ${index + 1} 部分`,
-      text: section.text.slice(0, 3000),
+      text: section.text,
     }));
   }
 
@@ -501,9 +514,9 @@ async function parsePdf(buffer: Buffer): Promise<ChapterItem[]> {
 }
 
 function chunkPlainText(fullText: string, prefix: "pdf" | "txt"): ChapterItem[] {
-  const CHUNK_SIZE = 3000;
+  const CHUNK_SIZE = 6000;
   const chunks: ChapterItem[] = [];
-  const totalChunks = Math.min(8, Math.ceil(fullText.length / CHUNK_SIZE));
+  const totalChunks = Math.ceil(fullText.length / CHUNK_SIZE);
 
   for (let i = 0; i < totalChunks; i++) {
     const text = fullText

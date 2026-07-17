@@ -1,12 +1,12 @@
 export function ACTION_EXTRACTION_PROMPT(
   title: string,
   bookSummary: string,
-  summariesText: string
+  analysisContext: string
 ): string {
   return `
 你是一位注重实践的知识转化专家。
 
-请基于下面提供的全书摘要与章节摘要，为这本书生成一份「行动提炼」。
+请基于下面提供的全书摘要与分析上下文，为这本书生成一份「行动提炼」。
 
 目标：
 把书中的洞见转化为读者可以直接执行的原则与行动，让阅读产生真实改变。
@@ -27,6 +27,13 @@ export function ACTION_EXTRACTION_PROMPT(
 - 行动必须具体，不能是"多思考""保持开放"这类虚泛建议
 - 每个行动下方用 1-2 句话说明做法或触发条件
 
+## 触发条件
+列出 3-5 个应该想起并使用本书观点的触发条件。
+要求：
+- 每条都以"当你..."开头
+- 必须是现实中可识别的情境
+- 不要重复「适用场景」
+
 ## 适用场景
 列出 3-5 个最适合应用本书洞见的真实场景。
 要求：
@@ -39,6 +46,7 @@ export function ACTION_EXTRACTION_PROMPT(
 3. 像行动手册，不像读书笔记
 4. 不要逐章复述
 5. 不要输出除上述结构外的额外标题
+6. 不要重复观点地图里的观点结构，只做实践转译
 
 书名：
 ${title}
@@ -46,7 +54,7 @@ ${title}
 全书摘要：
 ${bookSummary}
 
-章节摘要：
-${summariesText}
+分析上下文：
+${analysisContext}
 `;
 }

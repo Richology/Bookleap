@@ -1,12 +1,12 @@
 export function CRITICAL_EXAMINATION_PROMPT(
   title: string,
   bookSummary: string,
-  summariesText: string
+  analysisContext: string
 ): string {
   return `
 你是一位严谨的批判性思维分析师。
 
-请基于下面提供的全书摘要与章节摘要，对这本书进行批判性分析，生成一份「观点校验」。
+请基于下面提供的全书摘要与分析上下文，对这本书进行批判性分析，生成一份「观点校验」。
 
 目标：
 不是否定这本书，而是帮助读者用更清醒的视角理解它——知道它在哪里说得好、在哪里可能有漏洞。
@@ -24,6 +24,18 @@ export function CRITICAL_EXAMINATION_PROMPT(
 要求：
 - 每条问题必须具体，指向书中的某个论点
 - 不要泛泛说"缺乏证据"，要说明哪个结论缺乏支撑
+- 如果当前分析上下文不足以支持强判断，明确写"当前依据不足以确认"
+
+## 信息噪声
+指出书中可能存在的冗余或低增量内容，例如：
+- 重复表达
+- 修辞性强调
+- 对中心观点贡献较小的案例或铺陈
+- 适合跳读的内容类型
+要求：
+- 必须结合分析上下文判断
+- 不要为了批评而批评
+- 如果依据不足，明确写"当前依据不足以判断明显信息噪声"
 
 ## 反例或不同视角
 提供 2-3 个与本书观点相对立或补充的视角，可来自：
@@ -50,6 +62,7 @@ export function CRITICAL_EXAMINATION_PROMPT(
 3. 语气分析性、平衡，不激进，不偏袒
 4. 像学术书评，不像聊天回答
 5. 不要输出除上述结构外的额外标题
+6. 不要输出行动建议
 
 书名：
 ${title}
@@ -57,7 +70,7 @@ ${title}
 全书摘要：
 ${bookSummary}
 
-章节摘要：
-${summariesText}
+分析上下文：
+${analysisContext}
 `;
 }
