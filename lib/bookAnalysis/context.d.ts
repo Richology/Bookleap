@@ -59,6 +59,21 @@ export type BookContext = {
   quoteCandidates: string[];
 };
 
+export type StoredBookContext = {
+  version: 1;
+  title: string;
+  author: string;
+  coverage: BookContext["coverage"];
+  outline: BookContext["outline"];
+  samples: Array<{
+    chapterIndex: number;
+    chapterTitle: string;
+    position: SamplePosition;
+    preview: string;
+  }>;
+  quoteCandidates: string[];
+};
+
 export function extractQuoteCandidates(
   texts: string[],
   options?: { minLength?: number; maxLength?: number; limit?: number }
@@ -92,3 +107,9 @@ export function formatBookContextForPrompt(
   context: BookContext,
   options?: { maxBriefs?: number; maxQuotes?: number }
 ): string;
+
+export function buildStoredBookContext(input: {
+  title?: string;
+  author?: string;
+  chapters?: Array<SourceChapter | AnalysisChapter>;
+}): StoredBookContext;
