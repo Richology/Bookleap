@@ -242,7 +242,7 @@ function parseEpub(
             item.title?.trim() ||
             "未命名章节";
 
-          if (isFrontMatterChapter(chapterId, chapterTitle)) {
+          if (isFrontMatterChapter(chapterId, chapterTitle, cleanText)) {
             continue;
           }
 
@@ -601,7 +601,7 @@ function decodeHtmlEntities(text: string): string {
     .replace(/&apos;/g, "'");
 }
 
-function isFrontMatterChapter(chapterId: string, title: string): boolean {
+function isFrontMatterChapter(chapterId: string, title: string, text = ""): boolean {
   const normalizedId = chapterId.toLowerCase();
   const normalizedTitle = title.toLowerCase();
 
@@ -613,5 +613,10 @@ function isFrontMatterChapter(chapterId: string, title: string): boolean {
     return true;
   }
 
-  return /^(cover|halftitle|titlepage|copyright|contents?|contributors?|index|preface|foreword)$/i.test(normalizedTitle);
+  if (/^(cover|halftitle|titlepage|copyright|contents?|contributors?|index|preface|foreword|版权页|版权|目录|封面|扉页|书名页|出版信息|图书在版编目|前言|序言|译者序|致谢)$/i.test(normalizedTitle)) {
+    return true;
+  }
+
+  const textPreview = text.replace(/\s+/g, " ").slice(0, 700);
+  return /图书在版编目|CIP\s*数据|ISBN|版权所有|Copyright|All rights reserved|中国版本图书馆|出版发行|出版社|印刷|版次|印次|定价/i.test(textPreview);
 }
