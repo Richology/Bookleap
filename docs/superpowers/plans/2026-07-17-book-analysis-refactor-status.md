@@ -123,6 +123,19 @@ Plan 要求：`npm run lint` exit 0。
 
 状态：已完成。当前仍有 warnings，主要来自 `<img>` 提示、未使用参数提示和 minified vendor 文件，但不再阻塞 lint 命令。
 
+### 9. 覆盖范围元数据已展示到前端
+
+Spec 将覆盖范围元数据列为延后增强。
+
+当前实现：
+
+- `BookContext` / stored context 中已有 coverage、outline 和 samples。
+- 工作台 overview 的书名区会显示一行轻量「分析覆盖」信息。
+- 当前会话从 `chapters` 现算 coverage；历史记录只读取 `record.analysisContext`。
+- 展示内容包括：完整/简化分析、全书段数、抽样段数、样本片段数、是否包含后段。
+
+状态：已完成。没有新增前端页面、面板或复杂交互，只增加标题区透明度。
+
 ## 已确认偏离
 
 ### 1. 思想溯源前两个标题
@@ -179,19 +192,6 @@ Spec 要求：至少比较 3 类书：
 3. 将结果写入 `docs/superpowers/plans/2026-07-17-book-analysis-manual-verification.md`。
 
 优先级：中。理由：这是上线验收，不一定先于代码补强，但需要在发布前完成。
-
-## 待确认
-
-### 1. 覆盖范围元数据是否展示到前端
-
-Spec 将该项列为延后增强。
-
-当前实现：
-
-- coverage 已在 `BookContext` 和 stored context 中存在。
-- 前端没有展示覆盖章节数、抽样位置、样本数量等信息。
-
-状态：延后增强，不作为当前 TODO。
 
 ## 建议执行顺序
 
