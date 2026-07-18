@@ -5737,80 +5737,80 @@ export default function Home() {
               title={bookTitle}
               subtitle={currentBookAuthor}
               density="hero"
-              meta={analysisCoverageMeta ? (
-                <div className="relative inline-flex max-w-full flex-wrap items-center overflow-visible text-sm font-medium text-[var(--ink-soft)]">
-                  <button
-                    type="button"
-                    onClick={() => setIsCoverageDetailOpen((open) => !open)}
-                    className={`inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-[var(--workspace-hover-surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] shadow-sm shadow-black/5 outline-offset-2 transition-colors hover:bg-[#e6ebee] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9297a0] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 ${
-                      isCoverageDetailOpen ? "rounded-r-none" : ""
-                    }`}
-                    aria-expanded={isCoverageDetailOpen}
-                    aria-controls="analysis-coverage-detail"
-                    aria-label={isCoverageDetailOpen ? "收起拆书覆盖范围状态" : "展开拆书覆盖范围状态"}
-                  >
-                    <span>{analysisModeLabel}</span>
-                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-[var(--ink-faint)]">
-                      <svg
-                        className={`h-3.5 w-3.5 transition-transform duration-200 ${isCoverageDetailOpen ? "rotate-180" : ""}`}
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M6 3.5 10.5 8 6 12.5" />
-                      </svg>
-                    </span>
-                  </button>
-                  <div
-                    id="analysis-coverage-detail"
-                    className={`grid transition-[grid-template-columns,opacity] duration-300 ease-out ${
-                      isCoverageDetailOpen ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
-                    }`}
-                    aria-hidden={!isCoverageDetailOpen}
-                  >
-                    <div className="min-w-0 overflow-hidden">
-                      <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-r-lg border border-l-0 border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-2 shadow-sm shadow-black/5">
-                        <span>
-                          <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalChapters}</strong>
-                          {" "}段全书结构
-                        </span>
-                        <span className="text-[var(--ink-faint)]">→</span>
-                        <span>
-                          <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.sampledChapters}</strong>
-                          {" "}段代表章节
-                        </span>
-                        <span className="text-[var(--ink-faint)]">→</span>
-                        <span>
-                          <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalSamples}</strong>
-                          {" "}个分析片段
-                        </span>
-                        <span className="rounded-full bg-[rgba(16,78,31,0.08)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
-                          {analysisCoverageMeta.spreadLabel}
-                        </span>
-                        <span className="group/coverageHelp relative inline-flex">
-                          <button
-                            type="button"
-                            tabIndex={isCoverageDetailOpen ? 0 : -1}
-                            className="flex h-5 w-5 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-                            aria-label="查看分析范围说明"
-                          >
-                            <HelpIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                          </button>
-                          <span className="pointer-events-none absolute right-0 top-[calc(100%+8px)] z-30 hidden w-[320px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/coverageHelp:block group-focus-within/coverageHelp:block">
-                            {analysisModeLabel}说明这次生成的分析深度，不等于逐字抽取整本书。系统会先建立全书结构，再抽取开头、中段、结尾的代表章节和片段进入精读分析，避免上下文过长和重复内容稀释判断。
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : undefined}
               action={(
                 <div className="max-w-[38rem]">
+                  {analysisCoverageMeta && (
+                    <div className="mb-5 relative inline-flex max-w-full flex-wrap items-center overflow-visible text-sm font-medium text-[var(--ink-soft)]">
+                      <button
+                        type="button"
+                        onClick={() => setIsCoverageDetailOpen((open) => !open)}
+                        className={`inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-[var(--workspace-hover-surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] shadow-sm shadow-black/5 outline-offset-2 transition-colors hover:bg-[#e6ebee] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9297a0] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 ${
+                          isCoverageDetailOpen ? "rounded-r-none" : ""
+                        }`}
+                        aria-expanded={isCoverageDetailOpen}
+                        aria-controls="analysis-coverage-detail"
+                        aria-label={isCoverageDetailOpen ? "收起拆书覆盖范围状态" : "展开拆书覆盖范围状态"}
+                      >
+                        <span>{analysisModeLabel}</span>
+                        <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-[var(--ink-faint)]">
+                          <svg
+                            className={`h-3.5 w-3.5 transition-transform duration-200 ${isCoverageDetailOpen ? "rotate-180" : ""}`}
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M6 3.5 10.5 8 6 12.5" />
+                          </svg>
+                        </span>
+                      </button>
+                      <div
+                        id="analysis-coverage-detail"
+                        className={`grid transition-[grid-template-columns,opacity] duration-300 ease-out ${
+                          isCoverageDetailOpen ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
+                        }`}
+                        aria-hidden={!isCoverageDetailOpen}
+                      >
+                        <div className="min-w-0 overflow-hidden">
+                          <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-r-lg border border-l-0 border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-2 shadow-sm shadow-black/5">
+                            <span>
+                              <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalChapters}</strong>
+                              {" "}段全书结构
+                            </span>
+                            <span className="text-[var(--ink-faint)]">→</span>
+                            <span>
+                              <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.sampledChapters}</strong>
+                              {" "}段代表章节
+                            </span>
+                            <span className="text-[var(--ink-faint)]">→</span>
+                            <span>
+                              <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalSamples}</strong>
+                              {" "}个分析片段
+                            </span>
+                            <span className="rounded-full bg-[rgba(16,78,31,0.08)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+                              {analysisCoverageMeta.spreadLabel}
+                            </span>
+                            <span className="group/coverageHelp relative inline-flex">
+                              <button
+                                type="button"
+                                tabIndex={isCoverageDetailOpen ? 0 : -1}
+                                className="flex h-5 w-5 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                                aria-label="查看分析范围说明"
+                              >
+                                <HelpIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                              <span className="pointer-events-none absolute right-0 top-[calc(100%+8px)] z-30 hidden w-[320px] rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/coverageHelp:block group-focus-within/coverageHelp:block">
+                                {analysisModeLabel}说明这次生成的分析深度，不等于逐字抽取整本书。系统会先建立全书结构，再抽取开头、中段、结尾的代表章节和片段进入精读分析，避免上下文过长和重复内容稀释判断。
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <p className="text-[14px] font-semibold leading-6 text-[var(--ink)]">
                     <span>原书阅读建议</span>
                     <span className="mx-2 text-[var(--ink-faint)]">·</span>
