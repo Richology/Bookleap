@@ -95,6 +95,13 @@ import {
   buildStoredBookContext,
 } from "@/lib/bookAnalysis/context.mjs";
 import {
+  buildCardEvidence,
+} from "@/lib/bookAnalysis/cardEvidence.mjs";
+import type {
+  CardEvidence,
+  EvidenceExcerpt,
+} from "@/lib/bookAnalysis/cardEvidence";
+import {
   addBookHighlight,
   deleteBookHighlight,
   hashHighlightContent,
@@ -194,30 +201,6 @@ type WorkspaceTab = WorkspaceTabItem & {
 };
 
 type WorkspaceReadMode = "overview" | "immersive" | "evidence";
-
-type EvidenceExcerpt = {
-  sourceId: string;
-  chapterIndex: number;
-  chapterTitle: string;
-  samplePosition: "opening" | "middle" | "ending" | "full";
-  quote: string;
-  before?: string;
-  after?: string;
-};
-
-type EvidenceClaim = {
-  id: string;
-  claim: string;
-  supportLevel: "direct" | "inferred" | "weak";
-  explanation: string;
-  excerpts: EvidenceExcerpt[];
-};
-
-type CardEvidence = {
-  cardKey: string;
-  cardLabel: string;
-  claims: EvidenceClaim[];
-};
 
 type PendingQuoteSelection = {
   text: string;
@@ -328,14 +311,6 @@ const SEARCHABLE_CARD_FIELDS = [
   { key: "criticalExamination", label: "观点校验" },
   { key: "ideaSourceTracing", label: "思想溯源" },
 ] as const;
-const CARD_EVIDENCE_CLAIM_LABELS: Record<string, string> = {
-  bookSummary: "这张卡的全书判断",
-  readingGuide: "这张卡的阅读建议",
-  viewMap: "这张卡的观点结构",
-  actionExtraction: "这张卡的行动提炼",
-  criticalExamination: "这张卡的观点校验",
-  ideaSourceTracing: "这张卡的思想溯源判断",
-};
 const SAMPLE_POSITION_LABELS: Record<EvidenceExcerpt["samplePosition"], string> = {
   opening: "开头样本",
   middle: "中段样本",
@@ -950,60 +925,6 @@ function getAnalysisCoverageMeta(context?: StoredBookContext) {
     sampledChapters: coverage.sampledChapters,
     totalSamples: coverage.totalSamples,
     spreadLabel,
-  };
-}
-
-function getCardEvidence({
-  cardKey,
-  cardLabel,
-  context,
-}: {
-  cardKey: string;
-  cardLabel: string;
-  context?: StoredBookContext;
-}): CardEvidence | null {
-  if (!context?.evidenceBriefs?.length) return null;
-
-  const offset = Math.abs(hashString(`${context.title}:${cardKey}`)) % Math.max(context.evidenceBriefs.length, 1);
-  const orderedBriefs = [
-    ...context.evidenceBriefs.slice(offset),
-    ...context.evidenceBriefs.slice(0, offset),
-  ];
-  const selectedBriefs = orderedBriefs.slice(0, 4);
-
-  const claims = selectedBriefs.map((brief, index) => {
-    const quote =
-      brief.quoteCandidates.find((candidate) => candidate.length >= 18) ||
-      brief.quoteCandidates[0] ||
-      brief.preview;
-    const sourceLabel = `${brief.sourceId} · 第 ${brief.chapterIndex} 部分 · ${SAMPLE_POSITION_LABELS[brief.position]}`;
-
-    return {
-      id: `${cardKey}-${brief.sourceId}-${index}`,
-      claim:
-        index === 0
-          ? CARD_EVIDENCE_CLAIM_LABELS[cardKey] ?? `${cardLabel}的核心判断`
-          : `补充依据 ${index + 1}`,
-      supportLevel: quote === brief.preview ? "inferred" : "direct",
-      explanation: `这条依据来自 ${sourceLabel}，用于支撑「${cardLabel}」中的判断。`,
-      excerpts: [
-        {
-          sourceId: brief.sourceId,
-          chapterIndex: brief.chapterIndex,
-          chapterTitle: brief.chapterTitle,
-          samplePosition: brief.position,
-          quote,
-          before: brief.preview && brief.preview !== quote ? brief.preview.slice(0, 120) : undefined,
-          after: brief.preview && brief.preview !== quote ? brief.preview.slice(120, 260) : undefined,
-        },
-      ],
-    } satisfies EvidenceClaim;
-  });
-
-  return {
-    cardKey,
-    cardLabel,
-    claims,
   };
 }
 
@@ -4881,11 +4802,11 @@ export default function Home() {
     ? immersiveCardList.findIndex((card) => card.key === selectedEvidenceCard.key)
     : -1;
   const selectedCardEvidence = selectedEvidenceCard
-    ? getCardEvidence({
+    ? buildCardEvidence({
         cardKey: selectedEvidenceCard.key,
         cardLabel: selectedEvidenceCard.label,
         context: currentAnalysisContext,
-      })
+      }) as CardEvidence | null
     : null;
   const selectedEvidenceClaim =
     selectedCardEvidence?.claims.find((claim) => claim.id === selectedEvidenceClaimId) ??

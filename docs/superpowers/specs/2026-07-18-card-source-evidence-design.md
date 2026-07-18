@@ -401,12 +401,14 @@ app/workspace/page.tsx
 - workspace 新增 `evidence` 视图。
 - evidence 视图使用当前 `StoredBookContext.evidenceBriefs` 派生依据列表。
 - 旧记录没有依据片段时展示降级空状态。
+- 新增 `lib/bookAnalysis/cardEvidence.mjs` normalizer，用于校验 sourceId 和 quote。
+- `view-map` API 已试点返回兼容字段 `evidence`。
 
 仍待后续实现：
 
-- skill API 返回精确 `CardEvidence` JSON。
-- `lib/bookAnalysis/cardEvidence.mjs` normalizer。
-- 每张卡的 claim 与 sourceId 由模型和 normalizer 协同生成，而不是前端从 brief 中稳定派生。
+- 其余 skill API 返回精确 `CardEvidence` JSON。
+- 每张卡的 claim 与 sourceId 由模型和 normalizer 协同生成，而不是仅从 brief 中 fallback 派生。
+- 前端/history 消费 API 返回的精确 evidence，而不是只在页面端即时派生。
 
 ## 验收标准
 
