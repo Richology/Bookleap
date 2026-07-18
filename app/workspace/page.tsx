@@ -899,20 +899,20 @@ function buildHistoryAnalysisContext({
   }
 }
 
-function getAnalysisCoverageLabel(context?: StoredBookContext): string {
-  if (!context) return "";
+function getAnalysisCoverageMeta(context?: StoredBookContext) {
+  if (!context) return undefined;
 
   const { coverage, samples, outline } = context;
   const hasEndingSample = samples.some((sample) => sample.position === "ending");
   const hasLateChapter = outline.some((item) => item.positionRatio >= 0.75);
-  const coverageTail = hasEndingSample || hasLateChapter ? "含后段" : "代表性抽样";
+  const spreadLabel = hasEndingSample || hasLateChapter ? "覆盖结尾" : "代表性分布";
 
-  return [
-    `全书 ${coverage.totalChapters} 段`,
-    `抽样 ${coverage.sampledChapters} 段`,
-    `${coverage.totalSamples} 个片段`,
-    coverageTail,
-  ].join(" · ");
+  return {
+    totalChapters: coverage.totalChapters,
+    sampledChapters: coverage.sampledChapters,
+    totalSamples: coverage.totalSamples,
+    spreadLabel,
+  };
 }
 
 function tryWriteHistory(records: HistoryRecord[]) {
@@ -1880,8 +1880,8 @@ export default function Home() {
       chapters,
     });
   }, [bookTitle, chapters, currentBookAuthor, currentHistoryRecord]);
-  const analysisCoverageLabel = useMemo(
-    () => getAnalysisCoverageLabel(currentAnalysisContext),
+  const analysisCoverageMeta = useMemo(
+    () => getAnalysisCoverageMeta(currentAnalysisContext),
     [currentAnalysisContext]
   );
   const historyCover = currentHistoryRecord?.coverImage ?? "";
@@ -5731,22 +5731,45 @@ export default function Home() {
               title={bookTitle}
               subtitle={currentBookAuthor}
               density="hero"
-              meta={analysisCoverageLabel ? (
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[var(--ink-soft)] md:text-[12px]">
-                  <span className="inline-flex h-7 items-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[var(--workspace-hover-surface)] px-3 text-[var(--ink)]">
-                    分析覆盖
-                  </span>
-                  <span className="inline-flex h-7 items-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3">
-                    {isLiteMode && !isLiteUnlocked ? "简化分析" : "完整分析"}
-                  </span>
-                  {analysisCoverageLabel.split(" · ").map((item) => (
-                    <span
-                      key={item}
-                      className="inline-flex h-7 items-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3"
-                    >
-                      {item}
+              meta={analysisCoverageMeta ? (
+                <div className="group/coverage relative inline-flex max-w-full flex-wrap items-stretch overflow-visible rounded-[14px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.82)] text-[12px] font-medium text-[var(--ink-soft)] shadow-[0_8px_22px_rgba(24,29,38,0.05)] backdrop-blur">
+                  <div className="flex items-center gap-2 border-r border-[rgba(24,29,38,0.08)] bg-[var(--workspace-hover-surface)] px-3 py-2">
+                    <span className="font-semibold text-[var(--ink)]">分析覆盖</span>
+                    <span className="text-[11px] text-[var(--ink-faint)]">
+                      {isLiteMode && !isLiteUnlocked ? "简化分析" : "完整分析"}
                     </span>
-                  ))}
+                  </div>
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2">
+                    <span>
+                      <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalChapters}</strong>
+                      {" "}段全书结构
+                    </span>
+                    <span className="text-[var(--ink-faint)]">→</span>
+                    <span>
+                      <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.sampledChapters}</strong>
+                      {" "}段代表章节
+                    </span>
+                    <span className="text-[var(--ink-faint)]">→</span>
+                    <span>
+                      <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalSamples}</strong>
+                      {" "}个分析片段
+                    </span>
+                    <span className="rounded-full bg-[rgba(16,78,31,0.08)] px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+                      {analysisCoverageMeta.spreadLabel}
+                    </span>
+                    <span className="group/coverageHelp relative inline-flex">
+                      <button
+                        type="button"
+                        className="flex h-5 w-5 items-center justify-center rounded-full border border-[#cfd6dc] bg-[#fbfcfd] text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                        aria-label="查看分析覆盖说明"
+                      >
+                        <HelpIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <span className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] z-30 hidden w-[320px] -translate-x-1/2 rounded-[10px] border border-[#cfd6dc] bg-[#fbfcfd] px-3.5 py-3 text-[11px] font-medium leading-5 text-[var(--ink-soft)] shadow-[0_12px_28px_rgba(24,29,38,0.14)] group-hover/coverageHelp:block group-focus-within/coverageHelp:block">
+                        完整分析指生成完整分析模块，不等于逐字抽取整本书。系统会先建立全书结构，再抽取开头、中段、结尾的代表章节和片段进入精读分析，避免上下文过长和重复内容稀释判断。
+                      </span>
+                    </span>
+                  </div>
                 </div>
               ) : undefined}
               action={(
