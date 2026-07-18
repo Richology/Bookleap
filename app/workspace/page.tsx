@@ -5740,13 +5740,11 @@ export default function Home() {
               action={(
                 <div className="max-w-[38rem]">
                   {analysisCoverageMeta && (
-                    <div className="mb-5 relative inline-flex max-w-full flex-wrap items-center overflow-visible text-sm font-medium text-[var(--ink-soft)]">
+                    <div className="relative mb-5 inline-flex max-w-full items-center overflow-visible text-sm font-medium text-[var(--ink-soft)]">
                       <button
                         type="button"
                         onClick={() => setIsCoverageDetailOpen((open) => !open)}
-                        className={`inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-[var(--workspace-hover-surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] shadow-sm shadow-black/5 outline-offset-2 transition-colors hover:bg-[#e6ebee] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9297a0] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 ${
-                          isCoverageDetailOpen ? "rounded-r-none" : ""
-                        }`}
+                        className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-[var(--workspace-hover-surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] shadow-sm shadow-black/5 outline-offset-2 transition-colors hover:bg-[#e6ebee] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9297a0] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0"
                         aria-expanded={isCoverageDetailOpen}
                         aria-controls="analysis-coverage-detail"
                         aria-label={isCoverageDetailOpen ? "收起拆书覆盖范围状态" : "展开拆书覆盖范围状态"}
@@ -5767,15 +5765,12 @@ export default function Home() {
                           </svg>
                         </span>
                       </button>
-                      <div
-                        id="analysis-coverage-detail"
-                        className={`grid transition-[grid-template-columns,opacity] duration-300 ease-out ${
-                          isCoverageDetailOpen ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
-                        }`}
-                        aria-hidden={!isCoverageDetailOpen}
-                      >
-                        <div className="min-w-0 overflow-hidden">
-                          <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-r-lg border border-l-0 border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-2 shadow-sm shadow-black/5">
+                      {isCoverageDetailOpen && (
+                        <div
+                          id="analysis-coverage-detail"
+                          className="absolute left-full top-0 z-20 ml-2 animate-in fade-in slide-in-from-left-1 duration-200"
+                        >
+                          <div className="flex min-h-9 w-max max-w-[calc(100vw-28rem)] items-center gap-x-2 rounded-lg border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-2 text-sm shadow-sm shadow-black/5">
                             <span>
                               <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalChapters}</strong>
                               {" "}段全书结构
@@ -5808,7 +5803,7 @@ export default function Home() {
                             </span>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                   <p className="text-[14px] font-semibold leading-6 text-[var(--ink)]">
