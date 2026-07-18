@@ -117,6 +117,12 @@ type Chapter = {
   title: string;
   text: string;
   summary?: string;
+  analysisMeta?: {
+    chapterIndex?: number;
+    totalChapters?: number;
+    positionRatio?: number;
+    samplePosition?: "opening" | "middle" | "ending" | "full";
+  };
 };
 
 type BgAnalysisData = {
@@ -891,6 +897,22 @@ function buildHistoryAnalysisContext({
   } catch {
     return undefined;
   }
+}
+
+function getAnalysisCoverageLabel(context?: StoredBookContext): string {
+  if (!context) return "";
+
+  const { coverage, samples, outline } = context;
+  const hasEndingSample = samples.some((sample) => sample.position === "ending");
+  const hasLateChapter = outline.some((item) => item.positionRatio >= 0.75);
+  const coverageTail = hasEndingSample || hasLateChapter ? "含后段" : "代表性抽样";
+
+  return [
+    `全书 ${coverage.totalChapters} 段`,
+    `抽样 ${coverage.sampledChapters} 段`,
+    `${coverage.totalSamples} 个片段`,
+    coverageTail,
+  ].join(" · ");
 }
 
 function tryWriteHistory(records: HistoryRecord[]) {
@@ -1848,6 +1870,20 @@ export default function Home() {
     bookAuthor ||
     fetchedAuthor ||
     "";
+  const currentAnalysisContext = useMemo(() => {
+    if (currentHistoryRecord) {
+      return currentHistoryRecord.analysisContext;
+    }
+    return buildHistoryAnalysisContext({
+      title: bookTitle,
+      author: currentBookAuthor,
+      chapters,
+    });
+  }, [bookTitle, chapters, currentBookAuthor, currentHistoryRecord]);
+  const analysisCoverageLabel = useMemo(
+    () => getAnalysisCoverageLabel(currentAnalysisContext),
+    [currentAnalysisContext]
+  );
   const historyCover = currentHistoryRecord?.coverImage ?? "";
   const localCover = starterCover || bookCoverImage || historyCover;
 
@@ -5695,6 +5731,24 @@ export default function Home() {
               title={bookTitle}
               subtitle={currentBookAuthor}
               density="hero"
+              meta={analysisCoverageLabel ? (
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[var(--ink-soft)] md:text-[12px]">
+                  <span className="inline-flex h-7 items-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[var(--workspace-hover-surface)] px-3 text-[var(--ink)]">
+                    分析覆盖
+                  </span>
+                  <span className="inline-flex h-7 items-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3">
+                    {isLiteMode && !isLiteUnlocked ? "简化分析" : "完整分析"}
+                  </span>
+                  {analysisCoverageLabel.split(" · ").map((item) => (
+                    <span
+                      key={item}
+                      className="inline-flex h-7 items-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              ) : undefined}
               action={(
                 <div className="max-w-[38rem]">
                   <p className="text-[14px] font-semibold leading-6 text-[var(--ink)]">
