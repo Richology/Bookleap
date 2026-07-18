@@ -5740,7 +5740,7 @@ export default function Home() {
               action={(
                 <div className="max-w-[38rem]">
                   {analysisCoverageMeta && (
-                    <div className="relative mb-5 inline-flex max-w-full items-center overflow-visible rounded-lg border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-sm font-medium text-[var(--ink-soft)] shadow-sm shadow-black/5">
+                    <div className="relative mb-5 inline-flex w-max max-w-none items-center overflow-visible rounded-lg border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-sm font-medium text-[var(--ink-soft)] shadow-sm shadow-black/5">
                       <button
                         type="button"
                         onClick={() => setIsCoverageDetailOpen((open) => !open)}
@@ -5770,9 +5770,9 @@ export default function Home() {
                       {isCoverageDetailOpen && (
                         <div
                           id="analysis-coverage-detail"
-                          className="min-w-0 animate-in fade-in slide-in-from-left-1 duration-200"
+                          className="min-w-0 animate-in fade-in duration-150"
                         >
-                          <div className="flex min-h-9 w-max max-w-[calc(100vw-28rem)] items-center gap-x-2 rounded-r-lg bg-[#fbfcfd] px-3 py-2 text-sm">
+                          <div className="flex min-h-9 w-max items-center gap-x-2 rounded-r-lg bg-[#fbfcfd] px-3 py-2 text-sm">
                             <span>
                               <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalChapters}</strong>
                               {" "}段全书结构
