@@ -132,7 +132,7 @@ Spec 将覆盖范围元数据列为延后增强。
 - `BookContext` / stored context 中已有 coverage、outline 和 samples。
 - 工作台 overview 的书名区会显示一行轻量「分析覆盖」信息。
 - 当前会话从 `chapters` 现算 coverage；历史记录只读取 `record.analysisContext`。
-- 展示内容包括：完整/简化分析、全书段数、抽样段数、样本片段数、是否包含后段。
+- 展示内容包括：完整/简化分析、全书结构段数、代表章节段数、分析片段数、是否覆盖结尾/代表性分布。
 
 状态：已完成。没有新增前端页面、面板或复杂交互，只增加标题区透明度。
 
