@@ -6,7 +6,6 @@ export function WorkspaceReaderHeader({
   title,
   subtitle,
   cover,
-  meta,
   action,
   density = "compact",
 }: {
@@ -14,7 +13,6 @@ export function WorkspaceReaderHeader({
   subtitle?: string;
   progressLabel?: string;
   cover?: ReactNode;
-  meta?: ReactNode;
   action?: ReactNode;
   density?: "hero" | "compact";
 }) {
@@ -34,12 +32,6 @@ export function WorkspaceReaderHeader({
             <p className="mt-1.5 text-[13px] font-medium text-[var(--ink-soft)] md:text-[14px]">
               作者：{subtitle}
             </p>
-          )}
-
-          {meta && (
-            <div className="mt-4">
-              {meta}
-            </div>
           )}
 
           {action && (
