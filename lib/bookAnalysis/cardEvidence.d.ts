@@ -32,3 +32,11 @@ export function buildCardEvidence(input: {
   claims?: Array<unknown>;
   maxClaims?: number;
 }): CardEvidence | null;
+
+export function buildCardEvidenceFromContent(input: {
+  cardKey: string;
+  cardLabel: string;
+  content?: string;
+  context?: BookContext | StoredBookContext;
+  maxClaims?: number;
+}): CardEvidence | null;

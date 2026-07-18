@@ -4,6 +4,9 @@ import {
   buildBookContext,
   formatBookContextForPrompt,
 } from "@/lib/bookAnalysis/context.mjs";
+import {
+  buildCardEvidenceFromContent,
+} from "@/lib/bookAnalysis/cardEvidence.mjs";
 
 type RequestBody = {
   title: string;
@@ -40,8 +43,14 @@ export async function POST(request: Request) {
       viewMap,
       analysisContext
     );
+    const evidence = buildCardEvidenceFromContent({
+      cardKey: "ideaSourceTracing",
+      cardLabel: "思想溯源",
+      content: ideaSourceTracing,
+      context,
+    });
 
-    return NextResponse.json({ success: true, ideaSourceTracing });
+    return NextResponse.json({ success: true, ideaSourceTracing, evidence });
   } catch (error) {
     console.error("思想溯源生成失败:", error);
     return NextResponse.json(

@@ -145,6 +145,7 @@ type BgAnalysisData = {
   viewValidation: string;
   ideaSourceTracing: string;
   workspaceQuote: string;
+  cardEvidence: Record<string, CardEvidence>;
   liteMode: boolean;
   fileType: string;
   starterBookId: string | null;
@@ -343,6 +344,7 @@ type HistoryRecord = {
   starterBookId?: string;
   author?: string;
   analysisContext?: StoredBookContext;
+  cardEvidence?: Record<string, CardEvidence>;
 };
 
 type StoredBookContext = ReturnType<typeof buildStoredBookContext>;
@@ -685,6 +687,25 @@ function downloadJsonFile(filename: string, data: unknown) {
 
 function isRecordObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isCardEvidence(value: unknown): value is CardEvidence {
+  if (!isRecordObject(value)) return false;
+  return (
+    typeof value.cardKey === "string" &&
+    typeof value.cardLabel === "string" &&
+    Array.isArray(value.claims)
+  );
+}
+
+function normalizeCardEvidenceMap(value: unknown): Record<string, CardEvidence> {
+  if (!isRecordObject(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, CardEvidence] =>
+      typeof entry[0] === "string" && isCardEvidence(entry[1])
+    )
+  );
 }
 
 function isSupportedHistoryRecord(value: unknown): value is HistoryRecord {
@@ -1739,6 +1760,7 @@ export default function Home() {
   const [criticalExamination, setCriticalExamination] = useState("");
   const [ideaSourceTracing, setIdeaSourceTracing] = useState("");
   const [workspaceQuote, setWorkspaceQuote] = useState("");
+  const [cardEvidenceByKey, setCardEvidenceByKey] = useState<Record<string, CardEvidence>>({});
   const [bookSummary, setBookSummary] = useState("");
   const [bookCoverImage, setBookCoverImage] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -1900,6 +1922,13 @@ export default function Home() {
     () => getAnalysisCoverageMeta(currentAnalysisContext),
     [currentAnalysisContext]
   );
+  const rememberCardEvidence = useCallback((cardKey: string, evidence: unknown) => {
+    if (!cardKey || !isCardEvidence(evidence)) return;
+    setCardEvidenceByKey((prev) => ({
+      ...prev,
+      [cardKey]: evidence,
+    }));
+  }, []);
   const analysisModeLabel = isLiteMode && !isLiteUnlocked ? "简化分析" : "完整分析";
   const historyCover = currentHistoryRecord?.coverImage ?? "";
   const localCover = starterCover || bookCoverImage || historyCover;
@@ -2591,6 +2620,7 @@ export default function Home() {
       ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(workspaceQuote, { title: bookTitle }),
+      cardEvidence: cardEvidenceByKey,
       coverImage: currentStarterBook?.coverImage || bookCoverImage || currentHistoryRecord?.coverImage || "",
       posterContent: posterContent ?? null,
       isStarterBook: !!currentStarterBook,
@@ -3021,6 +3051,7 @@ export default function Home() {
     setIdeaSourceTracing("");
     setIsLoadingIdeaSourceTracing(false);
     setWorkspaceQuote("");
+    setCardEvidenceByKey({});
     setBookCoverImage("");
     setChapters([]);
     setIsLiteMode(false);
@@ -3144,6 +3175,7 @@ export default function Home() {
     setCriticalExamination(bg.viewValidation);
     setIdeaSourceTracing(bg.ideaSourceTracing);
     setWorkspaceQuote(sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }));
+    setCardEvidenceByKey(bg.cardEvidence);
     setIsLiteMode(bg.liteMode);
     setIsLiteUnlocked(!bg.liteMode);
     setCurrentStarterBookId(bg.starterBookId);
@@ -3176,6 +3208,7 @@ export default function Home() {
       ideaSourceTracing: bg.ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }),
+      cardEvidence: bg.cardEvidence,
       coverImage: starterBook?.coverImage || bg.coverImage || existing?.coverImage || "",
       posterContent: null,
       isStarterBook: !!starterBook,
@@ -3240,6 +3273,7 @@ export default function Home() {
       ideaSourceTracing: bg.ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }),
+      cardEvidence: bg.cardEvidence,
       coverImage: starterBook?.coverImage || bg.coverImage || existing?.coverImage || "",
       posterContent: existing?.posterContent ?? null,
       isStarterBook: !!starterBook,
@@ -3282,6 +3316,7 @@ export default function Home() {
     setCriticalExamination(record.viewValidation);
     setIdeaSourceTracing(record.ideaSourceTracing);
     setWorkspaceQuote(pickWorkspaceQuote(record));
+    setCardEvidenceByKey(normalizeCardEvidenceMap(record.cardEvidence));
     setBookCoverImage(record.coverImage ?? "");
     setPosterContent(record.posterContent ?? null);
     setCurrentStarterBookId(record.isStarterBook ? record.starterBookId ?? null : null);
@@ -3321,6 +3356,7 @@ export default function Home() {
     setCriticalExamination(bg.viewValidation);
     setIdeaSourceTracing(bg.ideaSourceTracing);
     setWorkspaceQuote(sanitizeWorkspaceQuote(bg.workspaceQuote, { title: bg.title }));
+    setCardEvidenceByKey(bg.cardEvidence);
     setIsLiteMode(bg.liteMode);
     setIsLiteUnlocked(!bg.liteMode);
     setCurrentStarterBookId(bg.starterBookId);
@@ -3454,6 +3490,7 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setIdeaSourceTracing(data.ideaSourceTracing || "");
+        rememberCardEvidence("ideaSourceTracing", data.evidence);
       }
     } catch (error) {
       console.error("思想溯源生成失败:", error);
@@ -3477,6 +3514,7 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setCriticalExamination(data.viewValidation || "");
+        rememberCardEvidence("criticalExamination", data.evidence);
       }
     } catch (error) {
       console.error("观点校验生成失败:", error);
@@ -3500,6 +3538,7 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setActionExtraction(data.actionExtraction || "");
+        rememberCardEvidence("actionExtraction", data.evidence);
       }
     } catch (error) {
       console.error("行动提炼生成失败:", error);
@@ -3526,6 +3565,7 @@ export default function Home() {
       if (data.success) {
         viewMapResult = data.viewMap || "";
         setViewMap(viewMapResult);
+        rememberCardEvidence("viewMap", data.evidence);
       }
     } catch (error) {
       console.error("观点地图生成失败:", error);
@@ -3561,6 +3601,7 @@ export default function Home() {
       if (data.success) {
         realSummary = data.bookSummary || "";
         setBookSummary(realSummary);
+        rememberCardEvidence("bookSummary", data.evidence);
       }
     } catch (err) {
       console.error("全书摘要生成失败:", err);
@@ -3799,6 +3840,7 @@ export default function Home() {
     setCriticalExamination(starterBook.analysis.viewValidation);
     setIdeaSourceTracing(starterBook.analysis.ideaSourceTracing);
     setWorkspaceQuote(sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }));
+    setCardEvidenceByKey({});
     setPosterContent(starterBook.posterContent);
     setDecisionScenarios(starterBook.decisionTraining);
     saveDecisionScenarioCache(buildDecisionBookId(starterBook.title), starterBook.decisionTraining);
@@ -3821,6 +3863,7 @@ export default function Home() {
       ideaSourceTracing: starterBook.analysis.ideaSourceTracing,
       bookRecommendation: "",
       workspaceQuote: sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }),
+      cardEvidence: {},
       coverImage: starterBook.coverImage,
       isStarterBook: true,
       starterBookId: starterBook.id,
@@ -4096,7 +4139,7 @@ export default function Home() {
         title: pendingTitle, author: "", coverImage: "", bookSummary: "", chapters: [], readingGuide: "",
         originalReadingValue: "",
         viewMap: "", actionExtraction: "", viewValidation: "",
-        ideaSourceTracing: "", workspaceQuote: "", liteMode: false,
+        ideaSourceTracing: "", workspaceQuote: "", cardEvidence: {}, liteMode: false,
         fileType: getFileTypeFromName(fileToAnalyze.name) ?? "epub",
         starterBookId: currentStarterBookId,
       };
@@ -4303,7 +4346,11 @@ export default function Home() {
 
         if (guideResult.status === "fulfilled" && guideResult.value.success) {
           bg.readingGuide = guideResult.value.readingGuide || "";
+          if (isCardEvidence(guideResult.value.evidence)) {
+            bg.cardEvidence.readingGuide = guideResult.value.evidence;
+          }
           if (isStillViewing()) setReadingGuide(bg.readingGuide);
+          if (isStillViewing()) setCardEvidenceByKey({ ...bg.cardEvidence });
         }
 
         if (bg.readingGuide) {
@@ -4360,6 +4407,9 @@ export default function Home() {
           const summaryData = await summaryRes.json();
           if (summaryData.success) {
             bkSummary = summaryData.bookSummary || "";
+            if (isCardEvidence(summaryData.evidence)) {
+              bg.cardEvidence.bookSummary = summaryData.evidence;
+            }
           }
         } catch (e) {
           console.error("全书摘要生成失败:", e);
@@ -4373,6 +4423,7 @@ export default function Home() {
       saveBgAnalysisSnapshotToHistory(bg);
       if (isStillViewing()) {
         setBookSummary(bkSummary);
+        setCardEvidenceByKey({ ...bg.cardEvidence });
         setIsLoadingBookSummary(false);
       }
       stepsCompleted = 1;
@@ -4389,7 +4440,11 @@ export default function Home() {
         const guideData = await guideRes.json();
         if (guideData.success) {
           bg.readingGuide = guideData.readingGuide || "";
+          if (isCardEvidence(guideData.evidence)) {
+            bg.cardEvidence.readingGuide = guideData.evidence;
+          }
           if (isStillViewing()) setReadingGuide(bg.readingGuide);
+          if (isStillViewing()) setCardEvidenceByKey({ ...bg.cardEvidence });
         }
       } catch (e) { console.error("阅读指南生成失败:", e); }
       bgAnalysisRef.current = bg;
@@ -4409,7 +4464,11 @@ export default function Home() {
         const vmData = await vmRes.json();
         if (vmData.success) {
           bg.viewMap = vmData.viewMap || "";
+          if (isCardEvidence(vmData.evidence)) {
+            bg.cardEvidence.viewMap = vmData.evidence;
+          }
           if (isStillViewing()) setViewMap(bg.viewMap);
+          if (isStillViewing()) setCardEvidenceByKey({ ...bg.cardEvidence });
         }
       } catch (e) { console.error("观点地图生成失败:", e); }
       bgAnalysisRef.current = bg;
@@ -4460,14 +4519,23 @@ export default function Home() {
 
       if (actionResult.status === "fulfilled" && actionResult.value.success) {
         bg.actionExtraction = actionResult.value.actionExtraction || "";
+        if (isCardEvidence(actionResult.value.evidence)) {
+          bg.cardEvidence.actionExtraction = actionResult.value.evidence;
+        }
         if (isStillViewing()) setActionExtraction(bg.actionExtraction);
       }
       if (validResult.status === "fulfilled" && validResult.value.success) {
         bg.viewValidation = validResult.value.viewValidation || "";
+        if (isCardEvidence(validResult.value.evidence)) {
+          bg.cardEvidence.criticalExamination = validResult.value.evidence;
+        }
         if (isStillViewing()) setCriticalExamination(bg.viewValidation);
       }
       if (ideaResult.status === "fulfilled" && ideaResult.value.success) {
         bg.ideaSourceTracing = ideaResult.value.ideaSourceTracing || "";
+        if (isCardEvidence(ideaResult.value.evidence)) {
+          bg.cardEvidence.ideaSourceTracing = ideaResult.value.evidence;
+        }
         if (isStillViewing()) setIdeaSourceTracing(bg.ideaSourceTracing);
       }
       if (originalValueResult.status === "fulfilled" && originalValueResult.value.success) {
@@ -4484,6 +4552,7 @@ export default function Home() {
       bgAnalysisRef.current = bg;
       saveBgAnalysisSnapshotToHistory(bg);
       if (isStillViewing()) {
+        setCardEvidenceByKey({ ...bg.cardEvidence });
         setIsLoadingActionExtraction(false);
         setIsLoadingViewValidation(false);
         setIsLoadingIdeaSourceTracing(false);
@@ -4801,13 +4870,19 @@ export default function Home() {
   const selectedEvidenceCardIndex = selectedEvidenceCard
     ? immersiveCardList.findIndex((card) => card.key === selectedEvidenceCard.key)
     : -1;
-  const selectedCardEvidence = selectedEvidenceCard
-    ? buildCardEvidence({
+  const selectedStoredCardEvidence = selectedEvidenceCard
+    ? cardEvidenceByKey[selectedEvidenceCard.key] ??
+      normalizeCardEvidenceMap(currentHistoryRecord?.cardEvidence)[selectedEvidenceCard.key] ??
+      null
+    : null;
+  const selectedCardEvidence = selectedStoredCardEvidence ??
+    (selectedEvidenceCard
+      ? buildCardEvidence({
         cardKey: selectedEvidenceCard.key,
         cardLabel: selectedEvidenceCard.label,
         context: currentAnalysisContext,
       }) as CardEvidence | null
-    : null;
+      : null);
   const selectedEvidenceClaim =
     selectedCardEvidence?.claims.find((claim) => claim.id === selectedEvidenceClaimId) ??
     selectedCardEvidence?.claims[0] ??
