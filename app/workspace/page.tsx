@@ -6203,16 +6203,6 @@ export default function Home() {
                             >
                               深度阅读
                             </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openEvidenceCard(card.key);
-                              }}
-                              className="rounded-[8px] bg-[rgba(16,78,31,0.08)] px-2 py-1 text-[11px] font-semibold text-[var(--accent)] transition-colors hover:bg-[rgba(16,78,31,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-                            >
-                              原文依据
-                            </button>
                           </div>
                         )}
                       </article>
