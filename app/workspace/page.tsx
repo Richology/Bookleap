@@ -6314,19 +6314,13 @@ export default function Home() {
                             <p className="mt-1 text-[12px] font-medium text-[var(--ink-soft)]">
                               {excerpt.chapterTitle}
                             </p>
-                            {excerpt.before && (
-                              <p className="mt-4 text-[12px] leading-6 text-[var(--ink-faint)]">
-                                {excerpt.before}
-                              </p>
-                            )}
-                            <blockquote className="mt-3 border-l-2 border-[var(--accent)] bg-[#fbfcfd] px-3 py-2 text-[14px] font-medium leading-7 text-[var(--ink)]">
-                              {excerpt.quote}
-                            </blockquote>
-                            {excerpt.after && (
-                              <p className="mt-3 text-[12px] leading-6 text-[var(--ink-faint)]">
-                                {excerpt.after}
-                              </p>
-                            )}
+                            <p className="mt-4 border-l-2 border-[var(--accent)] bg-[#fbfcfd] px-3 py-2 text-[13px] leading-7 text-[var(--ink-soft)]">
+                              {excerpt.before && <span>{excerpt.before}</span>}
+                              <mark className="rounded-[5px] bg-[rgba(16,78,31,0.10)] px-1 py-0.5 font-semibold text-[var(--ink)]">
+                                {excerpt.quote}
+                              </mark>
+                              {excerpt.after && <span>{excerpt.after}</span>}
+                            </p>
                             <p className="mt-4 rounded-[9px] bg-[rgba(16,78,31,0.06)] px-3 py-2 text-[12px] leading-5 text-[var(--ink-soft)]">
                               {selectedEvidenceClaim.explanation}
                             </p>
