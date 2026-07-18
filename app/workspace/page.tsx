@@ -5738,17 +5738,19 @@ export default function Home() {
               subtitle={currentBookAuthor}
               density="hero"
               meta={analysisCoverageMeta ? (
-                <div className="relative inline-flex max-w-full items-center overflow-visible rounded-[15px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.86)] text-[12px] font-medium text-[var(--ink-soft)] shadow-[0_10px_26px_rgba(24,29,38,0.06)] backdrop-blur transition-[box-shadow,background-color] duration-200 hover:bg-[rgba(251,252,253,0.96)] hover:shadow-[0_12px_30px_rgba(24,29,38,0.08)]">
-                  <div className={`flex h-10 items-center gap-2 bg-[var(--workspace-hover-surface)] pl-3.5 pr-2.5 ${isCoverageDetailOpen ? "rounded-l-[14px]" : "rounded-[14px]"}`}>
-                    <span className="font-semibold text-[var(--ink)]">{analysisModeLabel}</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsCoverageDetailOpen((open) => !open)}
-                      className="flex h-6 w-6 items-center justify-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-[var(--ink-faint)] transition-all duration-200 hover:border-[#9297a0] hover:bg-white hover:text-[var(--ink)] active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-                      aria-expanded={isCoverageDetailOpen}
-                      aria-controls="analysis-coverage-detail"
-                      aria-label={isCoverageDetailOpen ? "收起分析范围详情" : "展开分析范围详情"}
-                    >
+                <div className="relative inline-flex max-w-full flex-wrap items-center overflow-visible text-sm font-medium text-[var(--ink-soft)]">
+                  <button
+                    type="button"
+                    onClick={() => setIsCoverageDetailOpen((open) => !open)}
+                    className={`inline-flex h-9 items-center justify-center whitespace-nowrap rounded-lg bg-[var(--workspace-hover-surface)] px-4 py-2 text-sm font-medium text-[var(--ink)] shadow-sm shadow-black/5 outline-offset-2 transition-colors hover:bg-[#e6ebee] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#9297a0] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 ${
+                      isCoverageDetailOpen ? "rounded-r-none" : ""
+                    }`}
+                    aria-expanded={isCoverageDetailOpen}
+                    aria-controls="analysis-coverage-detail"
+                    aria-label={isCoverageDetailOpen ? "收起拆书覆盖范围状态" : "展开拆书覆盖范围状态"}
+                  >
+                    <span>{analysisModeLabel}</span>
+                    <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-[var(--ink-faint)]">
                       <svg
                         className={`h-3.5 w-3.5 transition-transform duration-200 ${isCoverageDetailOpen ? "rotate-180" : ""}`}
                         viewBox="0 0 16 16"
@@ -5761,8 +5763,8 @@ export default function Home() {
                       >
                         <path d="M6 3.5 10.5 8 6 12.5" />
                       </svg>
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                   <div
                     id="analysis-coverage-detail"
                     className={`grid transition-[grid-template-columns,opacity] duration-300 ease-out ${
@@ -5771,7 +5773,7 @@ export default function Home() {
                     aria-hidden={!isCoverageDetailOpen}
                   >
                     <div className="min-w-0 overflow-hidden">
-                      <div className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-l border-[rgba(24,29,38,0.08)] px-3 py-2">
+                      <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-r-lg border border-l-0 border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-2 shadow-sm shadow-black/5">
                         <span>
                           <strong className="font-semibold text-[var(--ink)]">{analysisCoverageMeta.totalChapters}</strong>
                           {" "}段全书结构
