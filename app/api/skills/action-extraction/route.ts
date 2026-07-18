@@ -4,6 +4,9 @@ import {
   buildBookContext,
   formatBookContextForPrompt,
 } from "@/lib/bookAnalysis/context.mjs";
+import {
+  buildCardEvidenceFromContent,
+} from "@/lib/bookAnalysis/cardEvidence.mjs";
 
 type ChapterInput = {
   id: string;
@@ -26,8 +29,14 @@ export async function POST(request: Request) {
     const context = buildBookContext({ title, chapters });
     const analysisContext = formatBookContextForPrompt(context);
     const actionExtraction = await generateActionExtraction(title, bookSummary, analysisContext);
+    const evidence = buildCardEvidenceFromContent({
+      cardKey: "actionExtraction",
+      cardLabel: "行动提炼",
+      content: actionExtraction,
+      context,
+    });
 
-    return NextResponse.json({ success: true, actionExtraction });
+    return NextResponse.json({ success: true, actionExtraction, evidence });
   } catch (error) {
     console.error("行动提炼生成失败:", error);
     return NextResponse.json(

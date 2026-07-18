@@ -5,7 +5,7 @@ import {
   formatBookContextForPrompt,
 } from "@/lib/bookAnalysis/context.mjs";
 import {
-  buildCardEvidence,
+  buildCardEvidenceFromContent,
 } from "@/lib/bookAnalysis/cardEvidence.mjs";
 
 type ChapterInput = {
@@ -29,9 +29,10 @@ export async function POST(request: Request) {
     const context = buildBookContext({ title, chapters });
     const analysisContext = formatBookContextForPrompt(context);
     const viewMap = await generateViewMap(title, bookSummary, analysisContext);
-    const evidence = buildCardEvidence({
+    const evidence = buildCardEvidenceFromContent({
       cardKey: "viewMap",
       cardLabel: "观点地图",
+      content: viewMap,
       context,
     });
 

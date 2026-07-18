@@ -396,19 +396,21 @@ app/workspace/page.tsx
 
 第一阶段已完成前端链路：
 
-- overview ready 卡片提供「深度阅读」和「原文依据」两个动作。
+- overview ready 卡片只保留「深度阅读」主路径；原文依据入口收敛到 immersive 卡片页。
 - immersive 卡片顶部提供「原文依据」入口。
 - workspace 新增 `evidence` 视图。
 - evidence 视图使用当前 `StoredBookContext.evidenceBriefs` 派生依据列表。
 - 旧记录没有依据片段时展示降级空状态。
 - 新增 `lib/bookAnalysis/cardEvidence.mjs` normalizer，用于校验 sourceId 和 quote。
-- `view-map` API 已试点返回兼容字段 `evidence`。
+- 6 个核心 skill API 已返回兼容字段 `evidence`。
+- 前端/history 已保存并优先消费 API 返回的 card-level evidence。
+- API evidence 会先从卡片生成内容中提取判断句，再匹配合法 evidence brief；匹配不到时不伪造证据。
 
 仍待后续实现：
 
-- 其余 skill API 返回精确 `CardEvidence` JSON。
-- 每张卡的 claim 与 sourceId 由模型和 normalizer 协同生成，而不是仅从 brief 中 fallback 派生。
-- 前端/history 消费 API 返回的精确 evidence，而不是只在页面端即时派生。
+- 每张卡的 claim 与 sourceId 由模型显式 JSON 输出，再由 normalizer 校验；当前版本是从卡片正文确定性派生 claim 并匹配 sourceId。
+- 移动端 evidence 视图按 spec 做 `判断 / 原文` tabs。
+- evidence 进入/返回动画进一步对齐 Apple-style disclosure，从当前 immersive 卡片方向展开。
 
 ## 验收标准
 
