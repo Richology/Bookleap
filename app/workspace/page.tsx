@@ -6123,7 +6123,7 @@ export default function Home() {
                     const isPending = !card.isLoading && !isReady;
                     const excerpt = createOverviewExcerpt(card.content);
                     const cardStateClass = isReady
-                      ? "analysis-overview-card-ready border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] active:scale-[0.99]"
+                      ? "analysis-overview-card-ready cursor-pointer border-[#dfe4e8] bg-[#fbfcfd] hover:border-[#9297a0] hover:bg-[var(--workspace-hover-surface)] active:scale-[0.99]"
                       : card.isLoading
                       ? "analysis-overview-card-active border-[rgba(10,46,14,0.28)] bg-[#eef7f1] shadow-[0_10px_26px_rgba(10,46,14,0.10)]"
                       : "analysis-overview-card-pending cursor-default border-[rgba(24,29,38,0.06)] bg-[#f8fafc]";
@@ -6131,6 +6131,18 @@ export default function Home() {
                     return (
                       <article
                         key={card.key}
+                        role={isReady ? "button" : undefined}
+                        tabIndex={isReady ? 0 : undefined}
+                        onClick={isReady ? () => openOverviewCard(card.key) : undefined}
+                        onKeyDown={
+                          isReady
+                            ? (event) => {
+                                if (event.key !== "Enter" && event.key !== " ") return;
+                                event.preventDefault();
+                                openOverviewCard(card.key);
+                              }
+                            : undefined
+                        }
                         className={`group relative flex min-h-[182px] flex-col overflow-hidden rounded-[12px] border p-4 text-left transition-all ${cardStateClass}`}
                       >
                         {card.isLoading && (
@@ -6183,14 +6195,20 @@ export default function Home() {
                           <div className="mt-auto flex items-center gap-2 pt-4">
                             <button
                               type="button"
-                              onClick={() => openOverviewCard(card.key)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openOverviewCard(card.key);
+                              }}
                               className="rounded-[8px] px-2 py-1 text-[11px] font-medium text-[var(--ink-faint)] transition-colors hover:bg-[#eef2f4] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                             >
                               深度阅读
                             </button>
                             <button
                               type="button"
-                              onClick={() => openEvidenceCard(card.key)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openEvidenceCard(card.key);
+                              }}
                               className="rounded-[8px] bg-[rgba(16,78,31,0.08)] px-2 py-1 text-[11px] font-semibold text-[var(--accent)] transition-colors hover:bg-[rgba(16,78,31,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                             >
                               原文依据
