@@ -193,7 +193,31 @@ type WorkspaceTab = WorkspaceTabItem & {
   analysisTitle?: string;
 };
 
-type WorkspaceReadMode = "overview" | "immersive";
+type WorkspaceReadMode = "overview" | "immersive" | "evidence";
+
+type EvidenceExcerpt = {
+  sourceId: string;
+  chapterIndex: number;
+  chapterTitle: string;
+  samplePosition: "opening" | "middle" | "ending" | "full";
+  quote: string;
+  before?: string;
+  after?: string;
+};
+
+type EvidenceClaim = {
+  id: string;
+  claim: string;
+  supportLevel: "direct" | "inferred" | "weak";
+  explanation: string;
+  excerpts: EvidenceExcerpt[];
+};
+
+type CardEvidence = {
+  cardKey: string;
+  cardLabel: string;
+  claims: EvidenceClaim[];
+};
 
 type PendingQuoteSelection = {
   text: string;
@@ -304,6 +328,20 @@ const SEARCHABLE_CARD_FIELDS = [
   { key: "criticalExamination", label: "观点校验" },
   { key: "ideaSourceTracing", label: "思想溯源" },
 ] as const;
+const CARD_EVIDENCE_CLAIM_LABELS: Record<string, string> = {
+  bookSummary: "这张卡的全书判断",
+  readingGuide: "这张卡的阅读建议",
+  viewMap: "这张卡的观点结构",
+  actionExtraction: "这张卡的行动提炼",
+  criticalExamination: "这张卡的观点校验",
+  ideaSourceTracing: "这张卡的思想溯源判断",
+};
+const SAMPLE_POSITION_LABELS: Record<EvidenceExcerpt["samplePosition"], string> = {
+  opening: "开头样本",
+  middle: "中段样本",
+  ending: "结尾样本",
+  full: "完整片段",
+};
 const CARD_HIGHLIGHT_CSS_NAME = "bookleap-card-highlight";
 const CARD_HIGHLIGHT_STYLE_ID = "bookleap-card-highlight-style";
 const MIN_QUOTE_SELECTION_LENGTH = 2;
@@ -912,6 +950,60 @@ function getAnalysisCoverageMeta(context?: StoredBookContext) {
     sampledChapters: coverage.sampledChapters,
     totalSamples: coverage.totalSamples,
     spreadLabel,
+  };
+}
+
+function getCardEvidence({
+  cardKey,
+  cardLabel,
+  context,
+}: {
+  cardKey: string;
+  cardLabel: string;
+  context?: StoredBookContext;
+}): CardEvidence | null {
+  if (!context?.evidenceBriefs?.length) return null;
+
+  const offset = Math.abs(hashString(`${context.title}:${cardKey}`)) % Math.max(context.evidenceBriefs.length, 1);
+  const orderedBriefs = [
+    ...context.evidenceBriefs.slice(offset),
+    ...context.evidenceBriefs.slice(0, offset),
+  ];
+  const selectedBriefs = orderedBriefs.slice(0, 4);
+
+  const claims = selectedBriefs.map((brief, index) => {
+    const quote =
+      brief.quoteCandidates.find((candidate) => candidate.length >= 18) ||
+      brief.quoteCandidates[0] ||
+      brief.preview;
+    const sourceLabel = `${brief.sourceId} · 第 ${brief.chapterIndex} 部分 · ${SAMPLE_POSITION_LABELS[brief.position]}`;
+
+    return {
+      id: `${cardKey}-${brief.sourceId}-${index}`,
+      claim:
+        index === 0
+          ? CARD_EVIDENCE_CLAIM_LABELS[cardKey] ?? `${cardLabel}的核心判断`
+          : `补充依据 ${index + 1}`,
+      supportLevel: quote === brief.preview ? "inferred" : "direct",
+      explanation: `这条依据来自 ${sourceLabel}，用于支撑「${cardLabel}」中的判断。`,
+      excerpts: [
+        {
+          sourceId: brief.sourceId,
+          chapterIndex: brief.chapterIndex,
+          chapterTitle: brief.chapterTitle,
+          samplePosition: brief.position,
+          quote,
+          before: brief.preview && brief.preview !== quote ? brief.preview.slice(0, 120) : undefined,
+          after: brief.preview && brief.preview !== quote ? brief.preview.slice(120, 260) : undefined,
+        },
+      ],
+    } satisfies EvidenceClaim;
+  });
+
+  return {
+    cardKey,
+    cardLabel,
+    claims,
   };
 }
 
@@ -1745,6 +1837,8 @@ export default function Home() {
   const [isLiteUnlocked, setIsLiteUnlocked] = useState(false);
   const [isPaywallModalOpen, setIsPaywallModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<WorkspaceReadMode>("overview");
+  const [selectedEvidenceCardKey, setSelectedEvidenceCardKey] = useState("");
+  const [selectedEvidenceClaimId, setSelectedEvidenceClaimId] = useState("");
   const [immersiveIndex, setImmersiveIndex] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
@@ -1891,6 +1985,11 @@ export default function Home() {
 
   useEffect(() => {
     setIsCoverageDetailOpen(false);
+  }, [bookTitle]);
+
+  useEffect(() => {
+    setSelectedEvidenceCardKey("");
+    setSelectedEvidenceClaimId("");
   }, [bookTitle]);
 
   useEffect(() => {
@@ -3007,6 +3106,8 @@ export default function Home() {
     setIsLiteUnlocked(false);
     setIsPaywallModalOpen(false);
     setViewMode("overview");
+    setSelectedEvidenceCardKey("");
+    setSelectedEvidenceClaimId("");
     setImmersiveIndex(0);
     setSlideDir(null);
     setIsPosterModalOpen(false);
@@ -4772,6 +4873,24 @@ export default function Home() {
     if (!isLiteMode || isLiteUnlocked) return true;
     return ["bookSummary", "readingGuide"].includes(card.key);
   });
+  const selectedEvidenceCard =
+    overviewCardList.find((card) => card.key === selectedEvidenceCardKey) ??
+    currentImmersiveCard ??
+    overviewCardList.find((card) => !card.isLoading && !!card.content.trim());
+  const selectedEvidenceCardIndex = selectedEvidenceCard
+    ? immersiveCardList.findIndex((card) => card.key === selectedEvidenceCard.key)
+    : -1;
+  const selectedCardEvidence = selectedEvidenceCard
+    ? getCardEvidence({
+        cardKey: selectedEvidenceCard.key,
+        cardLabel: selectedEvidenceCard.label,
+        context: currentAnalysisContext,
+      })
+    : null;
+  const selectedEvidenceClaim =
+    selectedCardEvidence?.claims.find((claim) => claim.id === selectedEvidenceClaimId) ??
+    selectedCardEvidence?.claims[0] ??
+    null;
   const originalReadingAdviceLevelIndex = originalReadingValue
     ? getOriginalReadingLevelIndex(originalReadingValue)
     : -1;
@@ -4795,6 +4914,26 @@ export default function Home() {
       immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 40);
   };
+
+  const openEvidenceCard = (targetKey: string) => {
+    const nextIndex = immersiveCardList.findIndex((card) => card.key === targetKey);
+    if (nextIndex >= 0) {
+      setImmersiveIndex(nextIndex);
+      setSlideDir("left");
+    }
+    setSelectedEvidenceCardKey(targetKey);
+    setSelectedEvidenceClaimId("");
+    setViewMode("evidence");
+    window.setTimeout(() => {
+      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  };
+
+  useEffect(() => {
+    if (viewMode !== "evidence" || !selectedCardEvidence?.claims.length) return;
+    if (selectedCardEvidence.claims.some((claim) => claim.id === selectedEvidenceClaimId)) return;
+    setSelectedEvidenceClaimId(selectedCardEvidence.claims[0].id);
+  }, [selectedCardEvidence, selectedEvidenceClaimId, viewMode]);
 
   useEffect(() => {
     if (viewMode !== "immersive") return;
@@ -6069,13 +6208,8 @@ export default function Home() {
                       : "analysis-overview-card-pending cursor-default border-[rgba(24,29,38,0.06)] bg-[#f8fafc]";
 
                     return (
-                      <button
+                      <article
                         key={card.key}
-                        type="button"
-                        onClick={() => {
-                          if (isReady) openOverviewCard(card.key);
-                        }}
-                        disabled={!isReady}
                         className={`group relative flex min-h-[182px] flex-col overflow-hidden rounded-[12px] border p-4 text-left transition-all ${cardStateClass}`}
                       >
                         {card.isLoading && (
@@ -6125,14 +6259,171 @@ export default function Home() {
                         )}
 
                         {isReady && (
-                          <span className="mt-auto pt-4 text-[11px] font-medium text-[var(--ink-faint)] transition-colors group-hover:text-[var(--accent)]">
-                            进入深度阅读
-                          </span>
+                          <div className="mt-auto flex items-center gap-2 pt-4">
+                            <button
+                              type="button"
+                              onClick={() => openOverviewCard(card.key)}
+                              className="rounded-[8px] px-2 py-1 text-[11px] font-medium text-[var(--ink-faint)] transition-colors hover:bg-[#eef2f4] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                            >
+                              深度阅读
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEvidenceCard(card.key)}
+                              className="rounded-[8px] bg-[rgba(16,78,31,0.08)] px-2 py-1 text-[11px] font-semibold text-[var(--accent)] transition-colors hover:bg-[rgba(16,78,31,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                            >
+                              原文依据
+                            </button>
+                          </div>
                         )}
-                      </button>
+                      </article>
                     );
                   })}
                 </div>
+              </section>
+            )}
+
+            {!isDecisionPanelOpen && viewMode === "evidence" && selectedEvidenceCard && (
+              <section className="mx-auto max-w-6xl animate-reader-enter pb-24">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedEvidenceCardIndex >= 0) {
+                        setImmersiveIndex(selectedEvidenceCardIndex);
+                        setSlideDir(null);
+                        setViewMode("immersive");
+                      } else {
+                        setViewMode("overview");
+                      }
+                      window.setTimeout(() => {
+                        immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 40);
+                    }}
+                    className="rounded-[9px] border border-[rgba(24,29,38,0.08)] bg-transparent px-3 py-1.5 text-[11px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                  >
+                    ← 返回卡片
+                  </button>
+                  <div className="flex items-center gap-2 rounded-[9px] border border-[rgba(24,29,38,0.08)] bg-[#f8fafc] px-3.5 py-1.5">
+                    <span className="text-[11px] font-semibold text-[var(--ink)] tabular-nums">
+                      {selectedEvidenceCardIndex >= 0 ? selectedEvidenceCardIndex + 1 : safeImmersiveIndex + 1}
+                    </span>
+                    <span className="text-[11px] text-[var(--ink-faint)]/45">/</span>
+                    <span className="text-[11px] text-[var(--ink-faint)] tabular-nums">
+                      {immersiveCardList.length || overviewCardList.length}
+                    </span>
+                    <span className="ml-0.5 text-[11px] text-[var(--ink-faint)]">
+                      {selectedEvidenceCard.label}
+                    </span>
+                  </div>
+                  <div className="rounded-[9px] border border-[rgba(16,78,31,0.10)] bg-[rgba(16,78,31,0.06)] px-3 py-1.5 text-[11px] font-semibold text-[var(--accent)]">
+                    依据 {selectedCardEvidence?.claims.length ?? 0} 条
+                  </div>
+                </div>
+
+                {selectedCardEvidence && selectedCardEvidence.claims.length > 0 && selectedEvidenceClaim ? (
+                  <div className="grid gap-4 lg:grid-cols-[minmax(260px,0.88fr)_minmax(0,1.6fr)]">
+                    <aside className="rounded-[12px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] p-4 shadow-[0_8px_22px_rgba(24,29,38,0.05)]">
+                      <p className="archive-kicker">卡片判断</p>
+                      <h2 className="mt-2 text-[20px] font-semibold leading-7 text-[var(--ink)]">
+                        {selectedEvidenceCard.label}
+                      </h2>
+                      <p className="mt-3 line-clamp-4 text-[13px] leading-6 text-[var(--ink-soft)]">
+                        {createOverviewExcerpt(selectedEvidenceCard.content) || "这张卡暂时没有可展示的摘要。"}
+                      </p>
+
+                      <div className="mt-5 space-y-2">
+                        {selectedCardEvidence.claims.map((claim, index) => {
+                          const isActive = claim.id === selectedEvidenceClaim.id;
+                          return (
+                            <button
+                              key={claim.id}
+                              type="button"
+                              onClick={() => setSelectedEvidenceClaimId(claim.id)}
+                              className={`w-full rounded-[10px] border px-3 py-2.5 text-left transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0] ${
+                                isActive
+                                  ? "border-[rgba(16,78,31,0.20)] bg-[rgba(16,78,31,0.06)]"
+                                  : "border-[rgba(24,29,38,0.06)] bg-[#f8fafc] hover:border-[rgba(24,29,38,0.12)] hover:bg-[var(--workspace-hover-surface)]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-semibold text-[var(--ink-faint)] tabular-nums">
+                                  {index + 1}
+                                </span>
+                                <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[var(--accent)]" : "bg-[rgba(24,29,38,0.18)]"}`} />
+                                <span className="text-[12px] font-semibold text-[var(--ink)]">
+                                  {claim.claim}
+                                </span>
+                              </div>
+                              <p className="mt-1.5 text-[11px] leading-5 text-[var(--ink-soft)]">
+                                {claim.supportLevel === "direct" ? "直接原文支撑" : "综合推断依据"}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </aside>
+
+                    <div className="rounded-[12px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] p-4 shadow-[0_8px_22px_rgba(24,29,38,0.05)]">
+                      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[rgba(24,29,38,0.08)] pb-3">
+                        <div>
+                          <p className="archive-kicker">原文依据</p>
+                          <h2 className="mt-2 text-[18px] font-semibold text-[var(--ink)]">
+                            {selectedEvidenceClaim.claim}
+                          </h2>
+                        </div>
+                        <span className="rounded-full bg-[rgba(16,78,31,0.08)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)]">
+                          {selectedEvidenceClaim.supportLevel === "direct" ? "直接支撑" : "综合推断"}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {selectedEvidenceClaim.excerpts.map((excerpt) => (
+                          <article
+                            key={`${selectedEvidenceClaim.id}-${excerpt.sourceId}`}
+                            className="rounded-[11px] border border-[rgba(24,29,38,0.08)] bg-[#f8fafc] p-4"
+                          >
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium text-[var(--ink-faint)]">
+                              <span className="font-semibold text-[var(--ink)]">{excerpt.sourceId}</span>
+                              <span>·</span>
+                              <span>第 {excerpt.chapterIndex} 部分</span>
+                              <span>·</span>
+                              <span>{SAMPLE_POSITION_LABELS[excerpt.samplePosition]}</span>
+                            </div>
+                            <p className="mt-1 text-[12px] font-medium text-[var(--ink-soft)]">
+                              {excerpt.chapterTitle}
+                            </p>
+                            {excerpt.before && (
+                              <p className="mt-4 text-[12px] leading-6 text-[var(--ink-faint)]">
+                                {excerpt.before}
+                              </p>
+                            )}
+                            <blockquote className="mt-3 border-l-2 border-[var(--accent)] bg-[#fbfcfd] px-3 py-2 text-[14px] font-medium leading-7 text-[var(--ink)]">
+                              {excerpt.quote}
+                            </blockquote>
+                            {excerpt.after && (
+                              <p className="mt-3 text-[12px] leading-6 text-[var(--ink-faint)]">
+                                {excerpt.after}
+                              </p>
+                            )}
+                            <p className="mt-4 rounded-[9px] bg-[rgba(16,78,31,0.06)] px-3 py-2 text-[12px] leading-5 text-[var(--ink-soft)]">
+                              {selectedEvidenceClaim.explanation}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-[12px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] p-6 text-center shadow-[0_8px_22px_rgba(24,29,38,0.05)]">
+                    <p className="text-[15px] font-semibold text-[var(--ink)]">
+                      这本书暂时没有保存原文依据
+                    </p>
+                    <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-[var(--ink-soft)]">
+                      旧历史记录或部分赠送书单可能还没有保存依据片段。重新生成分析后，可以查看每张卡片对应的原文片段。
+                    </p>
+                  </div>
+                )}
               </section>
             )}
 
@@ -6169,7 +6460,14 @@ export default function Home() {
                         {currentImmersiveCard.label}
                       </span>
                     </div>
-                    <div className="hidden w-[86px] md:block" aria-hidden="true" />
+                    <button
+                      type="button"
+                      onClick={() => openEvidenceCard(currentImmersiveCard.key)}
+                      disabled={currentImmersiveCard.isLoading}
+                      className="rounded-[9px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-1.5 text-[11px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                    >
+                      原文依据
+                    </button>
                   </div>
 
                   <div
