@@ -3613,7 +3613,7 @@ export default function Home() {
     fetchViewMap(title, realSummary, currentChapters);
   };
 
-  const handleExport = async ({ format, structure, selectedSectionIds }: ExportParams) => {
+  const handleExport = async ({ target, format, structure, selectedSectionIds }: ExportParams) => {
     if (!bookTitle) return;
 
     // Build the full section map from current state
@@ -3639,6 +3639,11 @@ export default function Home() {
       .filter((s) => selectedSectionIds.includes(s.id) && contentMap[s.id]?.trim())
       .map((s) => ({ id: s.id, title: s.label, content: contentMap[s.id] }));
 
+    if (sections.length === 0) {
+      enqueueGuidanceToast({ id: "export-empty", message: "请至少选择一张有内容的卡片", priority: TOAST_PRIORITY.SYSTEM, durationMs: 4000 });
+      return;
+    }
+
     try {
       setExportStatus("exporting");
       const exportFileType =
@@ -3650,6 +3655,7 @@ export default function Home() {
           bookTitle,
           fileType: exportFileType ?? "epub",
           mode: isLiteMode && !isLiteUnlocked ? "lite" : "full",
+          target,
           format,
           structure,
           sections,
