@@ -215,7 +215,7 @@ function ContentPicker({
 }
 
 function StepIndicator({ step }: { step: 1 | 2 }) {
-  const steps = ["选择导出位置", "选择导出内容"];
+  const steps = ["选择导出格式", "选择导出内容"];
 
   return (
     <div aria-label={`第 ${step} 步，共两步`} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 13 }}>
