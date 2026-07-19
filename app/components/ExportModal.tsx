@@ -107,14 +107,6 @@ function JsonIcon() {
   return <BrandAssetIcon src="/icons/json-file-svgrepo-com.svg" />;
 }
 
-function ArrowIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>
-      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 function Checkmark() {
   return (
     <svg width="11" height="8" viewBox="0 0 11 8" fill="none" aria-hidden="true">
@@ -175,74 +167,73 @@ function TargetPicker({
   );
 }
 
-function SectionPicker({
+function ContentPicker({
   sections,
   selectedIds,
-  open,
   disabled,
-  onToggleOpen,
   onToggleSection,
   onSelectAll,
 }: {
   sections: ExportSection[];
   selectedIds: string[];
-  open: boolean;
   disabled: boolean;
-  onToggleOpen: () => void;
   onToggleSection: (id: string) => void;
   onSelectAll: () => void;
 }) {
   const allSelected = selectedIds.length === sections.length;
 
   return (
-    <section style={{ border: "1px solid #e1e4e8", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
-      <button
-        type="button"
-        onClick={onToggleOpen}
-        disabled={disabled}
-        aria-expanded={open}
-        style={{ width: "100%", border: 0, background: "transparent", padding: "15px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left", color: "#181d26", fontFamily: FONT, cursor: disabled ? "default" : "pointer" }}
-      >
-        <span style={{ display: "flex", minWidth: 0, flexDirection: "column", gap: 3 }}>
-          <span style={{ fontSize: 14, fontWeight: 650 }}>导出内容</span>
-          <span style={{ fontSize: 12, color: "#717782" }}>{selectedIds.length} 张精华卡片已选</span>
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 600, color: "#606772" }}>
-          {open ? "完成" : "编辑"}
-          <ArrowIcon open={open} />
-        </span>
-      </button>
-
-      {open && (
-        <div style={{ borderTop: "1px solid #edf0f2", padding: "11px 12px 13px", background: "#fafbfc" }}>
-          <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 3px 9px" }}>
-            <button type="button" onClick={onSelectAll} disabled={disabled} style={{ border: 0, padding: "3px 5px", background: "transparent", color: "#4e6979", fontSize: 12, fontWeight: 600, cursor: disabled ? "default" : "pointer", fontFamily: FONT }}>
-              {allSelected ? "清空" : "全选"}
+    <section style={{ display: "flex", minHeight: 0, flex: 1, flexDirection: "column", border: "1px solid #e1e4e8", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", borderBottom: "1px solid #edf0f2" }}>
+        <span style={{ color: "#5f6670", fontSize: 12 }}>{selectedIds.length} 张精华卡片已选</span>
+        <button type="button" onClick={onSelectAll} disabled={disabled} style={{ border: 0, padding: "3px 5px", background: "transparent", color: "#4e6979", fontSize: 12, fontWeight: 600, cursor: disabled ? "default" : "pointer", fontFamily: FONT }}>
+          {allSelected ? "清空" : "全选"}
+        </button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7, padding: 12, overflowY: "auto" }}>
+        {sections.map((section) => {
+          const selected = selectedIds.includes(section.id);
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => onToggleSection(section.id)}
+              disabled={disabled}
+              aria-pressed={selected}
+              style={{ minWidth: 0, minHeight: 44, border: selected ? "1px solid #bcc8ce" : "1px solid #e0e4e7", borderRadius: 10, background: selected ? "#eef4f5" : "#fff", padding: "9px 10px", display: "flex", alignItems: "center", gap: 8, color: selected ? "#273941" : "#58606b", fontFamily: FONT, textAlign: "left", cursor: disabled ? "default" : "pointer", transition: "background 150ms ease, border-color 150ms ease, transform 100ms ease" }}
+            >
+              <span style={{ width: 17, height: 17, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: "50%", background: selected ? "#344e5a" : "#fff", border: selected ? "1px solid #344e5a" : "1px solid #b9c0c7", color: "#fff" }}>
+                {selected && <Checkmark />}
+              </span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: 560 }}>{section.label}</span>
             </button>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
-            {sections.map((section) => {
-              const selected = selectedIds.includes(section.id);
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => onToggleSection(section.id)}
-                  disabled={disabled}
-                  aria-pressed={selected}
-                  style={{ minWidth: 0, border: selected ? "1px solid #bcc8ce" : "1px solid #e0e4e7", borderRadius: 9, background: selected ? "#eef4f5" : "#fff", padding: "9px 10px", display: "flex", alignItems: "center", gap: 8, color: selected ? "#273941" : "#58606b", fontFamily: FONT, textAlign: "left", cursor: disabled ? "default" : "pointer", transition: "background 150ms ease, border-color 150ms ease, transform 100ms ease" }}
-                >
-                  <span style={{ width: 17, height: 17, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: "50%", background: selected ? "#344e5a" : "#fff", border: selected ? "1px solid #344e5a" : "1px solid #b9c0c7", color: "#fff" }}>
-                    {selected && <Checkmark />}
-                  </span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: 560 }}>{section.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
     </section>
+  );
+}
+
+function StepIndicator({ step }: { step: 1 | 2 }) {
+  const steps = ["选择导出位置", "选择导出内容"];
+
+  return (
+    <div aria-label={`第 ${step} 步，共两步`} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 13 }}>
+      {steps.map((label, index) => {
+        const number = index + 1;
+        const active = number === step;
+        const complete = number < step;
+        return (
+          <span key={label} style={{ display: "flex", alignItems: "center", gap: 6, color: active ? "#273b45" : "#8a919a", fontSize: 11.5, fontWeight: active ? 650 : 540 }}>
+            <span style={{ width: 18, height: 18, display: "grid", placeItems: "center", borderRadius: "50%", background: active || complete ? "#344e5a" : "#e8ebee", color: active || complete ? "#fff" : "#7a828b", fontSize: 10, fontWeight: 700 }}>
+              {complete ? <Checkmark /> : number}
+            </span>
+            {label}
+            {number === 1 && <span aria-hidden="true" style={{ width: 22, height: 1, marginLeft: 2, background: step === 2 ? "#9eacb1" : "#dce1e4" }} />}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -321,7 +312,7 @@ export function ExportModal({
   const [structure, setStructure] = useState<ExportStructure>("multi");
   const [target, setTarget] = useState<ExportTarget>("obsidian");
   const [selectedIds, setSelectedIds] = useState<string[]>(availableSections.map((section) => section.id));
-  const [isSectionPickerOpen, setIsSectionPickerOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
   const { handleClose, overlayStyle, panelStyle } = useModalTransition(onClose);
   const isExporting = exportStatus === "exporting";
   const canExport = selectedIds.length > 0 && !isExporting;
@@ -369,7 +360,7 @@ export function ExportModal({
       style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))", background: "rgba(24,29,38,0.38)", backdropFilter: "blur(8px) saturate(120%)", fontFamily: FONT, ...overlayStyle }}
       onClick={(event) => { if (event.target === event.currentTarget && !isExporting) handleClose(); }}
     >
-      <section style={{ width: "min(100%, 620px)", maxHeight: "calc(100vh - 32px)", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 20, border: "1px solid rgba(255,255,255,0.72)", background: "rgba(255,255,255,0.96)", boxShadow: "0 24px 72px rgba(20,24,32,0.26)", ...panelStyle }} role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+      <section style={{ width: "min(100%, 620px)", height: "min(540px, calc(100vh - 32px))", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 20, border: "1px solid rgba(255,255,255,0.72)", background: "rgba(255,255,255,0.96)", boxShadow: "0 24px 72px rgba(20,24,32,0.26)", ...panelStyle }} role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "19px 22px 16px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", minWidth: 0, gap: 11 }}>
             <span style={{ width: 32, height: 32, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 10, background: "#eef3f4", color: "#344e5a" }}>
@@ -377,7 +368,7 @@ export function ExportModal({
             </span>
             <div style={{ minWidth: 0 }}>
               <h2 id="export-modal-title" style={{ margin: 0, color: "#1d1f23", fontSize: 17, lineHeight: 1.25, fontWeight: 700 }}>导出知识包</h2>
-              <p style={{ margin: "3px 0 0", color: "#7a8089", fontSize: 12, lineHeight: 1.35 }}>将阅读成果带进你的知识库</p>
+              <StepIndicator step={step} />
             </div>
           </div>
           <button type="button" aria-label="关闭导出窗口" onClick={handleClose} disabled={isExporting} style={{ width: 32, height: 32, flexShrink: 0, display: "grid", placeItems: "center", border: "1px solid #dfe2e5", borderRadius: "50%", background: "rgba(255,255,255,0.8)", color: "#6d737c", cursor: isExporting ? "default" : "pointer" }}>
@@ -385,40 +376,51 @@ export function ExportModal({
           </button>
         </header>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "2px 22px 20px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <section>
-              <p style={{ margin: "0 0 9px", color: "#707782", fontSize: 12, fontWeight: 650 }}>导出到</p>
-              <TargetPicker target={target} disabled={isExporting} onSelect={selectTarget} />
-            </section>
-
-            <ExportSummary target={target} structure={structure} selectedCount={selectedIds.length} />
-
-            <SectionPicker
-              sections={availableSections}
-              selectedIds={selectedIds}
-              open={isSectionPickerOpen}
-              disabled={isExporting}
-              onToggleOpen={() => setIsSectionPickerOpen((current) => !current)}
-              onToggleSection={toggleSection}
-              onSelectAll={toggleAllSections}
-            />
-
-            {target === "markdown" && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "2px 22px 20px" }}>
+          {step === 1 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <section>
-                <p style={{ margin: "0 0 9px", color: "#707782", fontSize: 12, fontWeight: 650 }}>文件组织</p>
-                <StructurePicker structure={structure} disabled={isExporting} onChange={setStructure} />
+                <p style={{ margin: "0 0 9px", color: "#707782", fontSize: 12, fontWeight: 650 }}>导出到</p>
+                <TargetPicker target={target} disabled={isExporting} onSelect={selectTarget} />
               </section>
-            )}
 
-            {selectedIds.length === 0 && <p style={{ margin: "-8px 0 0", color: "#a04a24", fontSize: 12 }}>请至少保留一张精华卡片。</p>}
-          </div>
+              <ExportSummary target={target} structure={structure} selectedCount={selectedIds.length} />
+
+              {target === "markdown" && (
+                <section>
+                  <p style={{ margin: "0 0 9px", color: "#707782", fontSize: 12, fontWeight: 650 }}>文件组织</p>
+                  <StructurePicker structure={structure} disabled={isExporting} onChange={setStructure} />
+                </section>
+              )}
+            </div>
+          ) : (
+            <div style={{ height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, marginBottom: 14 }}>
+                <div>
+                  <p style={{ margin: 0, color: "#1d1f23", fontSize: 15, fontWeight: 700 }}>选择要带走的内容</p>
+                  <p style={{ margin: "4px 0 0", color: "#737a84", fontSize: 12, lineHeight: 1.45 }}>仅导出你想继续加工的精华卡片。</p>
+                </div>
+                <span style={{ display: "flex", flexShrink: 0, alignItems: "center", gap: 5, color: targetOption.accent, fontSize: 12, fontWeight: 650 }}>
+                  {targetOption.icon}
+                  {targetOption.label}
+                </span>
+              </div>
+              <ContentPicker
+                sections={availableSections}
+                selectedIds={selectedIds}
+                disabled={isExporting}
+                onToggleSection={toggleSection}
+                onSelectAll={toggleAllSections}
+              />
+              {selectedIds.length === 0 && <p style={{ margin: "10px 0 0", color: "#a04a24", fontSize: 12 }}>请至少保留一张精华卡片。</p>}
+            </div>
+          )}
         </div>
 
         <footer style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 22px calc(15px + env(safe-area-inset-bottom))", borderTop: "1px solid #e7e9eb", background: "rgba(255,255,255,0.86)", backdropFilter: "blur(16px) saturate(130%)", flexShrink: 0 }}>
-          <button type="button" onClick={handleClose} disabled={isExporting} style={{ minHeight: 44, padding: "0 17px", border: "1px solid #d9dde1", borderRadius: 12, background: "#fff", color: "#555b64", fontFamily: FONT, fontSize: 14, fontWeight: 600, cursor: isExporting ? "default" : "pointer" }}>取消</button>
-          <button type="button" onClick={() => { if (canExport) onExport({ target, format, structure, selectedSectionIds: selectedIds }); }} disabled={!canExport} style={{ flex: 1, minHeight: 44, border: 0, borderRadius: 12, background: canExport ? "#1d1f23" : "#aeb3ba", color: "#fff", fontFamily: FONT, fontSize: 14, fontWeight: 650, cursor: canExport ? "pointer" : "default", boxShadow: canExport ? "0 6px 14px rgba(24,29,38,0.16)" : "none" }}>
-            {isExporting ? "正在准备知识包…" : `导出到 ${targetOption.label}`}
+          <button type="button" onClick={step === 1 ? handleClose : () => setStep(1)} disabled={isExporting} style={{ minHeight: 44, padding: "0 17px", border: "1px solid #d9dde1", borderRadius: 12, background: "#fff", color: "#555b64", fontFamily: FONT, fontSize: 14, fontWeight: 600, cursor: isExporting ? "default" : "pointer" }}>{step === 1 ? "取消" : "上一步"}</button>
+          <button type="button" onClick={() => { if (step === 1) setStep(2); else if (canExport) onExport({ target, format, structure, selectedSectionIds: selectedIds }); }} disabled={step === 2 && !canExport} style={{ flex: 1, minHeight: 44, border: 0, borderRadius: 12, background: step === 2 && !canExport ? "#aeb3ba" : "#1d1f23", color: "#fff", fontFamily: FONT, fontSize: 14, fontWeight: 650, cursor: step === 2 && !canExport ? "default" : "pointer", boxShadow: step === 2 && !canExport ? "none" : "0 6px 14px rgba(24,29,38,0.16)" }}>
+            {isExporting ? "正在准备知识包…" : step === 1 ? "下一步" : `导出到 ${targetOption.label}`}
           </button>
         </footer>
       </section>
