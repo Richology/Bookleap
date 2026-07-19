@@ -31,6 +31,7 @@ export function buildCardEvidence(input: {
   context?: BookContext | StoredBookContext;
   claims?: Array<unknown>;
   maxClaims?: number;
+  allowFallback?: boolean;
 }): CardEvidence | null;
 
 export function buildCardEvidenceFromContent(input: {
