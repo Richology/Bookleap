@@ -92,6 +92,13 @@ import {
   mirrorHistoryRecordsToIndexedDb,
 } from "@/lib/workspaceStorage";
 import {
+  createSearchExcerpt,
+  createSearchExcerptAt,
+  getSearchTokens,
+  getTextSearchMatch,
+} from "@/lib/workspaceSearch.mjs";
+import { recordWorkspaceSearchEvent } from "@/lib/workspaceSearchEvents.mjs";
+import {
   buildStoredBookContext,
 } from "@/lib/bookAnalysis/context.mjs";
 import {
@@ -204,6 +211,12 @@ type WorkspaceSearchFilter =
   | "books"
   | "insights"
   | (typeof SEARCHABLE_CARD_FIELDS)[number]["key"];
+
+type WorkspaceSearchWorkerMatch = {
+  score: number;
+  firstMatchIndex: number;
+  matchCount: number;
+};
 
 type WorkspaceTab = WorkspaceTabItem & {
   source: "starter" | "history" | "current" | "analysis";
@@ -1089,17 +1102,6 @@ function markWorkspaceDisclaimerAccepted() {
   }
 }
 
-function normalizeSearchText(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function getSearchTokens(query: string) {
-  return normalizeSearchText(query)
-    .split(/\s+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
 function compactSearchText(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -1110,69 +1112,6 @@ function getHistoryRecordCardContent(
 ) {
   if (key === "criticalExamination") return record.viewValidation;
   return record[key] ?? "";
-}
-
-type TextSearchMatch = {
-  score: number;
-  firstMatchIndex: number;
-  matchCount: number;
-};
-
-function getTextSearchMatch(haystack: string, query: string, tokens: string[]): TextSearchMatch | null {
-  if (!haystack || tokens.length === 0) return null;
-
-  const normalizedHaystack = normalizeSearchText(haystack);
-  const normalizedQuery = normalizeSearchText(query);
-  const tokenIndexes = tokens.map((token) => normalizedHaystack.indexOf(token));
-  if (tokenIndexes.some((index) => index === -1)) return null;
-
-  const phraseIndex = normalizedQuery ? normalizedHaystack.indexOf(normalizedQuery) : -1;
-  const firstMatchIndex = phraseIndex >= 0 ? phraseIndex : Math.min(...tokenIndexes);
-  const matchCount = tokens.reduce((total, token) => {
-    let count = 0;
-    let cursor = normalizedHaystack.indexOf(token);
-    while (cursor >= 0) {
-      count += 1;
-      cursor = normalizedHaystack.indexOf(token, cursor + token.length);
-    }
-    return total + count;
-  }, 0);
-
-  return {
-    score: (phraseIndex >= 0 ? 0 : 100) + firstMatchIndex,
-    firstMatchIndex,
-    matchCount,
-  };
-}
-
-function createSearchExcerpt(content: string, tokens: string[], maxLength = 170) {
-  const compact = compactSearchText(content);
-  if (!compact) return "";
-  if (tokens.length === 0) return compact.slice(0, maxLength);
-
-  const lower = compact.toLowerCase();
-  const matches = tokens
-    .map((token) => ({ token, index: lower.indexOf(token) }))
-    .filter((match) => match.index !== -1)
-    .sort((a, b) => a.index - b.index);
-  const firstMatch = matches[0];
-  const index = firstMatch?.index ?? -1;
-  if (index === -1) return compact.slice(0, maxLength);
-
-  const start = Math.max(0, index - 54);
-  const end = Math.min(compact.length, index + firstMatch.token.length + 112);
-  const prefix = start > 0 ? "..." : "";
-  const suffix = end < compact.length ? "..." : "";
-  return `${prefix}${compact.slice(start, end)}${suffix}`;
-}
-
-function createSearchExcerptAt(content: string, matchIndex: number, maxLength = 180) {
-  const compact = compactSearchText(content);
-  if (!compact) return "";
-
-  const start = Math.max(0, matchIndex - 56);
-  const end = Math.min(compact.length, start + maxLength);
-  return `${start > 0 ? "..." : ""}${compact.slice(start, end)}${end < compact.length ? "..." : ""}`;
 }
 
 function createOverviewExcerpt(content: string, maxLength = 128) {
@@ -1962,6 +1901,9 @@ export default function Home() {
   const [activeSearchMatchIndex, setActiveSearchMatchIndex] = useState(0);
   const [activeSearchMatchCount, setActiveSearchMatchCount] = useState(0);
   const [debouncedWorkspaceSearchQuery, setDebouncedWorkspaceSearchQuery] = useState("");
+  const [workspaceSearchWorkerMatches, setWorkspaceSearchWorkerMatches] = useState<
+    Record<string, WorkspaceSearchWorkerMatch | null> | null
+  >(null);
   const [isWorkspaceFullscreen, setIsWorkspaceFullscreen] = useState(false);
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const pendingDeleteCountdownRef = useRef<number | null>(null);
@@ -2254,6 +2196,7 @@ export default function Home() {
     setWorkspaceSearchFilter("all");
     setWorkspaceSearchActiveIndex(0);
     setIsWorkspaceSearchOpen(true);
+    recordWorkspaceSearchEvent("search_opened");
   }, []);
 
   const handleOpenUploadPicker = useCallback(() => {
@@ -4840,13 +4783,71 @@ export default function Home() {
     [debouncedWorkspaceSearchQuery]
   );
 
+  const workspaceSearchWorkerDocuments = useMemo(() => {
+    const documents = allImmersiveCardDefs
+      .filter((card) => !!card.content.trim())
+      .map((card) => ({ id: `current:${card.key}`, content: card.content }));
+
+    recentHistory.forEach((record) => {
+      documents.push({
+        id: `book:${record.id}`,
+        content: `${record.title} ${record.author ?? ""} ${getFileTypeLabel(record.fileType)}`,
+      });
+      SEARCHABLE_CARD_FIELDS.forEach((field) => {
+        const content = getHistoryRecordCardContent(record, field.key);
+        if (content.trim()) {
+          documents.push({ id: `library:${record.id}:${field.key}`, content });
+        }
+      });
+    });
+
+    return documents;
+  }, [allImmersiveCardDefs, recentHistory]);
+
+  const shouldUseWorkspaceSearchWorker =
+    recentHistory.length >= 100 ||
+    workspaceSearchWorkerDocuments.reduce((total, document) => total + document.content.length, 0) > 2 * 1024 * 1024;
+
+  useEffect(() => {
+    if (!shouldUseWorkspaceSearchWorker || workspaceSearchTokens.length === 0) {
+      setWorkspaceSearchWorkerMatches(null);
+      return;
+    }
+
+    const worker = new Worker(
+      new URL("../../lib/workspaceSearch.worker.mjs", import.meta.url),
+      { type: "module" }
+    );
+    worker.onmessage = (event: MessageEvent<{ matches: Record<string, WorkspaceSearchWorkerMatch | null> }>) => {
+      setWorkspaceSearchWorkerMatches(event.data.matches);
+    };
+    worker.postMessage({
+      query: debouncedWorkspaceSearchQuery,
+      documents: workspaceSearchWorkerDocuments,
+    });
+
+    return () => worker.terminate();
+  }, [
+    debouncedWorkspaceSearchQuery,
+    shouldUseWorkspaceSearchWorker,
+    workspaceSearchTokens.length,
+    workspaceSearchWorkerDocuments,
+  ]);
+
+  const getWorkspaceSearchMatch = useCallback((id: string, content: string) => {
+    if (workspaceSearchWorkerMatches && id in workspaceSearchWorkerMatches) {
+      return workspaceSearchWorkerMatches[id];
+    }
+    return getTextSearchMatch(content, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+  }, [debouncedWorkspaceSearchQuery, workspaceSearchTokens, workspaceSearchWorkerMatches]);
+
   const workspaceSearchCorpus = useMemo<WorkspaceSearchResult[]>(() => {
     const items: WorkspaceSearchResult[] = [];
 
     const addResult = (label: string, content: string, targetKey: string, title = label) => {
       const trimmed = content.trim();
       if (!trimmed) return;
-      const match = getTextSearchMatch(trimmed, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+      const match = getWorkspaceSearchMatch(`current:${targetKey}`, trimmed);
       if (workspaceSearchTokens.length > 0 && !match) return;
       items.push({
         id: targetKey,
@@ -4866,7 +4867,7 @@ export default function Home() {
     });
 
     return items;
-  }, [allImmersiveCardDefs, debouncedWorkspaceSearchQuery, workspaceSearchTokens]);
+  }, [allImmersiveCardDefs, getWorkspaceSearchMatch, workspaceSearchTokens]);
 
   const workspaceSearchResults = useMemo(() => {
     if (workspaceSearchFilter === "books") return [];
@@ -4889,15 +4890,15 @@ export default function Home() {
       const subtitle = record.author || `${fileTypeLabel} · ${record.mode === "lite" ? "简化版" : "完整版"}`;
       const badge = record.isStarterBook ? "赠送书单" : record.mode === "lite" ? "简化版" : "历史记录";
       const haystack = `${record.title} ${record.author ?? ""} ${fileTypeLabel} ${badge}`.toLowerCase();
+      const bookMatch = getWorkspaceSearchMatch(`book:${record.id}`, haystack);
       const titleMatch = getTextSearchMatch(record.title, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
       const authorMatch = getTextSearchMatch(record.author ?? "", debouncedWorkspaceSearchQuery, workspaceSearchTokens);
-      const generalMatch = getTextSearchMatch(haystack, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
 
       let score = index + 10;
       if (workspaceSearchTokens.length > 0) {
         if (titleMatch) score = titleMatch.score;
         else if (authorMatch) score = 30 + authorMatch.score;
-        else if (generalMatch) score = 60 + generalMatch.score;
+        else if (bookMatch) score = 60 + bookMatch.score;
         else score = Number.POSITIVE_INFINITY;
       }
 
@@ -4919,7 +4920,13 @@ export default function Home() {
       .sort((a, b) => a.score - b.score)
       .slice(0, workspaceSearchTokens.length > 0 ? 8 : 5)
       .map((entry) => entry.result);
-  }, [recentHistory, workspaceSearchFilter, debouncedWorkspaceSearchQuery, workspaceSearchTokens]);
+  }, [
+    debouncedWorkspaceSearchQuery,
+    getWorkspaceSearchMatch,
+    recentHistory,
+    workspaceSearchFilter,
+    workspaceSearchTokens,
+  ]);
 
   const workspaceLibraryContentSearchResults = useMemo<WorkspaceLibraryContentSearchResult[]>(() => {
     if (workspaceSearchTokens.length === 0 || workspaceSearchFilter === "books") return [];
@@ -4940,7 +4947,7 @@ export default function Home() {
         if (!compact) return;
 
         const haystack = `${record.title} ${record.author ?? ""} ${field.label} ${compact}`.toLowerCase();
-        const contentMatch = getTextSearchMatch(compact, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+        const contentMatch = getWorkspaceSearchMatch(`library:${record.id}:${field.key}`, compact);
         const generalMatch = getTextSearchMatch(haystack, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
         if (!contentMatch && !generalMatch) return;
         results.push({
@@ -4963,7 +4970,47 @@ export default function Home() {
       .sort((a, b) => a.score - b.score)
       .slice(0, 8)
       .map((entry) => entry.result);
-  }, [bookTitle, recentHistory, workspaceSearchFilter, debouncedWorkspaceSearchQuery, workspaceSearchTokens]);
+  }, [
+    bookTitle,
+    debouncedWorkspaceSearchQuery,
+    getWorkspaceSearchMatch,
+    recentHistory,
+    workspaceSearchFilter,
+    workspaceSearchTokens,
+  ]);
+
+  const workspaceSearchFilterCounts = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = { all: 0, books: 0, insights: 0 };
+    SEARCHABLE_CARD_FIELDS.forEach((field) => {
+      counts[field.key] = 0;
+    });
+
+    const matches = (content: string) =>
+      workspaceSearchTokens.length === 0 ||
+      !!getTextSearchMatch(content, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+
+    recentHistory.forEach((record) => {
+      if (matches(`${record.title} ${record.author ?? ""}`)) {
+        counts.books += 1;
+      }
+
+      SEARCHABLE_CARD_FIELDS.forEach((field) => {
+        const content = getHistoryRecordCardContent(record, field.key);
+        if (!content.trim() || !matches(content)) return;
+        counts[field.key] += 1;
+        counts.insights += 1;
+      });
+    });
+
+    allImmersiveCardDefs.forEach((card) => {
+      if (!card.content.trim() || !matches(card.content)) return;
+      counts[card.key] = (counts[card.key] ?? 0) + 1;
+      counts.insights += 1;
+    });
+
+    counts.all = counts.books + counts.insights;
+    return counts;
+  }, [allImmersiveCardDefs, debouncedWorkspaceSearchQuery, recentHistory, workspaceSearchTokens]);
 
   const combinedWorkspaceSearchResults = useMemo<WorkspaceCombinedSearchResult[]>(() => [
     ...workspaceBookSearchResults.map((result) => ({
@@ -4982,6 +5029,27 @@ export default function Home() {
       result,
     })),
   ], [workspaceBookSearchResults, workspaceLibraryContentSearchResults, workspaceSearchResults]);
+
+  useEffect(() => {
+    const queryLength = debouncedWorkspaceSearchQuery.trim().length;
+    if (!isWorkspaceSearchOpen || queryLength === 0) return;
+
+    recordWorkspaceSearchEvent("search_query_changed", {
+      queryLength,
+      hasResults: combinedWorkspaceSearchResults.length > 0,
+    });
+
+    if (combinedWorkspaceSearchResults.length === 0) {
+      recordWorkspaceSearchEvent("search_empty", { queryLength });
+    }
+  }, [combinedWorkspaceSearchResults.length, debouncedWorkspaceSearchQuery, isWorkspaceSearchOpen]);
+
+  useEffect(() => {
+    if (!isWorkspaceSearchOpen) return;
+    recordWorkspaceSearchEvent("search_filter_changed", {
+      filter: workspaceSearchFilter,
+    });
+  }, [isWorkspaceSearchOpen, workspaceSearchFilter]);
 
   const shouldShowInsightResultsFirst =
     workspaceSearchTokens.length > 0 &&
@@ -5019,6 +5087,10 @@ export default function Home() {
     setActiveSearchHighlightCardKey(result.targetKey);
     setActiveSearchMatchIndex(0);
     setIsWorkspaceSearchOpen(false);
+    recordWorkspaceSearchEvent("search_result_opened", {
+      resultKind: "currentContent",
+      cardKey: result.targetKey,
+    });
     window.setTimeout(() => {
       immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
@@ -5030,6 +5102,7 @@ export default function Home() {
     setActiveSearchMatchIndex(0);
     openHistoryRecord(result.record);
     setIsWorkspaceSearchOpen(false);
+    recordWorkspaceSearchEvent("search_result_opened", { resultKind: "book" });
     window.setTimeout(() => {
       resetReaderScrollPosition();
     }, 80);
@@ -5044,12 +5117,23 @@ export default function Home() {
     openHistoryRecord(result.record);
     setViewMode("immersive");
     setIsWorkspaceSearchOpen(false);
+    recordWorkspaceSearchEvent("search_result_opened", {
+      resultKind: "libraryContent",
+      cardKey: result.targetKey,
+    });
 
     window.setTimeout(() => {
       const index = SEARCHABLE_CARD_FIELDS.findIndex((field) => field.key === result.targetKey);
       if (index >= 0) {
         setSlideDir(index > safeImmersiveIndex ? "left" : "right");
         setImmersiveIndex(index);
+      } else {
+        enqueueGuidanceToast({
+          id: `search-record-no-card-${result.record.id}-${result.targetKey}`,
+          message: "这条旧记录无法精确定位，已打开对应书籍。",
+          priority: TOAST_PRIORITY.INFO,
+          durationMs: 5000,
+        });
       }
       immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
@@ -7645,7 +7729,9 @@ export default function Home() {
                 ["books", "书籍"],
                 ["insights", "洞见"],
                 ...SEARCHABLE_CARD_FIELDS.map((field) => [field.key, field.label]),
-              ] as Array<[WorkspaceSearchFilter, string]>).map(([filter, label]) => (
+              ] as Array<[WorkspaceSearchFilter, string]>).map(([filter, label]) => {
+                const count = workspaceSearchFilterCounts[filter] ?? 0;
+                return (
                 <button
                   key={filter}
                   type="button"
@@ -7658,8 +7744,10 @@ export default function Home() {
                   }`}
                 >
                   {label}
+                  {workspaceSearchQuery && count > 0 && <span className="ml-1.5 opacity-70">{count}</span>}
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {!workspaceSearchQuery && (
