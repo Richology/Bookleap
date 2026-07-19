@@ -404,13 +404,13 @@ app/workspace/page.tsx
 - 新增 `lib/bookAnalysis/cardEvidence.mjs` normalizer，用于校验 sourceId 和 quote。
 - 6 个核心 skill API 已返回兼容字段 `evidence`。
 - 前端/history 已保存并优先消费 API 返回的 card-level evidence。
-- API evidence 会先从卡片生成内容中提取判断句，再匹配合法 evidence brief；匹配不到时不伪造证据。
+- API evidence 会先由模型显式输出结构化 claim/sourceIds JSON，再由 normalizer 校验；校验失败时回退到卡片正文确定性匹配。
+- 结构化 evidence 校验失败时不会伪造依据，匹配不到则返回空并走前端降级。
+- evidence 进入/返回动效已按 Apple-style disclosure 调整为右侧展开、原路收束，并支持 reduced motion。
 
 仍待后续实现：
 
-- 每张卡的 claim 与 sourceId 由模型显式 JSON 输出，再由 normalizer 校验；当前版本是从卡片正文确定性派生 claim 并匹配 sourceId。
 - 移动端 evidence 视图按 spec 做 `判断 / 原文` tabs。
-- evidence 进入/返回动画进一步对齐 Apple-style disclosure，从当前 immersive 卡片方向展开。
 
 ## 验收标准
 

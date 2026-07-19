@@ -5,8 +5,10 @@ import {
   formatBookContextForPrompt,
 } from "@/lib/bookAnalysis/context.mjs";
 import {
+  buildCardEvidence,
   buildCardEvidenceFromContent,
 } from "@/lib/bookAnalysis/cardEvidence.mjs";
+import { generateCardEvidenceClaims } from "@/lib/skills/generateCardEvidenceClaims";
 
 type ChapterInput = {
   id: string;
@@ -29,7 +31,23 @@ export async function POST(request: Request) {
     const context = buildBookContext({ title, chapters });
     const analysisContext = formatBookContextForPrompt(context);
     const viewMap = await generateViewMap(title, bookSummary, analysisContext);
-    const evidence = buildCardEvidenceFromContent({
+    const evidenceClaims = await generateCardEvidenceClaims({
+      title,
+      cardLabel: "观点地图",
+      cardContent: viewMap,
+      analysisContext,
+    });
+    const evidence = (
+      evidenceClaims.length > 0
+        ? buildCardEvidence({
+            cardKey: "viewMap",
+            cardLabel: "观点地图",
+            context,
+            claims: evidenceClaims,
+            allowFallback: false,
+          })
+        : null
+    ) ?? buildCardEvidenceFromContent({
       cardKey: "viewMap",
       cardLabel: "观点地图",
       content: viewMap,

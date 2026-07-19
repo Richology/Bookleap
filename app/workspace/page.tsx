@@ -1782,6 +1782,8 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<WorkspaceReadMode>("overview");
   const [selectedEvidenceCardKey, setSelectedEvidenceCardKey] = useState("");
   const [selectedEvidenceClaimId, setSelectedEvidenceClaimId] = useState("");
+  const [evidenceTransitionState, setEvidenceTransitionState] =
+    useState<"entering" | "leaving">("entering");
   const [immersiveIndex, setImmersiveIndex] = useState(0);
   const [slideDir, setSlideDir] = useState<"left" | "right" | null>(null);
   const [isPosterModalOpen, setIsPosterModalOpen] = useState(false);
@@ -4919,10 +4921,26 @@ export default function Home() {
     }
     setSelectedEvidenceCardKey(targetKey);
     setSelectedEvidenceClaimId("");
+    setEvidenceTransitionState("entering");
     setViewMode("evidence");
     window.setTimeout(() => {
       immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 40);
+  };
+
+  const returnFromEvidence = () => {
+    setEvidenceTransitionState("leaving");
+    window.setTimeout(() => {
+      if (selectedEvidenceCardIndex >= 0) {
+        setImmersiveIndex(selectedEvidenceCardIndex);
+        setSlideDir(null);
+        setViewMode("immersive");
+      } else {
+        setViewMode("overview");
+      }
+      setEvidenceTransitionState("entering");
+      immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 180);
   };
 
   useEffect(() => {
@@ -6288,22 +6306,17 @@ export default function Home() {
             )}
 
             {!isDecisionPanelOpen && viewMode === "evidence" && selectedEvidenceCard && (
-              <section className="mx-auto max-w-6xl animate-reader-enter pb-24">
+              <section
+                className={`mx-auto max-w-6xl pb-24 ${
+                  evidenceTransitionState === "leaving"
+                    ? "animate-evidence-view-exit"
+                    : "animate-evidence-view-enter"
+                }`}
+              >
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (selectedEvidenceCardIndex >= 0) {
-                        setImmersiveIndex(selectedEvidenceCardIndex);
-                        setSlideDir(null);
-                        setViewMode("immersive");
-                      } else {
-                        setViewMode("overview");
-                      }
-                      window.setTimeout(() => {
-                        immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 40);
-                    }}
+                    onClick={returnFromEvidence}
                     className="rounded-[9px] border border-[rgba(24,29,38,0.08)] bg-transparent px-3 py-1.5 text-[11px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
                   >
                     ← 返回卡片

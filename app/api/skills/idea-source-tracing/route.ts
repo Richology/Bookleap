@@ -5,8 +5,10 @@ import {
   formatBookContextForPrompt,
 } from "@/lib/bookAnalysis/context.mjs";
 import {
+  buildCardEvidence,
   buildCardEvidenceFromContent,
 } from "@/lib/bookAnalysis/cardEvidence.mjs";
+import { generateCardEvidenceClaims } from "@/lib/skills/generateCardEvidenceClaims";
 
 type RequestBody = {
   title: string;
@@ -43,7 +45,23 @@ export async function POST(request: Request) {
       viewMap,
       analysisContext
     );
-    const evidence = buildCardEvidenceFromContent({
+    const evidenceClaims = await generateCardEvidenceClaims({
+      title,
+      cardLabel: "思想溯源",
+      cardContent: ideaSourceTracing,
+      analysisContext,
+    });
+    const evidence = (
+      evidenceClaims.length > 0
+        ? buildCardEvidence({
+            cardKey: "ideaSourceTracing",
+            cardLabel: "思想溯源",
+            context,
+            claims: evidenceClaims,
+            allowFallback: false,
+          })
+        : null
+    ) ?? buildCardEvidenceFromContent({
       cardKey: "ideaSourceTracing",
       cardLabel: "思想溯源",
       content: ideaSourceTracing,

@@ -585,6 +585,16 @@ select {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes evidence-view-enter {
+  from { opacity: 0; transform: translateX(18px) scale(0.992); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes evidence-view-exit {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(18px) scale(0.992); }
+}
+
 .animate-slide-from-right {
   animation: slide-from-right 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
@@ -595,6 +605,26 @@ select {
 
 .animate-reader-enter {
   animation: reader-enter 0.34s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-evidence-view-enter {
+  animation: evidence-view-enter 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: right center;
+  will-change: transform, opacity;
+}
+
+.animate-evidence-view-exit {
+  animation: evidence-view-exit 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: right center;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-evidence-view-enter,
+  .animate-evidence-view-exit {
+    animation-duration: 0.12s;
+    transform: none;
+  }
 }
 
 /* ── Book disassembly intro ───────────────────────────────────────────────── */
