@@ -413,10 +413,14 @@ function renderSearchMatchHighlights(root: HTMLElement | null, tokens: string[])
 
   const content = root.textContent?.toLowerCase() ?? "";
   const ranges = tokens.flatMap((token) => {
-    const index = content.indexOf(token);
-    if (index < 0) return [];
-    const range = createTextRange(root, index, index + token.length);
-    return range ? [range] : [];
+    const matches: Range[] = [];
+    let index = content.indexOf(token);
+    while (index >= 0) {
+      const range = createTextRange(root, index, index + token.length);
+      if (range) matches.push(range);
+      index = content.indexOf(token, index + token.length);
+    }
+    return matches;
   });
   const highlight = createCssHighlight(ranges);
   if (highlight) registry.set(SEARCH_MATCH_HIGHLIGHT_CSS_NAME, highlight);
@@ -1825,10 +1829,12 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backupImportInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDialogRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef(0);
   const immersiveContainerRef = useRef<HTMLDivElement>(null);
   const immersiveContentRef = useRef<HTMLDivElement>(null);
   const renderedHighlightRangesRef = useRef<RenderedHighlightRange[]>([]);
+  const renderedSearchMatchRangesRef = useRef<Range[]>([]);
   const readerScrollContainerRef = useRef<HTMLDivElement>(null);
   const immersiveCardsLenRef = useRef(0);
   const shouldScrollToStarterSectionRef = useRef(false);
@@ -1952,6 +1958,10 @@ export default function Home() {
     useState<WorkspaceSearchFilter>("all");
   const [workspaceSearchActiveIndex, setWorkspaceSearchActiveIndex] = useState(0);
   const [activeSearchHighlightTokens, setActiveSearchHighlightTokens] = useState<string[]>([]);
+  const [activeSearchHighlightCardKey, setActiveSearchHighlightCardKey] = useState("");
+  const [activeSearchMatchIndex, setActiveSearchMatchIndex] = useState(0);
+  const [activeSearchMatchCount, setActiveSearchMatchCount] = useState(0);
+  const [debouncedWorkspaceSearchQuery, setDebouncedWorkspaceSearchQuery] = useState("");
   const [isWorkspaceFullscreen, setIsWorkspaceFullscreen] = useState(false);
   const pendingDeleteTimerRef = useRef<number | null>(null);
   const pendingDeleteCountdownRef = useRef<number | null>(null);
@@ -2399,6 +2409,26 @@ export default function Home() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsWorkspaceSearchOpen(false);
+        return;
+      }
+
+      if (event.key === "Tab") {
+        const focusable = Array.from(
+          searchDialogRef.current?.querySelectorAll<HTMLElement>(
+            "button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex='-1'])"
+          ) ?? []
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
 
@@ -2408,6 +2438,14 @@ export default function Home() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isWorkspaceSearchOpen]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedWorkspaceSearchQuery(workspaceSearchQuery);
+    }, 140);
+
+    return () => window.clearTimeout(timer);
+  }, [workspaceSearchQuery]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -4798,8 +4836,8 @@ export default function Home() {
   ]);
 
   const workspaceSearchTokens = useMemo(
-    () => getSearchTokens(workspaceSearchQuery),
-    [workspaceSearchQuery]
+    () => getSearchTokens(debouncedWorkspaceSearchQuery),
+    [debouncedWorkspaceSearchQuery]
   );
 
   const workspaceSearchCorpus = useMemo<WorkspaceSearchResult[]>(() => {
@@ -4808,7 +4846,7 @@ export default function Home() {
     const addResult = (label: string, content: string, targetKey: string, title = label) => {
       const trimmed = content.trim();
       if (!trimmed) return;
-      const match = getTextSearchMatch(trimmed, workspaceSearchQuery, workspaceSearchTokens);
+      const match = getTextSearchMatch(trimmed, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
       if (workspaceSearchTokens.length > 0 && !match) return;
       items.push({
         id: targetKey,
@@ -4828,7 +4866,7 @@ export default function Home() {
     });
 
     return items;
-  }, [allImmersiveCardDefs, workspaceSearchQuery, workspaceSearchTokens]);
+  }, [allImmersiveCardDefs, debouncedWorkspaceSearchQuery, workspaceSearchTokens]);
 
   const workspaceSearchResults = useMemo(() => {
     if (workspaceSearchFilter === "books") return [];
@@ -4851,9 +4889,9 @@ export default function Home() {
       const subtitle = record.author || `${fileTypeLabel} · ${record.mode === "lite" ? "简化版" : "完整版"}`;
       const badge = record.isStarterBook ? "赠送书单" : record.mode === "lite" ? "简化版" : "历史记录";
       const haystack = `${record.title} ${record.author ?? ""} ${fileTypeLabel} ${badge}`.toLowerCase();
-      const titleMatch = getTextSearchMatch(record.title, workspaceSearchQuery, workspaceSearchTokens);
-      const authorMatch = getTextSearchMatch(record.author ?? "", workspaceSearchQuery, workspaceSearchTokens);
-      const generalMatch = getTextSearchMatch(haystack, workspaceSearchQuery, workspaceSearchTokens);
+      const titleMatch = getTextSearchMatch(record.title, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+      const authorMatch = getTextSearchMatch(record.author ?? "", debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+      const generalMatch = getTextSearchMatch(haystack, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
 
       let score = index + 10;
       if (workspaceSearchTokens.length > 0) {
@@ -4881,7 +4919,7 @@ export default function Home() {
       .sort((a, b) => a.score - b.score)
       .slice(0, workspaceSearchTokens.length > 0 ? 8 : 5)
       .map((entry) => entry.result);
-  }, [recentHistory, workspaceSearchFilter, workspaceSearchQuery, workspaceSearchTokens]);
+  }, [recentHistory, workspaceSearchFilter, debouncedWorkspaceSearchQuery, workspaceSearchTokens]);
 
   const workspaceLibraryContentSearchResults = useMemo<WorkspaceLibraryContentSearchResult[]>(() => {
     if (workspaceSearchTokens.length === 0 || workspaceSearchFilter === "books") return [];
@@ -4902,8 +4940,8 @@ export default function Home() {
         if (!compact) return;
 
         const haystack = `${record.title} ${record.author ?? ""} ${field.label} ${compact}`.toLowerCase();
-        const contentMatch = getTextSearchMatch(compact, workspaceSearchQuery, workspaceSearchTokens);
-        const generalMatch = getTextSearchMatch(haystack, workspaceSearchQuery, workspaceSearchTokens);
+        const contentMatch = getTextSearchMatch(compact, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
+        const generalMatch = getTextSearchMatch(haystack, debouncedWorkspaceSearchQuery, workspaceSearchTokens);
         if (!contentMatch && !generalMatch) return;
         results.push({
           result: {
@@ -4925,7 +4963,7 @@ export default function Home() {
       .sort((a, b) => a.score - b.score)
       .slice(0, 8)
       .map((entry) => entry.result);
-  }, [bookTitle, recentHistory, workspaceSearchFilter, workspaceSearchQuery, workspaceSearchTokens]);
+  }, [bookTitle, recentHistory, workspaceSearchFilter, debouncedWorkspaceSearchQuery, workspaceSearchTokens]);
 
   const combinedWorkspaceSearchResults = useMemo<WorkspaceCombinedSearchResult[]>(() => [
     ...workspaceBookSearchResults.map((result) => ({
@@ -4978,6 +5016,8 @@ export default function Home() {
     }
 
     setActiveSearchHighlightTokens(workspaceSearchTokens);
+    setActiveSearchHighlightCardKey(result.targetKey);
+    setActiveSearchMatchIndex(0);
     setIsWorkspaceSearchOpen(false);
     window.setTimeout(() => {
       immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -4986,6 +5026,8 @@ export default function Home() {
 
   const handleSelectWorkspaceBookSearchResult = (result: WorkspaceBookSearchResult) => {
     setActiveSearchHighlightTokens([]);
+    setActiveSearchHighlightCardKey("");
+    setActiveSearchMatchIndex(0);
     openHistoryRecord(result.record);
     setIsWorkspaceSearchOpen(false);
     window.setTimeout(() => {
@@ -4997,6 +5039,8 @@ export default function Home() {
     result: WorkspaceLibraryContentSearchResult
   ) => {
     setActiveSearchHighlightTokens(workspaceSearchTokens);
+    setActiveSearchHighlightCardKey(result.targetKey);
+    setActiveSearchMatchIndex(0);
     openHistoryRecord(result.record);
     setViewMode("immersive");
     setIsWorkspaceSearchOpen(false);
@@ -5343,9 +5387,12 @@ export default function Home() {
       viewMode !== "immersive" ||
       !currentImmersiveCard ||
       currentImmersiveCard.isLoading ||
+      currentImmersiveCard.key !== activeSearchHighlightCardKey ||
       activeSearchHighlightTokens.length === 0
     ) {
       getCssHighlightRegistry()?.delete(SEARCH_MATCH_HIGHLIGHT_CSS_NAME);
+      renderedSearchMatchRangesRef.current = [];
+      setActiveSearchMatchCount(0);
       return;
     }
 
@@ -5355,7 +5402,10 @@ export default function Home() {
         immersiveContentRef.current,
         activeSearchHighlightTokens
       );
-      ranges[0]?.startContainer.parentElement?.scrollIntoView({
+      renderedSearchMatchRangesRef.current = ranges;
+      setActiveSearchMatchCount(ranges.length);
+      const targetRange = ranges[Math.min(activeSearchMatchIndex, Math.max(0, ranges.length - 1))];
+      targetRange?.startContainer.parentElement?.scrollIntoView({
         behavior: "smooth",
         block: "center",
       });
@@ -5364,8 +5414,15 @@ export default function Home() {
     return () => {
       window.clearTimeout(timer);
       getCssHighlightRegistry()?.delete(SEARCH_MATCH_HIGHLIGHT_CSS_NAME);
+      renderedSearchMatchRangesRef.current = [];
     };
-  }, [activeSearchHighlightTokens, currentImmersiveCard, viewMode]);
+  }, [
+    activeSearchHighlightCardKey,
+    activeSearchHighlightTokens,
+    activeSearchMatchIndex,
+    currentImmersiveCard,
+    viewMode,
+  ]);
 
   const handleReaderTextSelection = useCallback(() => {
     const root = immersiveContentRef.current;
@@ -6807,6 +6864,32 @@ export default function Home() {
                     </button>
                   </div>
 
+                  {activeSearchMatchCount > 0 && currentImmersiveCard.key === activeSearchHighlightCardKey && (
+                    <div className="mb-4 flex items-center justify-between rounded-[10px] border border-[rgba(10,46,14,0.16)] bg-[rgba(186,221,200,0.24)] px-3 py-2">
+                      <p className="text-[11px] font-medium text-[var(--accent)]">
+                        搜索命中 {activeSearchMatchIndex + 1} / {activeSearchMatchCount}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSearchMatchIndex((index) => Math.max(0, index - 1))}
+                          disabled={activeSearchMatchIndex === 0}
+                          className="rounded-[6px] px-2 py-1 text-[11px] font-medium text-[var(--ink-soft)] hover:bg-[#fbfcfd] disabled:opacity-35"
+                        >
+                          上一个
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveSearchMatchIndex((index) => Math.min(activeSearchMatchCount - 1, index + 1))}
+                          disabled={activeSearchMatchIndex >= activeSearchMatchCount - 1}
+                          className="rounded-[6px] px-2 py-1 text-[11px] font-medium text-[var(--ink-soft)] hover:bg-[#fbfcfd] disabled:opacity-35"
+                        >
+                          下一个
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div
                     key={safeImmersiveIndex}
                     className={`px-2 py-5 md:px-8 md:py-7 ${
@@ -7491,7 +7574,7 @@ export default function Home() {
             }
           }}
         >
-          <div className="workspace-search-surface relative w-full max-w-5xl overflow-hidden rounded-[16px] border border-[rgba(255,255,255,0.72)] p-3">
+          <div ref={searchDialogRef} className="workspace-search-surface relative w-full max-w-5xl overflow-hidden rounded-[16px] border border-[rgba(255,255,255,0.72)] p-3">
             <h2 id="workspace-search-title" className="sr-only">搜索书库</h2>
             <div className="flex items-center gap-2">
               <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 py-3 focus-within:border-[#9297a0]">
@@ -7578,6 +7661,15 @@ export default function Home() {
                 </button>
               ))}
             </div>
+
+            {!workspaceSearchQuery && (
+              <div className="mx-1 mt-2 flex items-center justify-between gap-3 rounded-[9px] bg-[rgba(24,29,38,0.035)] px-3 py-2">
+                <p className="text-[11px] leading-5 text-[var(--ink-faint)]">
+                  搜索已保存的书名、作者和分析卡片，不搜索原书全文。
+                </p>
+                <span className="shrink-0 text-[10px] font-medium text-[var(--ink-faint)]">⌘/Ctrl K</span>
+              </div>
+            )}
 
             <div id="workspace-search-results" className="mt-2 max-h-[46vh] overflow-y-auto border-t border-[#dfe4e8] px-1 pb-1 pt-3" aria-live="polite">
               {workspaceBookSearchResults.length > 0 ||
