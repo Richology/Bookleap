@@ -20,12 +20,13 @@ export type ExportParams = {
   selectedSectionIds: string[];
 };
 
-const FONT = "-apple-system,'PingFang SC','Helvetica Neue',Arial,sans-serif";
+const FONT = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', sans-serif";
 
 const TARGET_OPTIONS: Array<{
   value: ExportTarget;
   label: string;
-  desc: string;
+  helper: string;
+  accent: string;
   icon: ReactNode;
   format: ExportFormat;
   structure: ExportStructure;
@@ -33,7 +34,8 @@ const TARGET_OPTIONS: Array<{
   {
     value: "obsidian",
     label: "Obsidian",
-    desc: "分文件 Markdown，适合放进 Vault",
+    helper: "目录页与双链卡片",
+    accent: "#7c5ce5",
     icon: <ObsidianIcon />,
     format: "md",
     structure: "multi",
@@ -41,7 +43,8 @@ const TARGET_OPTIONS: Array<{
   {
     value: "notion",
     label: "Notion",
-    desc: "总览页 + 卡片数据库，适合沉淀知识",
+    helper: "总览页与卡片数据库",
+    accent: "#1d1d1f",
     icon: <NotionIcon />,
     format: "md",
     structure: "single",
@@ -49,7 +52,8 @@ const TARGET_OPTIONS: Array<{
   {
     value: "markdown",
     label: "Markdown",
-    desc: "通用 .md 文件，方便归档复用",
+    helper: "通用文本归档",
+    accent: "#0f7490",
     icon: <MarkdownIcon />,
     format: "md",
     structure: "single",
@@ -57,90 +61,13 @@ const TARGET_OPTIONS: Array<{
   {
     value: "json",
     label: "JSON",
-    desc: "结构化数据，适合二次开发",
+    helper: "结构化数据",
+    accent: "#b45309",
     icon: <JsonIcon />,
     format: "json",
     structure: "single",
   },
 ];
-
-const STRUCTURE_OPTIONS: Array<{ value: ExportStructure; label: string; desc: string }> = [
-  { value: "multi", label: "分文件导出", desc: "每个章节保存为独立文件，适合知识库整理" },
-  { value: "single", label: "单文件导出", desc: "全部内容合并为一个文件，适合直接使用" },
-];
-
-const TARGET_NOTICE: Record<ExportTarget, string> = {
-  obsidian: "将生成目录页、分卡片 Markdown、YAML 元数据和 Obsidian 双链。",
-  notion: "将生成书籍总览 Markdown 和卡片 CSV；CSV 可直接导入为 Notion 数据库。",
-  markdown: "将生成通用 Markdown 文件，可选择单文件或分文件。",
-  json: "将生成结构化 JSON，保留书籍信息、卡片类型和原始内容。",
-};
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function SectionLabel({ text }: { text: string }) {
-  return (
-    <p style={{ margin: "0 0 10px 0", fontSize: 12, fontWeight: 600, color: "#7b8088", letterSpacing: "0.04em" }}>
-      {text}
-    </p>
-  );
-}
-
-function ExportTargetCard({
-  active,
-  label,
-  desc,
-  icon,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  desc: string;
-  icon: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "12px 13px",
-        borderRadius: 10,
-        border: active ? "1.5px solid #9297a0" : "1.5px solid #dddddd",
-        background: active ? "#eef1ef" : "#f8fafc",
-        cursor: "pointer",
-        textAlign: "left",
-        transition: "border-color 0.14s, background 0.14s",
-        width: "100%",
-        fontFamily: FONT,
-      }}
-    >
-      <span
-        style={{
-          flexShrink: 0,
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          border: active ? "1px solid rgba(24,29,38,0.20)" : "1px solid #dddddd",
-          background: active ? "#fbfbfa" : "#ffffff",
-          color: "#181d26",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "border-color 0.14s, background 0.14s",
-        }}
-      >
-        {icon}
-      </span>
-      <span style={{ display: "flex", minWidth: 0, flexDirection: "column", gap: 2 }}>
-        <span style={{ fontSize: 13, fontWeight: 650, color: "#181d26" }}>{label}</span>
-        <span style={{ fontSize: 11.5, color: "#7b8088", lineHeight: 1.5 }}>{desc}</span>
-      </span>
-    </button>
-  );
-}
 
 function ObsidianIcon() {
   return <BrandAssetIcon src="/icons/obsidian-color.svg" />;
@@ -170,122 +97,212 @@ function BrandAssetIcon({ src }: { src: string }) {
 function MarkdownIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4.2 5.2h15.6c.8 0 1.4.6 1.4 1.4v10.8c0 .8-.6 1.4-1.4 1.4H4.2c-.8 0-1.4-.6-1.4-1.4V6.6c0-.8.6-1.4 1.4-1.4Z" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M6.2 15.7V8.6l2.7 3.2 2.7-3.2v7.1M15.5 8.6v6.7M13.2 13.2l2.3 2.3 2.3-2.3" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="3" y="4" width="18" height="16" rx="4.25" fill="#e5f4f7" stroke="#0f7490" strokeWidth="1.3" />
+      <path d="M6.7 15.7V9.1l2.55 3.05 2.55-3.05v6.6M15.25 9.1v5.8M13.2 12.85l2.05 2.05 2.05-2.05" stroke="#0f7490" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 function JsonIcon() {
+  return <BrandAssetIcon src="/icons/json-file-svgrepo-com.svg" />;
+}
+
+function ArrowIcon({ open }: { open: boolean }) {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6.2 3.8h8.4l3.2 3.2v13.2H6.2V3.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d="M14.6 3.8v3.4h3.2" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      <path d="M9.4 10.4c-1 .2-1.5.8-1.5 1.7v.5c0 .6-.3 1-.8 1.1.5.1.8.5.8 1.1v.5c0 .9.5 1.5 1.5 1.7M14.6 10.4c1 .2 1.5.8 1.5 1.7v.5c0 .6.3 1 .8 1.1-.5.1-.8.5-.8 1.1v.5c0 .9-.5 1.5-1.5 1.7" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M11.4 14h1.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>
+      <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function SingleFileIcon() {
+function Checkmark() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M6.4 3.8h8.2l3 3v13.4H6.4V3.8Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d="M14.6 3.8v3.3h3" stroke="currentColor" strokeWidth="1.35" strokeLinejoin="round" />
-      <path d="M9 11.2h6M9 14h6M9 16.8h3.8" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" />
+    <svg width="11" height="8" viewBox="0 0 11 8" fill="none" aria-hidden="true">
+      <path d="m1.2 4 2.7 2.6L9.8 1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function ExportPreview({
+function TargetPicker({
   target,
-  structure,
-  sections,
+  disabled,
+  onSelect,
 }: {
   target: ExportTarget;
-  structure: ExportStructure;
-  sections: ExportSection[];
+  disabled: boolean;
+  onSelect: (target: ExportTarget) => void;
 }) {
-  const sampleSections = sections.slice(0, 3).map((section) => section.label);
-  const remaining = Math.max(sections.length - sampleSections.length, 0);
-  const files = (() => {
-    if (target === "obsidian") {
-      return ["书籍总览.md", ...sampleSections.map((title, index) => `${String(index + 1).padStart(2, "0")} - ${title}.md`)];
-    }
-    if (target === "notion") return ["书籍总览.md", "知识卡片.csv"];
-    if (target === "json") return ["知识包.json"];
-    return [structure === "single" ? "知识包.md" : "01 - 精华卡片.md"];
-  })();
-
   return (
-    <div style={{ marginTop: 14, padding: "12px 13px", border: "1px solid #dde2e5", borderRadius: 8, background: "#f8fafc" }}>
-      <p style={{ margin: "0 0 8px", fontSize: 11.5, fontWeight: 650, color: "#555b65" }}>导出预览</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        {files.map((file) => (
-          <span key={file} style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 11.5, color: "#41454d", lineHeight: 1.5 }}>
-            {target === "obsidian" && file !== "书籍总览.md" ? "  └ " : "  "}{file}
-          </span>
-        ))}
-        {target === "obsidian" && remaining > 0 && (
-          <span style={{ fontSize: 11.5, color: "#7b8088" }}>  └ 还有 {remaining} 张知识卡片</span>
-        )}
-      </div>
+    <div role="group" aria-label="导出目标" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 3, padding: 3, borderRadius: 14, background: "#f1f2f4" }}>
+      {TARGET_OPTIONS.map((option) => {
+        const active = target === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            disabled={disabled}
+            onClick={() => onSelect(option.value)}
+            style={{
+              minWidth: 0,
+              minHeight: 70,
+              border: 0,
+              borderRadius: 11,
+              padding: "9px 5px 8px",
+              background: active ? "#fff" : "transparent",
+              boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12), 0 5px 13px rgba(20,24,32,0.06)" : "none",
+              color: active ? "#181d26" : "#747984",
+              cursor: disabled ? "default" : "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 4,
+              fontFamily: FONT,
+              transition: "background 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 100ms ease",
+            }}
+          >
+            <span style={{ width: 26, height: 26, display: "grid", placeItems: "center", color: option.accent, opacity: active ? 1 : 0.7 }}>
+              {option.icon}
+            </span>
+            <span style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, lineHeight: 1.15, fontWeight: active ? 650 : 560 }}>
+              {option.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-function CheckChip({
-  checked,
-  label,
-  onChange,
+function SectionPicker({
+  sections,
+  selectedIds,
+  open,
+  disabled,
+  onToggleOpen,
+  onToggleSection,
+  onSelectAll,
 }: {
-  checked: boolean;
-  label: string;
-  onChange: () => void;
+  sections: ExportSection[];
+  selectedIds: string[];
+  open: boolean;
+  disabled: boolean;
+  onToggleOpen: () => void;
+  onToggleSection: (id: string) => void;
+  onSelectAll: () => void;
 }) {
+  const allSelected = selectedIds.length === sections.length;
+
   return (
-    <button
-      onClick={onChange}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 7,
-        padding: "7px 12px",
-        borderRadius: 8,
-        border: checked ? "1.5px solid #181d26" : "1.5px solid #dddddd",
-        background: checked ? "#181d26" : "#f8fafc",
-        cursor: "pointer",
-        fontFamily: FONT,
-        transition: "background 0.14s, border-color 0.14s",
-      }}
-    >
-      <span
-        style={{
-          width: 14,
-          height: 14,
-          borderRadius: 3,
-          border: checked ? "none" : "1.5px solid #9297a0",
-          background: checked ? "#fbfbfa" : "transparent",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
+    <section style={{ border: "1px solid #e1e4e8", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
+      <button
+        type="button"
+        onClick={onToggleOpen}
+        disabled={disabled}
+        aria-expanded={open}
+        style={{ width: "100%", border: 0, background: "transparent", padding: "15px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", textAlign: "left", color: "#181d26", fontFamily: FONT, cursor: disabled ? "default" : "pointer" }}
       >
-        {checked && (
-          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-            <path d="M1 3.5L3.5 6L8 1" stroke="#181d26" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </span>
-      <span style={{ fontSize: 12.5, fontWeight: 500, color: checked ? "#fbfbfa" : "#41454d" }}>
-        {label}
-      </span>
-    </button>
+        <span style={{ display: "flex", minWidth: 0, flexDirection: "column", gap: 3 }}>
+          <span style={{ fontSize: 14, fontWeight: 650 }}>导出内容</span>
+          <span style={{ fontSize: 12, color: "#717782" }}>{selectedIds.length} 张精华卡片已选</span>
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 600, color: "#606772" }}>
+          {open ? "完成" : "编辑"}
+          <ArrowIcon open={open} />
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ borderTop: "1px solid #edf0f2", padding: "11px 12px 13px", background: "#fafbfc" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 3px 9px" }}>
+            <button type="button" onClick={onSelectAll} disabled={disabled} style={{ border: 0, padding: "3px 5px", background: "transparent", color: "#4e6979", fontSize: 12, fontWeight: 600, cursor: disabled ? "default" : "pointer", fontFamily: FONT }}>
+              {allSelected ? "清空" : "全选"}
+            </button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
+            {sections.map((section) => {
+              const selected = selectedIds.includes(section.id);
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => onToggleSection(section.id)}
+                  disabled={disabled}
+                  aria-pressed={selected}
+                  style={{ minWidth: 0, border: selected ? "1px solid #bcc8ce" : "1px solid #e0e4e7", borderRadius: 9, background: selected ? "#eef4f5" : "#fff", padding: "9px 10px", display: "flex", alignItems: "center", gap: 8, color: selected ? "#273941" : "#58606b", fontFamily: FONT, textAlign: "left", cursor: disabled ? "default" : "pointer", transition: "background 150ms ease, border-color 150ms ease, transform 100ms ease" }}
+                >
+                  <span style={{ width: 17, height: 17, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: "50%", background: selected ? "#344e5a" : "#fff", border: selected ? "1px solid #344e5a" : "1px solid #b9c0c7", color: "#fff" }}>
+                    {selected && <Checkmark />}
+                  </span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 12, fontWeight: 560 }}>{section.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+function ExportSummary({
+  target,
+  structure,
+  selectedCount,
+}: {
+  target: ExportTarget;
+  structure: ExportStructure;
+  selectedCount: number;
+}) {
+  const option = TARGET_OPTIONS.find((item) => item.value === target)!;
+  const files = target === "obsidian"
+    ? [`书籍总览.md`, `${selectedCount} 张知识卡片.md`]
+    : target === "notion"
+      ? ["书籍总览.md", "知识卡片.csv"]
+      : target === "json"
+        ? ["知识包.json"]
+        : [structure === "single" ? "知识包.md" : `${selectedCount} 个 Markdown 文件`];
+
+  return (
+    <section aria-live="polite" style={{ borderRadius: 14, padding: "15px 16px", background: "#f4f6f7", border: "1px solid #e1e5e7" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 32, height: 32, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 10, background: "#fff", boxShadow: "0 1px 2px rgba(24,29,38,0.08)", color: option.accent }}>
+          {option.icon}
+        </span>
+        <span style={{ display: "flex", minWidth: 0, flexDirection: "column", gap: 2 }}>
+          <span style={{ fontSize: 13, fontWeight: 650, color: "#242831" }}>导出到 {option.label}</span>
+          <span style={{ fontSize: 12, color: "#707782" }}>{option.helper}</span>
+        </span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 13 }}>
+        {files.map((file) => (
+          <span key={file} style={{ borderRadius: 6, padding: "4px 7px", background: "rgba(255,255,255,0.84)", color: "#59616b", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 11.5, lineHeight: 1.3 }}>
+            {file}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function StructurePicker({ structure, disabled, onChange }: { structure: ExportStructure; disabled: boolean; onChange: (value: ExportStructure) => void }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6 }}>
+      {([
+        ["single", "单个文件"],
+        ["multi", "分别保存"],
+      ] as const).map(([value, label]) => {
+        const active = structure === value;
+        return (
+          <button key={value} type="button" onClick={() => onChange(value)} disabled={disabled} aria-pressed={active} style={{ minHeight: 40, borderRadius: 10, border: active ? "1px solid #9eaeb5" : "1px solid #e0e4e7", background: active ? "#edf3f5" : "#fff", color: active ? "#253b45" : "#606772", fontSize: 12.5, fontWeight: active ? 650 : 560, fontFamily: FONT, cursor: disabled ? "default" : "pointer", transition: "background 150ms ease, border-color 150ms ease, transform 100ms ease" }}>
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ExportModal({
   availableSections,
@@ -303,232 +320,122 @@ export function ExportModal({
   const [format, setFormat] = useState<ExportFormat>("md");
   const [structure, setStructure] = useState<ExportStructure>("multi");
   const [target, setTarget] = useState<ExportTarget>("obsidian");
-  const [selectedIds, setSelectedIds] = useState<string[]>(
-    availableSections.map((s) => s.id)
-  );
+  const [selectedIds, setSelectedIds] = useState<string[]>(availableSections.map((section) => section.id));
+  const [isSectionPickerOpen, setIsSectionPickerOpen] = useState(false);
   const { handleClose, overlayStyle, panelStyle } = useModalTransition(onClose);
-
-  const toggleSection = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
   const isExporting = exportStatus === "exporting";
   const canExport = selectedIds.length > 0 && !isExporting;
-
-  const handleClickExport = () => {
-    if (!canExport) return;
-    onExport({ target, format, structure, selectedSectionIds: selectedIds });
-  };
+  const targetOption = TARGET_OPTIONS.find((option) => option.value === target)!;
 
   const selectTarget = (value: ExportTarget) => {
-    const targetOption = TARGET_OPTIONS.find((option) => option.value === value);
-    if (!targetOption) return;
+    const next = TARGET_OPTIONS.find((option) => option.value === value);
+    if (!next) return;
     setTarget(value);
-    setFormat(targetOption.format);
-    setStructure(targetOption.structure);
+    setFormat(next.format);
+    setStructure(next.structure);
   };
 
-  // ── Success screen ─────────────────────────────────────
+  const toggleSection = (id: string) => {
+    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
+
+  const toggleAllSections = () => {
+    setSelectedIds((current) => current.length === availableSections.length ? [] : availableSections.map((section) => section.id));
+  };
+
   if (exportStatus === "success") {
     return (
-      <div
-        style={{
-          position: "fixed", inset: 0, zIndex: 50,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: "rgba(24,29,38,0.34)", backdropFilter: "blur(2px)",
-          padding: "20px 16px", fontFamily: FONT,
-          ...overlayStyle,
-        }}
-      >
-        <div
-          style={{
-            width: "100%", maxWidth: 420, background: "#fbfbfa",
-            border: "1px solid #9297a0",
-            borderRadius: 12, boxShadow: "0 18px 44px rgba(24,29,38,0.18)",
-            overflow: "hidden",
-            ...panelStyle,
-          }}
-        >
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px 16px", borderBottom: "1px solid #dddddd" }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#181d26" }}>导出知识包</p>
-            <button onClick={handleClose} style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid #dddddd", background: "#f8fafc", cursor: "pointer", color: "#7b8088", fontSize: 14 }}>
-              <CloseIcon style={{ width: 14, height: 14 }} aria-hidden="true" />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div style={{ padding: "40px 24px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-            {/* Check icon */}
-            <div style={{ width: 52, height: 52, borderRadius: 12, border: "1px solid #dddddd", background: "#eef1ef", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12l5 5L19 7" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+      <div data-export-modal style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", background: "rgba(24,29,38,0.34)", backdropFilter: "blur(8px) saturate(120%)", fontFamily: FONT, ...overlayStyle }}>
+        <section style={{ width: "100%", maxWidth: 400, overflow: "hidden", borderRadius: 20, background: "rgba(255,255,255,0.94)", boxShadow: "0 24px 64px rgba(20,24,32,0.24)", ...panelStyle }} role="dialog" aria-modal="true" aria-labelledby="export-success-title">
+          <div style={{ padding: "32px 28px 24px", textAlign: "center" }}>
+            <div style={{ width: 48, height: 48, display: "grid", placeItems: "center", margin: "0 auto 14px", borderRadius: 15, background: "#e9f3ed", color: "#2f6b45" }}>
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5.2 12.3 4.25 4.2L18.9 7" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </div>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#181d26" }}>已生成知识包</p>
-            <p style={{ margin: 0, fontSize: 13, color: "#7b8088" }}>文件已保存至你的下载目录</p>
+            <h2 id="export-success-title" style={{ margin: 0, color: "#1d1f23", fontSize: 19, lineHeight: 1.25, fontWeight: 700 }}>知识包已准备好</h2>
+            <p style={{ margin: "8px 0 0", color: "#747984", fontSize: 13, lineHeight: 1.55 }}>已开始下载，可导入 {targetOption.label} 继续整理。</p>
           </div>
-
-          {/* Actions */}
-          <div style={{ display: "flex", gap: 10, padding: "0 24px 24px" }}>
-            <button
-              onClick={onRestart}
-              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid #dddddd", background: "#f8fafc", fontSize: 14, color: "#41454d", cursor: "pointer", fontFamily: FONT }}
-            >
-              再导出一个
-            </button>
-            <button
-              onClick={handleClose}
-              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#181d26", fontSize: 14, fontWeight: 600, color: "#fbfbfa", cursor: "pointer", fontFamily: FONT }}
-            >
-              关闭
-            </button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "14px 16px 16px", borderTop: "1px solid #e7e9eb" }}>
+            <button type="button" onClick={onRestart} style={{ minHeight: 42, border: "1px solid #d9dde1", borderRadius: 11, background: "#fff", color: "#424750", fontFamily: FONT, fontWeight: 600, cursor: "pointer" }}>再导出</button>
+            <button type="button" onClick={handleClose} style={{ minHeight: 42, border: 0, borderRadius: 11, background: "#1d1f23", color: "#fff", fontFamily: FONT, fontWeight: 650, cursor: "pointer" }}>完成</button>
           </div>
-        </div>
+        </section>
       </div>
     );
   }
 
-  // ── Main export screen ─────────────────────────────────
   return (
     <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 50,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        background: "rgba(24,29,38,0.34)", backdropFilter: "blur(2px)",
-        padding: "20px 16px", fontFamily: FONT,
-        ...overlayStyle,
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isExporting) handleClose();
-      }}
+      data-export-modal
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))", background: "rgba(24,29,38,0.38)", backdropFilter: "blur(8px) saturate(120%)", fontFamily: FONT, ...overlayStyle }}
+      onClick={(event) => { if (event.target === event.currentTarget && !isExporting) handleClose(); }}
     >
-      <div
-        style={{
-          width: "100%", maxWidth: 440, background: "#fbfbfa",
-          border: "1px solid #9297a0",
-          borderRadius: 12, boxShadow: "0 18px 44px rgba(24,29,38,0.18)",
-          maxHeight: "90vh", display: "flex", flexDirection: "column",
-          overflow: "hidden",
-          ...panelStyle,
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px 16px", borderBottom: "1px solid #dddddd", flexShrink: 0 }}>
-          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#181d26" }}>导出知识包</p>
-          <button
-            onClick={handleClose}
-            disabled={isExporting}
-            style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, border: "1px solid #dddddd", background: "#f8fafc", cursor: isExporting ? "default" : "pointer", color: "#7b8088", fontSize: 14 }}
-          >
-            <CloseIcon style={{ width: 14, height: 14 }} aria-hidden="true" />
-          </button>
-        </div>
-
-        {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 8px" }}>
-          {/* Description */}
-          <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "#41454d", lineHeight: 1.65 }}>
-            把书跃生成的精华卡片整理成知识对象，保存、归档或导入你的第二大脑。
-          </p>
-
-          {/* Section selection */}
-          <div style={{ marginBottom: 20 }}>
-            <SectionLabel text="选择章节" />
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {availableSections.map((s) => (
-                <CheckChip
-                  key={s.id}
-                  checked={selectedIds.includes(s.id)}
-                  label={s.label}
-                  onChange={() => toggleSection(s.id)}
-                />
-              ))}
+      <section style={{ width: "min(100%, 620px)", maxHeight: "calc(100vh - 32px)", display: "flex", flexDirection: "column", overflow: "hidden", borderRadius: 20, border: "1px solid rgba(255,255,255,0.72)", background: "rgba(255,255,255,0.96)", boxShadow: "0 24px 72px rgba(20,24,32,0.26)", ...panelStyle }} role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "19px 22px 16px", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", minWidth: 0, gap: 11 }}>
+            <span style={{ width: 32, height: 32, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 10, background: "#eef3f4", color: "#344e5a" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 18.5v1.1c0 .77.63 1.4 1.4 1.4h11.2c.77 0 1.4-.63 1.4-1.4v-1.1" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <h2 id="export-modal-title" style={{ margin: 0, color: "#1d1f23", fontSize: 17, lineHeight: 1.25, fontWeight: 700 }}>导出知识包</h2>
+              <p style={{ margin: "3px 0 0", color: "#7a8089", fontSize: 12, lineHeight: 1.35 }}>将阅读成果带进你的知识库</p>
             </div>
-            {selectedIds.length === 0 && (
-              <p style={{ margin: "8px 0 0 0", fontSize: 12, color: "#f59e0b" }}>
-                请至少选择一个章节
-              </p>
-            )}
           </div>
-
-          {/* Target */}
-          <div style={{ marginBottom: format === "json" ? 0 : 20 }}>
-            <SectionLabel text="导出到" />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-              {TARGET_OPTIONS.map(({ value, label, desc, icon }) => (
-                <ExportTargetCard
-                  key={value}
-                  active={target === value}
-                  label={label}
-                  desc={desc}
-                  icon={icon}
-                  onClick={() => selectTarget(value)}
-                />
-              ))}
-            </div>
-            <p style={{ margin: "10px 0 0 0", fontSize: 12, color: "#7b8088", lineHeight: 1.6 }}>
-              {TARGET_NOTICE[target]}
-            </p>
-            <ExportPreview target={target} structure={structure} sections={availableSections.filter((section) => selectedIds.includes(section.id))} />
-          </div>
-
-          {/* Structure (only needed for generic Markdown) */}
-          {target === "markdown" && (
-            <div style={{ marginBottom: 4 }}>
-              <SectionLabel text="导出结构" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {STRUCTURE_OPTIONS.map(({ value, label, desc }) => (
-                  <ExportTargetCard
-                    key={value}
-                    active={structure === value}
-                    label={label}
-                    desc={desc}
-                    icon={value === "multi" ? <MarkdownIcon /> : <SingleFileIcon />}
-                    onClick={() => setStructure(value)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div style={{ flexShrink: 0, display: "flex", gap: 10, padding: "16px 24px", borderTop: "1px solid #dddddd" }}>
-          <button
-            onClick={handleClose}
-            disabled={isExporting}
-            style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid #dddddd", background: "#f8fafc", fontSize: 14, color: "#41454d", cursor: isExporting ? "default" : "pointer", fontFamily: FONT }}
-          >
-            取消
+          <button type="button" aria-label="关闭导出窗口" onClick={handleClose} disabled={isExporting} style={{ width: 32, height: 32, flexShrink: 0, display: "grid", placeItems: "center", border: "1px solid #dfe2e5", borderRadius: "50%", background: "rgba(255,255,255,0.8)", color: "#6d737c", cursor: isExporting ? "default" : "pointer" }}>
+            <CloseIcon style={{ width: 15, height: 15 }} aria-hidden="true" />
           </button>
-          <button
-            onClick={handleClickExport}
-            disabled={!canExport}
-            style={{
-              flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
-              background: !canExport ? "#9297a0" : "#181d26",
-              fontSize: 14, fontWeight: 600, color: "#fbfbfa",
-              cursor: !canExport ? "default" : "pointer",
-              fontFamily: FONT,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}
-          >
-            {isExporting ? (
-              <>
-                <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.35)", borderTopColor: "#fff", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
-                导出中…
-              </>
-            ) : (
-              "开始导出"
+        </header>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "2px 22px 20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <section>
+              <p style={{ margin: "0 0 9px", color: "#707782", fontSize: 12, fontWeight: 650 }}>导出到</p>
+              <TargetPicker target={target} disabled={isExporting} onSelect={selectTarget} />
+            </section>
+
+            <ExportSummary target={target} structure={structure} selectedCount={selectedIds.length} />
+
+            <SectionPicker
+              sections={availableSections}
+              selectedIds={selectedIds}
+              open={isSectionPickerOpen}
+              disabled={isExporting}
+              onToggleOpen={() => setIsSectionPickerOpen((current) => !current)}
+              onToggleSection={toggleSection}
+              onSelectAll={toggleAllSections}
+            />
+
+            {target === "markdown" && (
+              <section>
+                <p style={{ margin: "0 0 9px", color: "#707782", fontSize: 12, fontWeight: 650 }}>文件组织</p>
+                <StructurePicker structure={structure} disabled={isExporting} onChange={setStructure} />
+              </section>
             )}
-          </button>
-        </div>
-      </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            {selectedIds.length === 0 && <p style={{ margin: "-8px 0 0", color: "#a04a24", fontSize: 12 }}>请至少保留一张精华卡片。</p>}
+          </div>
+        </div>
+
+        <footer style={{ display: "flex", alignItems: "center", gap: 10, padding: "15px 22px calc(15px + env(safe-area-inset-bottom))", borderTop: "1px solid #e7e9eb", background: "rgba(255,255,255,0.86)", backdropFilter: "blur(16px) saturate(130%)", flexShrink: 0 }}>
+          <button type="button" onClick={handleClose} disabled={isExporting} style={{ minHeight: 44, padding: "0 17px", border: "1px solid #d9dde1", borderRadius: 12, background: "#fff", color: "#555b64", fontFamily: FONT, fontSize: 14, fontWeight: 600, cursor: isExporting ? "default" : "pointer" }}>取消</button>
+          <button type="button" onClick={() => { if (canExport) onExport({ target, format, structure, selectedSectionIds: selectedIds }); }} disabled={!canExport} style={{ flex: 1, minHeight: 44, border: 0, borderRadius: 12, background: canExport ? "#1d1f23" : "#aeb3ba", color: "#fff", fontFamily: FONT, fontSize: 14, fontWeight: 650, cursor: canExport ? "pointer" : "default", boxShadow: canExport ? "0 6px 14px rgba(24,29,38,0.16)" : "none" }}>
+            {isExporting ? "正在准备知识包…" : `导出到 ${targetOption.label}`}
+          </button>
+        </footer>
+      </section>
+
+      <style>{`
+        [data-export-modal] button:not(:disabled):active { transform: scale(0.98); }
+        [data-export-modal] button:focus-visible { outline: 2px solid #667d89; outline-offset: 2px; }
+        @media (max-width: 480px) {
+          [role="group"][aria-label="导出目标"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { transition-duration: 1ms !important; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+          [data-export-modal] section { background: #fff !important; backdrop-filter: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
