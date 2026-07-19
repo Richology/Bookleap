@@ -98,12 +98,14 @@ function FeedbackView({
 export function DecisionTrainingPanel({
   scenarios,
   onBackToCards,
+  onScenarioSelected,
   onAnswerComplete,
   onComplete,
   onUpgradeClick,
 }: {
   scenarios: DecisionScenario[];
   onBackToCards: () => void;
+  onScenarioSelected?: (scenario: DecisionScenario, option: DecisionOptionKey) => void;
   onAnswerComplete?: (option: DecisionOptionKey, progress: number) => void;
   onComplete?: () => void;
   onUpgradeClick?: () => void;
@@ -129,6 +131,7 @@ export function DecisionTrainingPanel({
   }
 
   const handleSelect = (option: DecisionOptionKey) => {
+    onScenarioSelected?.(currentScenario, option);
     setSelectedOption(option);
     setViewMode("feedback");
   };

@@ -291,6 +291,7 @@ const RETURNING_USER_TOAST_SESSION_KEY = "bookleap_returning_user_toast_seen";
 const HISTORY_REORGANIZED_KEY = "bookleap_history_reorganized_shown";
 const FAB_HISTORY_SEEN_KEY = "bookleap_fab_history_seen";
 const SUPPORT_COFFEE_PROMPT_SEEN_KEY = "bookleap_support_coffee_prompt_seen";
+const READING_REFLECTION_PREFIX = "bookleap_reading_reflection:";
 const STARTER_LOADING_STEPS = [
   { text: "正在解析全书结构…", duration: 700 },
   { text: "正在提炼核心观点…", duration: 800 },
@@ -618,6 +619,12 @@ type WorkspaceMemoryCard = {
   title: string;
   author: string;
   quote: string;
+};
+
+type ReadingReflection = {
+  insight: string;
+  question: string;
+  scene: string;
 };
 
 function shouldIncludeBackupStorageKey(key: string) {
@@ -1804,6 +1811,11 @@ export default function Home() {
   const [isDecisionLoading, setIsDecisionLoading] = useState(false);
   const [decisionLoadingStep, setDecisionLoadingStep] = useState("");
   const [decisionError, setDecisionError] = useState("");
+  const [readingReflection, setReadingReflection] = useState<ReadingReflection>({
+    insight: "",
+    question: "",
+    scene: "",
+  });
   const [activeToast, setActiveToast] = useState<GuidanceToast | null>(null);
   const [toastQueue, setToastQueue] = useState<GuidanceToast[]>([]);
   const [lastToastClosedAt, setLastToastClosedAt] = useState(0);
@@ -1895,6 +1907,10 @@ export default function Home() {
   }, [bookTitle, isAnalyzing, uploadProgressPercent]);
 
   const currentBookId = bookTitle ? buildDecisionBookId(bookTitle) : null;
+  const hasReadingReflection =
+    !!readingReflection.insight.trim() ||
+    !!readingReflection.question.trim() ||
+    !!readingReflection.scene.trim();
   const currentStarterBook = currentStarterBookId
     ? starterBooksById[currentStarterBookId] ?? null
     : null;
@@ -1910,6 +1926,51 @@ export default function Home() {
     bookAuthor ||
     fetchedAuthor ||
     "";
+
+  useEffect(() => {
+    if (!currentBookId) {
+      setReadingReflection({ insight: "", question: "", scene: "" });
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(`${READING_REFLECTION_PREFIX}${currentBookId}`);
+      if (!raw) {
+        setReadingReflection({ insight: "", question: "", scene: "" });
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as Partial<ReadingReflection>;
+      setReadingReflection({
+        insight: typeof parsed.insight === "string" ? parsed.insight : "",
+        question: typeof parsed.question === "string" ? parsed.question : "",
+        scene: typeof parsed.scene === "string" ? parsed.scene : "",
+      });
+    } catch {
+      setReadingReflection({ insight: "", question: "", scene: "" });
+    }
+  }, [currentBookId]);
+
+  const updateReadingReflection = useCallback(
+    (field: keyof ReadingReflection, value: string) => {
+      setReadingReflection((current) => {
+        const next = { ...current, [field]: value };
+        if (currentBookId) {
+          try {
+            localStorage.setItem(
+              `${READING_REFLECTION_PREFIX}${currentBookId}`,
+              JSON.stringify(next)
+            );
+          } catch {
+            // ignore local storage failures
+          }
+        }
+        return next;
+      });
+    },
+    [currentBookId]
+  );
+
   const currentAnalysisContext = useMemo(() => {
     if (currentHistoryRecord) {
       return currentHistoryRecord.analysisContext;
@@ -6133,6 +6194,16 @@ export default function Home() {
                   setIsDecisionPanelOpen(false);
                   immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
+                onScenarioSelected={(scenario, option) => {
+                  updateReadingReflection(
+                    "scene",
+                    [
+                      `练习场景：${scenario.scene}`,
+                      `练习问题：${scenario.question}`,
+                      `我的选择：${option}. ${scenario.options[option]}`,
+                    ].join("\n\n")
+                  );
+                }}
                 onAnswerComplete={(option: DecisionOptionKey, progress: number) => {
                   if (!currentBookId) return;
 
@@ -6308,6 +6379,105 @@ export default function Home() {
                     );
                   })}
                 </div>
+
+                {isAnalysisComplete && (
+                  <section className="mt-5 rounded-[12px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] p-5 shadow-[0_8px_22px_rgba(24,29,38,0.05)]">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="max-w-2xl">
+                        <p className="archive-kicker">读后记录</p>
+                        <h3 className="mt-2 text-[18px] font-semibold text-[var(--ink)]">
+                          别急着收藏，先确认这本书有没有进入你的问题里
+                        </h3>
+                        <p className="mt-2 text-[13px] leading-6 text-[var(--ink-soft)]">
+                          看完精华卡片后，先留下一个触动和一个现实问题；再做一次跃迁练习，系统会把你选择过的场景自动写回来。
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenDecisionTraining()}
+                        disabled={isTrainingActionDisabled}
+                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-[9px] bg-[var(--ink)] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        {readingReflection.scene.trim() ? "继续场景练习" : "生成场景练习"}
+                      </button>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                      <label className="block min-w-0">
+                        <span className="text-[12px] font-semibold text-[var(--ink)]">
+                          最想留下的一个观点
+                        </span>
+                        <textarea
+                          value={readingReflection.insight}
+                          onChange={(event) => updateReadingReflection("insight", event.target.value)}
+                          rows={3}
+                          placeholder="哪句话、哪个判断让你停了一下？"
+                          className="mt-2 w-full resize-none rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink)] outline-none transition focus:border-[#9297a0] focus:bg-[#fbfcfd]"
+                        />
+                      </label>
+
+                      <label className="block min-w-0">
+                        <span className="text-[12px] font-semibold text-[var(--ink)]">
+                          它击中了哪个现实问题
+                        </span>
+                        <textarea
+                          value={readingReflection.question}
+                          onChange={(event) => updateReadingReflection("question", event.target.value)}
+                          rows={3}
+                          placeholder="工作、生活、创业里哪个问题被它照亮了？"
+                          className="mt-2 w-full resize-none rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink)] outline-none transition focus:border-[#9297a0] focus:bg-[#fbfcfd]"
+                        />
+                      </label>
+
+                      <div className="block min-w-0">
+                        <span className="text-[12px] font-semibold text-[var(--ink)]">
+                          已选择的练习场景
+                        </span>
+                        <div className="mt-2 min-h-[104px] rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink-soft)]">
+                          {readingReflection.scene.trim() ? (
+                            <p className="whitespace-pre-line">{readingReflection.scene}</p>
+                          ) : (
+                            <div className="flex h-full min-h-[78px] flex-col justify-between gap-3">
+                              <p>
+                                这里不用手写。点击「生成场景练习」，在跃迁练习里做一次选择后，场景会自动记录到这里。
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => void handleOpenDecisionTraining()}
+                                disabled={isTrainingActionDisabled}
+                                className="w-fit rounded-[8px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-1.5 text-[12px] font-medium text-[var(--ink)] transition hover:bg-[var(--workspace-hover-surface)] disabled:cursor-not-allowed disabled:opacity-45"
+                              >
+                                去选择一个场景
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(24,29,38,0.08)] pt-4">
+                      <p className="text-[12px] leading-5 text-[var(--ink-faint)]">
+                        {hasReadingReflection
+                          ? "已自动保存在本地。真正值得沉淀的，是你读过并选择过的场景。"
+                          : "这一步很轻：先记录触动，再用跃迁练习补上真实场景。"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewMode("immersive");
+                          setImmersiveIndex(0);
+                          setSlideDir(null);
+                          window.setTimeout(() => {
+                            immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 40);
+                        }}
+                        className="rounded-[9px] border border-[rgba(24,29,38,0.08)] bg-transparent px-3 py-1.5 text-[12px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
+                      >
+                        回到精华卡片
+                      </button>
+                    </div>
+                  </section>
+                )}
               </section>
             )}
 
