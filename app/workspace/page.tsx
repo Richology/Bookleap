@@ -6603,7 +6603,7 @@ export default function Home() {
         </div>
       ) : (
         <div ref={immersiveContainerRef} style={{ scrollMarginTop: "24px" }}>
-          {viewMode === "overview" && (
+          {viewMode === "overview" && !isDecisionPanelOpen && (
             <WorkspaceReaderHeader
               title={bookTitle}
               subtitle={currentBookAuthor}
