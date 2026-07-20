@@ -1141,6 +1141,50 @@ select {
   animation: status-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+@keyframes leap-orbit {
+  0%   { transform: scale(0.86); opacity: 0.88; }
+  70%  { transform: scale(1.08); opacity: 0.18; }
+  100% { transform: scale(1.14); opacity: 0; }
+}
+
+@keyframes leap-dot {
+  0%, 100% { transform: scale(0.72); opacity: 0.45; }
+  50%      { transform: scale(1); opacity: 1; }
+}
+
+.leap-orbit {
+  animation: leap-orbit 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.leap-orbit-delay {
+  animation-delay: 180ms;
+}
+
+.leap-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: currentColor;
+  animation: leap-dot 900ms ease-in-out infinite;
+}
+
+.workspace-mode-panel {
+  animation: workspace-mode-fade 200ms ease-out;
+}
+
+@keyframes workspace-mode-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leap-orbit,
+  .leap-dot,
+  .workspace-mode-panel {
+    animation: none;
+  }
+}
+
 @keyframes analysis-progress-sheen {
   0%   { transform: translateX(-58%); opacity: 0; }
   16%  { opacity: 0.85; }
