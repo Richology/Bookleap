@@ -6610,6 +6610,33 @@ export default function Home() {
               density="hero"
               action={(
                 <div className="max-w-[38rem]">
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span className="text-[12px] font-medium text-[var(--ink-faint)]">阅读状态</span>
+                    {[
+                      { id: "reading" as const, label: "在读" },
+                      { id: "completed" as const, label: hasReadingReflection ? "查看记录" : "已读原书" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          updateReadingCompletionStatus(item.id);
+                          if (item.id === "completed" && hasReadingReflection) {
+                            setIsReadingReflectionInvite(false);
+                            setIsReadingReflectionOpen(true);
+                          }
+                        }}
+                        className={`inline-flex h-7 items-center justify-center rounded-full border px-3 text-[12px] font-medium transition-all hover:border-[#9297a0] active:scale-[0.98] ${
+                          readingCompletionStatus === item.id
+                            ? "border-[#181d26] bg-[#181d26] text-[#fbfcfd]"
+                            : "border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+
                   {analysisCoverageMeta && (
                     <div className="relative mb-5 inline-flex w-max max-w-none items-center overflow-visible rounded-lg border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] text-sm font-medium text-[var(--ink-soft)] shadow-sm shadow-black/5">
                       <button
@@ -6807,33 +6834,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#dfe4e8] pt-4">
-                    <span className="mr-1 text-[12px] font-semibold text-[var(--ink)]">阅读状态</span>
-                    {[
-                      { id: "reading" as const, label: "在读" },
-                      { id: "completed" as const, label: hasReadingReflection ? "查看记录" : "已读原书" },
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          updateReadingCompletionStatus(item.id);
-                          if (item.id === "completed" && hasReadingReflection) {
-                            setIsReadingReflectionInvite(false);
-                            setIsReadingReflectionOpen(true);
-                          }
-                        }}
-                        className={`inline-flex h-8 items-center justify-center rounded-[8px] border px-3 text-[12px] font-medium transition-all hover:border-[#9297a0] active:scale-[0.98] ${
-                          readingCompletionStatus === item.id
-                            ? "border-[#9297a0] bg-[#181d26] text-[#fbfcfd]"
-                            : "border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-soft)] hover:text-[var(--ink)]"
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-
                 </div>
               )}
               cover={(
@@ -6866,38 +6866,43 @@ export default function Home() {
           <div ref={cardSectionRef} className="px-4 pb-4 pt-3 md:px-5 md:pb-5 md:pt-3 xl:px-5 xl:pb-5 xl:pt-3" style={{ scrollMarginTop: "24px" }}>
             {viewMode === "overview" && overviewCardList.length > 0 && (
               <div
-                className="mx-auto mb-4 flex max-w-6xl items-center gap-1 rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] p-1"
+                className="mx-auto mb-5 flex max-w-6xl flex-wrap items-center justify-between gap-3 px-1"
                 role="tablist"
                 aria-label="书籍内容模式"
               >
-                {[
-                  { id: "cards" as const, label: "拆书精华", count: 6 },
-                  { id: "practice" as const, label: leapPracticeTabLabel, count: leapProgress >= 3 ? "3/3" : 3 },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={workspaceContentMode === item.id}
-                    aria-controls={item.id === "practice" ? "leap-practice-panel" : "analysis-card-grid"}
-                    onClick={() => {
-                      if (item.id === "practice") {
-                        handleOpenDecisionTraining();
-                      } else {
-                        setIsDecisionPanelOpen(false);
-                      }
-                    }}
-                    disabled={item.id === "practice" && isTrainingActionDisabled}
-                    className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-[8px] px-3 text-sm font-medium transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 ${
-                      workspaceContentMode === item.id
-                        ? "bg-[#fbfcfd] text-[var(--ink)] shadow-[0_1px_2px_rgba(24,29,38,0.06)]"
-                        : "text-[var(--ink-soft)] hover:bg-[#eef2f4] hover:text-[var(--ink)]"
-                    }`}
-                  >
-                    <span>{item.label}</span>
-                    <span className="text-[11px] text-[var(--ink-faint)]">{item.count}</span>
-                  </button>
-                ))}
+                <p className="text-[12px] font-medium text-[var(--ink-faint)]">
+                  当前书籍内容
+                </p>
+                <div className="inline-flex rounded-full border border-[rgba(24,29,38,0.08)] bg-[rgba(248,250,252,0.72)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+                  {[
+                    { id: "cards" as const, label: "拆书精华", count: 6 },
+                    { id: "practice" as const, label: leapPracticeTabLabel, count: leapProgress >= 3 ? "3/3" : 3 },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={workspaceContentMode === item.id}
+                      aria-controls={item.id === "practice" ? "leap-practice-panel" : "analysis-card-grid"}
+                      onClick={() => {
+                        if (item.id === "practice") {
+                          handleOpenDecisionTraining();
+                        } else {
+                          setIsDecisionPanelOpen(false);
+                        }
+                      }}
+                      disabled={item.id === "practice" && isTrainingActionDisabled}
+                      className={`inline-flex h-8 min-w-[7.5rem] items-center justify-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 ${
+                        workspaceContentMode === item.id
+                          ? "bg-[#181d26] text-[#fbfcfd] shadow-[0_4px_12px_rgba(24,29,38,0.12)]"
+                          : "text-[var(--ink-soft)] hover:bg-white/70 hover:text-[var(--ink)]"
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className={workspaceContentMode === item.id ? "text-[#dfe4e8]" : "text-[var(--ink-faint)]"}>{item.count}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -6905,8 +6910,6 @@ export default function Home() {
               <div id="leap-practice-panel" role="tabpanel" className="workspace-mode-panel">
                 <LeapPracticePanel
                   bookTitle={currentBookDisplayTitle}
-                  bookAuthor={currentBookAuthor}
-                  coverImageUrl={currentBookCover}
                   round={leapPracticeRound}
                   error={decisionError}
                   onBackToCards={() => {
