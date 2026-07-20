@@ -6924,10 +6924,6 @@ export default function Home() {
                   bookTitle={currentBookDisplayTitle}
                   round={leapPracticeRound}
                   error={decisionError}
-                  onBackToCards={() => {
-                    setIsDecisionPanelOpen(false);
-                    immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
                   onGenerateGate={handleGenerateLeapGate}
                   onAnswerComplete={handleCompleteLeapGate}
                   onComplete={handleCompleteLeapRound}
