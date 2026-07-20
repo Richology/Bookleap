@@ -10,7 +10,6 @@ import type {
   PrincipleAnchor,
 } from "@/types/decision";
 import type { LeapPracticeRound } from "@/lib/leapPractice";
-import { getLeapPracticeProgress } from "@/lib/leapPractice";
 
 const LIFE_CAPITAL_OPTIONS: Array<{ id: LifeCapital | "auto"; label: string }> = [
   { id: "auto", label: "自动匹配" },
@@ -296,7 +295,6 @@ export function LeapPracticePanel({
   bookTitle,
   round,
   error,
-  onBackToCards,
   onGenerateGate,
   onAnswerComplete,
   onComplete,
@@ -310,7 +308,6 @@ export function LeapPracticePanel({
   bookTitle: string;
   round: LeapPracticeRound;
   error?: string;
-  onBackToCards: () => void;
   onGenerateGate: (gateIndex: number) => Promise<DecisionScenario | null>;
   onAnswerComplete: (gateIndex: number, option: DecisionOptionKey) => void;
   onComplete?: () => void;
@@ -325,8 +322,6 @@ export function LeapPracticePanel({
   const [activeGate, setActiveGate] = useState(initialRestoreState.gateIndex);
   const [selectedOption, setSelectedOption] = useState<DecisionOptionKey | null>(initialRestoreState.selectedOption);
   const [view, setView] = useState<LeapPracticeView>(initialRestoreState.view);
-  const progress = getLeapPracticeProgress(round);
-  const isRoundComplete = progress >= GATES.length;
   const currentScenario = round.scenarios[activeGate];
   const currentGate = round.blueprint?.gates[activeGate] ?? null;
   const currentAnchors = currentGate
@@ -584,16 +579,6 @@ export function LeapPracticePanel({
                 <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--ink-soft)]">
                   基于《{bookTitle}》的 6 张精华卡片，进入一轮 3 关的判断训练。
                 </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Pill tone={isRoundComplete ? "green" : "muted"}>{progress}/3</Pill>
-                <button
-                  type="button"
-                  onClick={onBackToCards}
-                  className="rounded-[9px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2 text-[12px] font-medium text-[var(--ink-soft)] transition-all hover:border-[#9297a0] hover:text-[var(--ink)] active:scale-[0.98]"
-                >
-                  回到精华
-                </button>
               </div>
             </div>
             <p className="mt-5 max-w-2xl text-[15px] leading-7 text-[var(--ink-soft)]">
