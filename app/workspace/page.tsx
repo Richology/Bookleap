@@ -12,7 +12,7 @@ import {
 import { GrowthLedgerPanel } from "../components/GrowthLedgerPanel";
 import { PosterPreviewModal } from "../components/poster/PosterPreviewModal";
 import type { PosterContent } from "../components/poster/types";
-import { DecisionTrainingPanel } from "../components/DecisionTrainingPanel";
+import { LeapPracticePanel } from "../components/LeapPracticePanel";
 import { FeynmanPreview } from "../components/FeynmanPreview";
 import { UpgradeReadingModal } from "../components/UpgradeReadingModal";
 import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal";
@@ -47,6 +47,7 @@ import {
   normalizeDecisionScenarioList,
   type DecisionCardsInput,
   type DecisionScenario,
+  type LifeCapital,
 } from "@/types/decision";
 import {
   getOnboardingStep,
@@ -63,7 +64,6 @@ import {
   DEFAULT_ADDICTION_STATE,
   getAddictionState,
   inferDecisionPattern,
-  resetDecisionRound,
   setAddictionState,
   type AddictionState,
 } from "@/lib/addictionSystem";
@@ -118,6 +118,24 @@ import {
 } from "@/lib/highlights";
 import { shouldPromptCoffeeSupport } from "@/lib/supportCoffee.mjs";
 import type { DecisionOptionKey } from "@/types/decision";
+import {
+  createLeapPracticeRoundFromScenarios,
+  loadLeapPracticeRound,
+  markLeapPracticeGrowthAwarded,
+  recordLeapPracticeEvent,
+  saveLeapPracticeRound,
+  startNewLeapPracticeRound,
+  updateLeapPracticeGate,
+  updateLeapPracticeLifeCapital,
+  type LeapPracticeRound,
+} from "@/lib/leapPractice";
+import {
+  dismissReadingReflectionPrompt,
+  hasDismissedReadingReflectionPrompt,
+  loadReadingCompletion,
+  saveReadingCompletion,
+  type ReadingCompletionStatus,
+} from "@/lib/readingCompletion";
 import {
   type GuidanceToast,
   TOAST_PRIORITY,
@@ -226,6 +244,7 @@ type WorkspaceTab = WorkspaceTabItem & {
 };
 
 type WorkspaceReadMode = "overview" | "immersive" | "evidence";
+type WorkspaceContentMode = "cards" | "practice";
 
 type PendingQuoteSelection = {
   text: string;
@@ -1846,10 +1865,15 @@ export default function Home() {
     useState<HighlightActionBubble | null>(null);
   const [isFeynmanPreviewOpen, setIsFeynmanPreviewOpen] = useState(false);
   const [decisionScenarios, setDecisionScenarios] = useState<DecisionScenario[]>([]);
-  const [isDecisionPanelOpen, setIsDecisionPanelOpen] = useState(false);
   const [isDecisionLoading, setIsDecisionLoading] = useState(false);
   const [decisionLoadingStep, setDecisionLoadingStep] = useState("");
   const [decisionError, setDecisionError] = useState("");
+  const [workspaceContentMode, setWorkspaceContentMode] = useState<WorkspaceContentMode>("cards");
+  const [leapPracticeRound, setLeapPracticeRound] = useState<LeapPracticeRound | null>(null);
+  const [readingCompletionStatus, setReadingCompletionStatus] =
+    useState<ReadingCompletionStatus>("unconfirmed");
+  const [isReadingReflectionOpen, setIsReadingReflectionOpen] = useState(false);
+  const [isReadingReflectionInvite, setIsReadingReflectionInvite] = useState(false);
   const [readingReflection, setReadingReflection] = useState<ReadingReflection>({
     insight: "",
     question: "",
@@ -1956,6 +1980,24 @@ export default function Home() {
   }, [bookTitle, isAnalyzing, uploadProgressPercent]);
 
   const currentBookId = bookTitle ? buildDecisionBookId(bookTitle) : null;
+  const workspaceModeScrollRef = useRef<Record<WorkspaceContentMode, number>>({
+    cards: 0,
+    practice: 0,
+  });
+  const switchWorkspaceContentMode = useCallback((mode: WorkspaceContentMode) => {
+    if (typeof window !== "undefined") {
+      workspaceModeScrollRef.current[workspaceContentMode] = window.scrollY;
+    }
+    setWorkspaceContentMode(mode);
+    window.requestAnimationFrame(() => {
+      const savedY = workspaceModeScrollRef.current[mode] ?? 0;
+      window.scrollTo({ top: savedY, behavior: "auto" });
+    });
+  }, [workspaceContentMode]);
+  const isDecisionPanelOpen = workspaceContentMode === "practice";
+  const setIsDecisionPanelOpen = useCallback((open: boolean) => {
+    switchWorkspaceContentMode(open ? "practice" : "cards");
+  }, [switchWorkspaceContentMode]);
   const hasReadingReflection =
     !!readingReflection.insight.trim() ||
     !!readingReflection.question.trim() ||
@@ -1979,6 +2021,9 @@ export default function Home() {
   useEffect(() => {
     if (!currentBookId) {
       setReadingReflection({ insight: "", question: "", scene: "" });
+      setReadingCompletionStatus("unconfirmed");
+      setIsReadingReflectionOpen(false);
+      setIsReadingReflectionInvite(false);
       return;
     }
 
@@ -1998,6 +2043,43 @@ export default function Home() {
     } catch {
       setReadingReflection({ insight: "", question: "", scene: "" });
     }
+    setReadingCompletionStatus(loadReadingCompletion(currentBookId));
+    setIsReadingReflectionOpen(false);
+    setIsReadingReflectionInvite(false);
+  }, [currentBookId]);
+
+  useEffect(() => {
+    workspaceModeScrollRef.current = { cards: 0, practice: 0 };
+    if (!currentBookId) {
+      setLeapPracticeRound(null);
+      setDecisionScenarios([]);
+      setWorkspaceContentMode("cards");
+      return;
+    }
+
+    const storedRound = loadLeapPracticeRound(currentBookId);
+    const legacyScenarios = loadDecisionScenarioCache(currentBookId);
+    const legacyAddictionState = getAddictionState(currentBookId);
+    const legacyProgress = Math.min(
+      3,
+      Math.max(0, legacyAddictionState.decision_training_progress)
+    );
+    const legacyAnswers = legacyAddictionState.decision_history.filter(
+      (answer): answer is DecisionOptionKey => answer === "A" || answer === "B"
+    );
+    const round =
+      storedRound.scenarios.some(Boolean) || legacyScenarios.length !== 3
+        ? storedRound
+        : saveLeapPracticeRound(createLeapPracticeRoundFromScenarios(
+            currentBookId,
+            legacyScenarios,
+            legacyProgress,
+            legacyAnswers
+          ));
+
+    setLeapPracticeRound(round);
+    setDecisionScenarios(round.scenarios.filter((scenario): scenario is DecisionScenario => !!scenario));
+    setDecisionError("");
   }, [currentBookId]);
 
   const updateReadingReflection = useCallback(
@@ -2019,6 +2101,22 @@ export default function Home() {
     },
     [currentBookId]
   );
+
+  const updateReadingCompletionStatus = useCallback((status: ReadingCompletionStatus) => {
+    if (!currentBookId) return;
+
+    saveReadingCompletion(currentBookId, status);
+    setReadingCompletionStatus(status);
+    if (
+      status === "completed" &&
+      !hasReadingReflection &&
+      !hasDismissedReadingReflectionPrompt(currentBookId)
+    ) {
+      recordLeapPracticeEvent(currentBookId, "reading_reflection_invited");
+      setIsReadingReflectionInvite(true);
+      setIsReadingReflectionOpen(true);
+    }
+  }, [currentBookId, hasReadingReflection]);
 
   const currentAnalysisContext = useMemo(() => {
     if (currentHistoryRecord) {
@@ -3916,7 +4014,23 @@ export default function Home() {
     insights: ideaSourceTracing,
   }), [bookSummary, readingGuide, viewMap, actionExtraction, criticalExamination, ideaSourceTracing]);
 
-  const handleOpenDecisionTraining = useCallback(async () => {
+  const handleLeapLifeCapitalChange = useCallback((lifeCapital: LifeCapital | "auto") => {
+    if (!currentBookId) return;
+    const currentRound =
+      leapPracticeRound && leapPracticeRound.bookId === currentBookId
+        ? leapPracticeRound
+        : loadLeapPracticeRound(currentBookId);
+    if (currentRound.blueprint || currentRound.scenarios.some(Boolean)) return;
+    const nextRound = saveLeapPracticeRound(
+      updateLeapPracticeLifeCapital(currentRound, lifeCapital)
+    );
+    recordLeapPracticeEvent(currentBookId, "life_capital_selected", {
+      lifeCapital,
+    });
+    setLeapPracticeRound(nextRound);
+  }, [currentBookId, leapPracticeRound]);
+
+  const handleOpenDecisionTraining = useCallback(() => {
     if (!bookTitle) return;
 
     const cards = getDecisionCardsInput();
@@ -3926,53 +4040,261 @@ export default function Home() {
     }
 
     const bookId = buildDecisionBookId(bookTitle);
-    applyAddictionState(resetDecisionRound(bookId));
-
-    const cached = loadDecisionScenarioCache(bookId);
-    if (cached.length === 3) {
-      setDecisionScenarios(cached);
-      setDecisionError("");
-      setIsDecisionPanelOpen(true);
-      return;
+    if (!leapPracticeRound || leapPracticeRound.bookId !== bookId) {
+      const storedRound = loadLeapPracticeRound(bookId);
+      const legacyScenarios = loadDecisionScenarioCache(bookId);
+      const legacyAddictionState = getAddictionState(bookId);
+      const legacyProgress = Math.min(
+        3,
+        Math.max(0, legacyAddictionState.decision_training_progress)
+      );
+      const legacyAnswers = legacyAddictionState.decision_history.filter(
+        (answer): answer is DecisionOptionKey => answer === "A" || answer === "B"
+      );
+      const round =
+        storedRound.scenarios.some(Boolean) || legacyScenarios.length !== 3
+          ? storedRound
+          : saveLeapPracticeRound(createLeapPracticeRoundFromScenarios(
+              bookId,
+              legacyScenarios,
+              legacyProgress,
+              legacyAnswers
+            ));
+      setLeapPracticeRound(round);
+      setDecisionScenarios(round.scenarios.filter((scenario): scenario is DecisionScenario => !!scenario));
     }
 
+    setDecisionError("");
+    setViewMode("overview");
+    setIsDecisionPanelOpen(true);
+    recordLeapPracticeEvent(bookId, "practice_opened", {
+      generatedCount: leapPracticeRound?.bookId === bookId
+        ? leapPracticeRound.scenarios.filter(Boolean).length
+        : undefined,
+    });
+    window.setTimeout(() => {
+      cardSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 40);
+  }, [bookTitle, getDecisionCardsInput, leapPracticeRound, setIsDecisionPanelOpen]);
+
+  const handleGenerateLeapGate = useCallback(async (gateIndex: number): Promise<DecisionScenario | null> => {
+    if (!bookTitle || !currentBookId) return null;
+
+    const cards = getDecisionCardsInput();
+    if (!hasCompleteDecisionCards(cards)) {
+      setDecisionError("请先完成 6 个分析模块，再开始跃迁练习。");
+      return null;
+    }
+
+    const currentRound =
+      leapPracticeRound && leapPracticeRound.bookId === currentBookId
+        ? leapPracticeRound
+        : loadLeapPracticeRound(currentBookId);
+    const existingScenario = currentRound.scenarios[gateIndex];
+    if (existingScenario && currentRound.statuses[gateIndex] !== "error") return existingScenario;
+
+    const generatingRound = saveLeapPracticeRound(
+      updateLeapPracticeGate(currentRound, gateIndex, { status: "generating" })
+    );
+    setLeapPracticeRound(generatingRound);
+    setDecisionLoadingStep(DECISION_STEP_LABELS[gateIndex] ?? `第 ${gateIndex + 1} 关`);
+    setIsDecisionLoading(true);
+    setDecisionError("");
+    recordLeapPracticeEvent(currentBookId, "gate_generation_started", {
+      gateIndex,
+      lifeCapital: currentRound.requestedLifeCapital,
+      hasBlueprint: !!currentRound.blueprint,
+    });
+
     try {
-      setIsDecisionLoading(true);
-      setDecisionError("");
-      const scenarios: import("@/types/decision").DecisionScenario[] = [];
-
-      // 逐题生成，每完成一题立即更新进度
-      for (let i = 0; i < 3; i++) {
-        setDecisionLoadingStep(DECISION_STEP_LABELS[i]);
-        const res = await fetch("/api/decision/generate-one", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookTitle, cards, questionIndex: i }),
-        });
-        const data = await res.json();
-        if (!data.success || !data.scenario) {
-          setDecisionError(data.error || `第 ${i + 1} 题生成失败，请稍后重试。`);
-          return;
-        }
-        scenarios.push(data.scenario);
+      const res = await fetch("/api/decision/generate-one", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookTitle,
+          cards,
+          questionIndex: gateIndex,
+          blueprint: currentRound.blueprint,
+          lifeCapital:
+            currentRound.requestedLifeCapital === "auto"
+              ? undefined
+              : currentRound.requestedLifeCapital,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success || !data.scenario) {
+        throw new Error(data.error || `第 ${gateIndex + 1} 题生成失败，请稍后重试。`);
       }
 
-      if (scenarios.length !== 3) {
-        setDecisionError("决策训练题生成不完整，请稍后再试。");
-        return;
-      }
-
-      saveDecisionScenarioCache(bookId, scenarios);
+      const nextRound = saveLeapPracticeRound(
+        updateLeapPracticeGate(generatingRound, gateIndex, {
+          scenario: data.scenario,
+          blueprint: data.blueprint ?? generatingRound.blueprint,
+          status: "ready",
+          answer: null,
+        })
+      );
+      const scenarios = nextRound.scenarios.filter((scenario): scenario is DecisionScenario => !!scenario);
+      if (scenarios.length === 3) saveDecisionScenarioCache(currentBookId, scenarios);
+      setLeapPracticeRound(nextRound);
       setDecisionScenarios(scenarios);
-      setIsDecisionPanelOpen(true);
+      recordLeapPracticeEvent(currentBookId, "gate_generation_succeeded", {
+        gateIndex,
+        lifeCapital: nextRound.blueprint?.lifeCapital ?? currentRound.requestedLifeCapital,
+      });
+      return data.scenario as DecisionScenario;
     } catch (error) {
-      console.error("决策训练生成失败:", error);
-      setDecisionError("决策训练生成失败，请稍后重试。");
+      console.error("跃迁练习生成失败:", error);
+      const errorRound = saveLeapPracticeRound(
+        updateLeapPracticeGate(generatingRound, gateIndex, { status: "error" })
+      );
+      setLeapPracticeRound(errorRound);
+      setDecisionError(error instanceof Error ? error.message : "跃迁练习生成失败，请稍后重试。");
+      recordLeapPracticeEvent(currentBookId, "gate_generation_failed", {
+        gateIndex,
+      });
+      return null;
     } finally {
       setIsDecisionLoading(false);
       setDecisionLoadingStep("");
     }
-  }, [applyAddictionState, bookTitle, getDecisionCardsInput]);
+  }, [bookTitle, currentBookId, getDecisionCardsInput, leapPracticeRound]);
+
+  const handleCompleteLeapGate = useCallback((gateIndex: number, option: DecisionOptionKey) => {
+    if (!currentBookId) return;
+
+    const currentRound =
+      leapPracticeRound && leapPracticeRound.bookId === currentBookId
+        ? leapPracticeRound
+        : loadLeapPracticeRound(currentBookId);
+    const nextRound = saveLeapPracticeRound(
+      updateLeapPracticeGate(currentRound, gateIndex, {
+        status: "completed",
+        answer: option,
+      })
+    );
+    setLeapPracticeRound(nextRound);
+
+    const scenarios = nextRound.scenarios.filter((scenario): scenario is DecisionScenario => !!scenario);
+    setDecisionScenarios(scenarios);
+
+    const progress = nextRound.statuses.filter((status) => status === "completed").length;
+    recordLeapPracticeEvent(currentBookId, "gate_completed", {
+      gateIndex,
+      option,
+      progress,
+    });
+    const nextState = updateCurrentBookAddictionState((prev) => ({
+      ...prev,
+      decision_training_progress: Math.max(prev.decision_training_progress, progress),
+      decision_history: [...prev.decision_history, option],
+      decision_score: prev.decision_score + 1,
+    }));
+
+    if (progress === 1) {
+      enqueueGuidanceToast({
+        id: `addiction-first-answer-${currentBookId}`,
+        message: "你刚才的选择，其实很有代表性",
+        priority: TOAST_PRIORITY.GUIDANCE,
+        durationMs: 5000,
+      });
+    }
+
+    if (progress === 2) {
+      enqueueGuidanceToast({
+        id: `addiction-tension-${currentBookId}`,
+        message: "再做 1 题，你会看到这本书如何影响你的判断",
+        priority: TOAST_PRIORITY.GUIDANCE,
+        durationMs: 10000,
+        showCloseButton: true,
+        dismissible: true,
+      });
+    }
+
+    if (progress >= 3) {
+      const patternMessage = inferDecisionPattern(nextState.decision_history);
+      if (patternMessage) {
+        enqueueGuidanceToast({
+          id: `addiction-pattern-${currentBookId}`,
+          message: `${patternMessage}\n\n右侧的「能力账本」会记录你完成的真实练习，做得越多，能力增长越清晰。`,
+          priority: TOAST_PRIORITY.COGNITIVE,
+          durationMs: 0,
+          isPersistent: true,
+          showCloseButton: true,
+          dismissible: true,
+        });
+      }
+    }
+  }, [
+    currentBookId,
+    enqueueGuidanceToast,
+    leapPracticeRound,
+    updateCurrentBookAddictionState,
+  ]);
+
+  const handleCompleteLeapRound = useCallback(() => {
+    if (currentBookId && leapPracticeRound?.bookId === currentBookId) {
+      if (leapPracticeRound.growthAwardedAt) return;
+
+      recordLeapPracticeEvent(currentBookId, "round_completed", {
+        roundId: leapPracticeRound.roundId,
+      });
+      const decisionGrowth = awardGrowth("decision", {
+        bookId: `${currentBookId}:${leapPracticeRound.roundId}`,
+        bookTitle: currentBookDisplayTitle,
+        action: "训练完成",
+      });
+      const awardedRound = saveLeapPracticeRound(markLeapPracticeGrowthAwarded(leapPracticeRound));
+      setLeapPracticeRound(awardedRound);
+      if (decisionGrowth.changed) {
+        setGrowthLedger(decisionGrowth.ledger);
+        markGrowthInspectorUpdated();
+        enqueueGuidanceToast({
+          id: `growth-decision-${currentBookId}`,
+          message: `决策力印记 +1\n来自《${currentBookDisplayTitle}》的 3 题训练完成`,
+          priority: TOAST_PRIORITY.INFO,
+          durationMs: 4500,
+        });
+      }
+    }
+    if (isBeforeOnboardingStep(onboardingProgress, "trained")) {
+      enqueueGuidanceToast({
+        id: "onboarding-trained",
+        message: "把这本书带走",
+        actionText: "导出",
+        onAction: () => {
+          setExportStatus("idle");
+          setIsExportModalOpen(true);
+        },
+        priority: TOAST_PRIORITY.INFO,
+        durationMs: 10000,
+      });
+      advanceOnboardingProgress("trained");
+    }
+  }, [
+    advanceOnboardingProgress,
+    currentBookDisplayTitle,
+    currentBookId,
+    enqueueGuidanceToast,
+    leapPracticeRound,
+    markGrowthInspectorUpdated,
+    onboardingProgress,
+  ]);
+
+  const handleStartNewLeapRound = useCallback(() => {
+    if (!currentBookId) return;
+    const currentRound =
+      leapPracticeRound && leapPracticeRound.bookId === currentBookId
+        ? leapPracticeRound
+        : loadLeapPracticeRound(currentBookId);
+    const nextRound = saveLeapPracticeRound(startNewLeapPracticeRound(currentRound));
+    setLeapPracticeRound(nextRound);
+    setDecisionScenarios([]);
+    setDecisionError("");
+    recordLeapPracticeEvent(currentBookId, "new_round_started", {
+      previousRoundId: currentRound.roundId,
+    });
+  }, [currentBookId, leapPracticeRound]);
 
   const applyStarterBook = useCallback((starterBook: StarterBookData) => {
     resetAllState();
@@ -5220,7 +5542,7 @@ export default function Home() {
       ? normalizeOriginalReadingAdviceMarkdown(originalReadingValue, originalReadingAdviceLevelIndex)
       : originalReadingValue;
 
-  const openOverviewCard = (targetKey: string) => {
+  const openOverviewCard = useCallback((targetKey: string) => {
     const nextIndex = immersiveCardList.findIndex((card) => card.key === targetKey);
     if (nextIndex < 0) return;
 
@@ -5231,7 +5553,23 @@ export default function Home() {
     window.setTimeout(() => {
       immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 40);
-  };
+  }, [immersiveCardList]);
+
+  const openDecisionSourceCard = useCallback((cardKey: keyof DecisionCardsInput) => {
+    const cardMap: Record<keyof DecisionCardsInput, string> = {
+      summary: "bookSummary",
+      readingGuide: "readingGuide",
+      viewMap: "viewMap",
+      actionPrinciples: "actionExtraction",
+      models: "criticalExamination",
+      insights: "ideaSourceTracing",
+    };
+    setIsDecisionPanelOpen(false);
+    if (currentBookId) {
+      recordLeapPracticeEvent(currentBookId, "source_card_opened", { cardKey });
+    }
+    window.setTimeout(() => openOverviewCard(cardMap[cardKey]), 40);
+  }, [currentBookId, openOverviewCard, setIsDecisionPanelOpen]);
 
   const openEvidenceCard = (targetKey: string) => {
     const nextIndex = immersiveCardList.findIndex((card) => card.key === targetKey);
@@ -5705,6 +6043,28 @@ export default function Home() {
   const isShareActionDisabled = isGeneratingPoster || !canShareBook;
   const isFeynmanActionDisabled =
     isAnalyzing || !decisionCardsReady || (isLiteMode && !isLiteUnlocked);
+  const leapProgress = leapPracticeRound && leapPracticeRound.bookId === currentBookId
+    ? leapPracticeRound.statuses.filter((status) => status === "completed").length
+    : 0;
+  const leapGeneratedCount = leapPracticeRound && leapPracticeRound.bookId === currentBookId
+    ? leapPracticeRound.scenarios.filter(Boolean).length
+    : 0;
+  const leapPracticeTabLabel = leapProgress >= 3
+    ? "跃迁练习 ✓"
+    : leapProgress > 0
+    ? `跃迁练习 ${leapProgress}/3`
+    : leapGeneratedCount > 0
+    ? "继续训练"
+    : "跃迁练习";
+  const leapPracticeToolTitle = isDecisionLoading
+    ? decisionLoadingStep || "生成中…"
+    : leapProgress >= 3
+    ? "查看本轮"
+    : leapProgress > 0
+    ? `已完成 ${leapProgress}/3`
+    : leapGeneratedCount > 0
+    ? `第 ${leapGeneratedCount + 1} 关待练习`
+    : "跃迁练习";
   const topBarTabs = openTabs.map<WorkspaceTabItem>((tab) => ({
     id: tab.id,
     title: tab.title,
@@ -5730,7 +6090,7 @@ export default function Home() {
     {
       id: "training",
       label: "跃迁练习",
-      title: isDecisionLoading ? decisionLoadingStep || "生成中…" : "跃迁练习",
+      title: leapPracticeToolTitle,
       onClick: () => {
         void handleOpenDecisionTraining();
       },
@@ -6447,6 +6807,33 @@ export default function Home() {
                     </div>
                   </div>
 
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#dfe4e8] pt-4">
+                    <span className="mr-1 text-[12px] font-semibold text-[var(--ink)]">阅读状态</span>
+                    {[
+                      { id: "reading" as const, label: "在读" },
+                      { id: "completed" as const, label: hasReadingReflection ? "查看记录" : "已读原书" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          updateReadingCompletionStatus(item.id);
+                          if (item.id === "completed" && hasReadingReflection) {
+                            setIsReadingReflectionInvite(false);
+                            setIsReadingReflectionOpen(true);
+                          }
+                        }}
+                        className={`inline-flex h-8 items-center justify-center rounded-[8px] border px-3 text-[12px] font-medium transition-all hover:border-[#9297a0] active:scale-[0.98] ${
+                          readingCompletionStatus === item.id
+                            ? "border-[#9297a0] bg-[#181d26] text-[#fbfcfd]"
+                            : "border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+
                 </div>
               )}
               cover={(
@@ -6477,107 +6864,68 @@ export default function Home() {
           )}
 
           <div ref={cardSectionRef} className="px-4 pb-4 pt-3 md:px-5 md:pb-5 md:pt-3 xl:px-5 xl:pb-5 xl:pt-3" style={{ scrollMarginTop: "24px" }}>
-            {isDecisionPanelOpen && decisionScenarios.length > 0 && (
-              <DecisionTrainingPanel
-                scenarios={decisionScenarios}
-                onUpgradeClick={() => setIsUpgradeModalOpen(true)}
-                onBackToCards={() => {
-                  setIsDecisionPanelOpen(false);
-                  immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                onScenarioSelected={(scenario, option) => {
-                  updateReadingReflection(
-                    "scene",
-                    [
-                      `练习场景：${scenario.scene}`,
-                      `练习问题：${scenario.question}`,
-                      `我的选择：${option}. ${scenario.options[option]}`,
-                    ].join("\n\n")
-                  );
-                }}
-                onAnswerComplete={(option: DecisionOptionKey, progress: number) => {
-                  if (!currentBookId) return;
+            {viewMode === "overview" && overviewCardList.length > 0 && (
+              <div
+                className="mx-auto mb-4 flex max-w-6xl items-center gap-1 rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] p-1"
+                role="tablist"
+                aria-label="书籍内容模式"
+              >
+                {[
+                  { id: "cards" as const, label: "拆书精华", count: 6 },
+                  { id: "practice" as const, label: leapPracticeTabLabel, count: leapProgress >= 3 ? "3/3" : 3 },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={workspaceContentMode === item.id}
+                    aria-controls={item.id === "practice" ? "leap-practice-panel" : "analysis-card-grid"}
+                    onClick={() => {
+                      if (item.id === "practice") {
+                        handleOpenDecisionTraining();
+                      } else {
+                        setIsDecisionPanelOpen(false);
+                      }
+                    }}
+                    disabled={item.id === "practice" && isTrainingActionDisabled}
+                    className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-[8px] px-3 text-sm font-medium transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-45 ${
+                      workspaceContentMode === item.id
+                        ? "bg-[#fbfcfd] text-[var(--ink)] shadow-[0_1px_2px_rgba(24,29,38,0.06)]"
+                        : "text-[var(--ink-soft)] hover:bg-[#eef2f4] hover:text-[var(--ink)]"
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    <span className="text-[11px] text-[var(--ink-faint)]">{item.count}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-                  const nextState = updateCurrentBookAddictionState((prev) => ({
-                    ...prev,
-                    decision_training_progress: progress,
-                    decision_history: [...prev.decision_history, option],
-                    decision_score: prev.decision_score + 1,
-                  }));
-
-                  if (progress === 1) {
-                    enqueueGuidanceToast({
-                      id: `addiction-first-answer-${currentBookId}`,
-                      message: "你刚才的选择，其实很有代表性",
-                      priority: TOAST_PRIORITY.GUIDANCE,
-                      durationMs: 5000,
-                    });
-                  }
-
-                  if (progress === 2) {
-                    enqueueGuidanceToast({
-                      id: `addiction-tension-${currentBookId}`,
-                      message: "再做1题，你会看到你的决策模式",
-                      priority: TOAST_PRIORITY.GUIDANCE,
-                      durationMs: 10000,
-                      showCloseButton: true,
-                      dismissible: true,
-                    });
-                  }
-
-                  if (progress >= 3) {
-                    const patternMessage = inferDecisionPattern(nextState.decision_history);
-                    if (patternMessage) {
-                      enqueueGuidanceToast({
-                        id: `addiction-pattern-${currentBookId}`,
-                        message: `${patternMessage}\n\n右侧的「能力账本」会记录你完成的真实练习，做得越多，能力增长越清晰。`,
-                        priority: TOAST_PRIORITY.COGNITIVE,
-                        durationMs: 0,
-                        isPersistent: true,
-                        showCloseButton: true,
-                        dismissible: true,
-                      });
-                    }
-                  }
-                }}
-                onComplete={() => {
-                  if (currentBookId) {
-                    const decisionGrowth = awardGrowth("decision", {
-                      bookId: currentBookId,
-                      bookTitle: currentBookDisplayTitle,
-                      action: "训练完成",
-                    });
-                    if (decisionGrowth.changed) {
-                      setGrowthLedger(decisionGrowth.ledger);
-                      markGrowthInspectorUpdated();
-                      enqueueGuidanceToast({
-                        id: `growth-decision-${currentBookId}`,
-                        message: `决策力印记 +1\n来自《${currentBookDisplayTitle}》的 3 题训练完成`,
-                        priority: TOAST_PRIORITY.INFO,
-                        durationMs: 4500,
-                      });
-                    }
-                  }
-                  if (isBeforeOnboardingStep(onboardingProgress, "trained")) {
-                    enqueueGuidanceToast({
-                      id: "onboarding-trained",
-                      message: "把这本书带走",
-                      actionText: "导出",
-                      onAction: () => {
-                        setExportStatus("idle");
-                        setIsExportModalOpen(true);
-                      },
-                      priority: TOAST_PRIORITY.INFO,
-                      durationMs: 10000,
-                    });
-                    advanceOnboardingProgress("trained");
-                  }
-                }}
-              />
+            {isDecisionPanelOpen && leapPracticeRound && (
+              <div id="leap-practice-panel" role="tabpanel" className="workspace-mode-panel">
+                <LeapPracticePanel
+                  bookTitle={currentBookDisplayTitle}
+                  bookAuthor={currentBookAuthor}
+                  coverImageUrl={currentBookCover}
+                  round={leapPracticeRound}
+                  error={decisionError}
+                  onBackToCards={() => {
+                    setIsDecisionPanelOpen(false);
+                    immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  onGenerateGate={handleGenerateLeapGate}
+                  onAnswerComplete={handleCompleteLeapGate}
+                  onComplete={handleCompleteLeapRound}
+                  onUpgradeClick={() => setIsUpgradeModalOpen(true)}
+                  onLifeCapitalChange={handleLeapLifeCapitalChange}
+                  onOpenSourceCard={openDecisionSourceCard}
+                  onStartNewRound={handleStartNewLeapRound}
+                />
+              </div>
             )}
 
             {!isDecisionPanelOpen && viewMode === "overview" && overviewCardList.length > 0 && (
-              <section className="mx-auto max-w-6xl">
+              <section id="analysis-card-grid" className="workspace-mode-panel mx-auto max-w-6xl" role="tabpanel">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {overviewCardList.map((card) => {
                     const isReady = !card.isLoading && !!card.content.trim();
@@ -6671,104 +7019,6 @@ export default function Home() {
                   })}
                 </div>
 
-                {isAnalysisComplete && (
-                  <section className="mt-5 rounded-[12px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] p-5 shadow-[0_8px_22px_rgba(24,29,38,0.05)]">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="max-w-2xl">
-                        <p className="archive-kicker">读后记录</p>
-                        <h3 className="mt-2 text-[18px] font-semibold text-[var(--ink)]">
-                          别急着收藏，先确认这本书有没有进入你的问题里
-                        </h3>
-                        <p className="mt-2 text-[13px] leading-6 text-[var(--ink-soft)]">
-                          看完精华卡片后，先留下一个触动和一个现实问题；再做一次跃迁练习，系统会把你选择过的场景自动写回来。
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => void handleOpenDecisionTraining()}
-                        disabled={isTrainingActionDisabled}
-                        className="inline-flex h-9 shrink-0 items-center justify-center rounded-[9px] bg-[var(--ink)] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] disabled:cursor-not-allowed disabled:opacity-45"
-                      >
-                        {readingReflection.scene.trim() ? "继续场景练习" : "生成场景练习"}
-                      </button>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 lg:grid-cols-3">
-                      <label className="block min-w-0">
-                        <span className="text-[12px] font-semibold text-[var(--ink)]">
-                          最想留下的一个观点
-                        </span>
-                        <textarea
-                          value={readingReflection.insight}
-                          onChange={(event) => updateReadingReflection("insight", event.target.value)}
-                          rows={3}
-                          placeholder="哪句话、哪个判断让你停了一下？"
-                          className="mt-2 w-full resize-none rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink)] outline-none transition focus:border-[#9297a0] focus:bg-[#fbfcfd]"
-                        />
-                      </label>
-
-                      <label className="block min-w-0">
-                        <span className="text-[12px] font-semibold text-[var(--ink)]">
-                          它击中了哪个现实问题
-                        </span>
-                        <textarea
-                          value={readingReflection.question}
-                          onChange={(event) => updateReadingReflection("question", event.target.value)}
-                          rows={3}
-                          placeholder="工作、生活、创业里哪个问题被它照亮了？"
-                          className="mt-2 w-full resize-none rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink)] outline-none transition focus:border-[#9297a0] focus:bg-[#fbfcfd]"
-                        />
-                      </label>
-
-                      <div className="block min-w-0">
-                        <span className="text-[12px] font-semibold text-[var(--ink)]">
-                          已选择的练习场景
-                        </span>
-                        <div className="mt-2 min-h-[104px] rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink-soft)]">
-                          {readingReflection.scene.trim() ? (
-                            <p className="whitespace-pre-line">{readingReflection.scene}</p>
-                          ) : (
-                            <div className="flex h-full min-h-[78px] flex-col justify-between gap-3">
-                              <p>
-                                这里不用手写。点击「生成场景练习」，在跃迁练习里做一次选择后，场景会自动记录到这里。
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => void handleOpenDecisionTraining()}
-                                disabled={isTrainingActionDisabled}
-                                className="w-fit rounded-[8px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-3 py-1.5 text-[12px] font-medium text-[var(--ink)] transition hover:bg-[var(--workspace-hover-surface)] disabled:cursor-not-allowed disabled:opacity-45"
-                              >
-                                去选择一个场景
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(24,29,38,0.08)] pt-4">
-                      <p className="text-[12px] leading-5 text-[var(--ink-faint)]">
-                        {hasReadingReflection
-                          ? "已自动保存在本地。真正值得沉淀的，是你读过并选择过的场景。"
-                          : "这一步很轻：先记录触动，再用跃迁练习补上真实场景。"}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setViewMode("immersive");
-                          setImmersiveIndex(0);
-                          setSlideDir(null);
-                          window.setTimeout(() => {
-                            immersiveContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                          }, 40);
-                        }}
-                        className="rounded-[9px] border border-[rgba(24,29,38,0.08)] bg-transparent px-3 py-1.5 text-[12px] font-medium text-[var(--ink-soft)] transition-all hover:bg-[#f8fafc] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9297a0]"
-                      >
-                        回到精华卡片
-                      </button>
-                    </div>
-                  </section>
-                )}
               </section>
             )}
 
@@ -7229,6 +7479,105 @@ export default function Home() {
             </button>
           </div>
         </aside>
+      )}
+
+      {isReadingReflectionOpen && (
+        <div
+          className="fixed inset-0 z-[105] flex justify-end bg-[rgba(24,29,38,0.28)] pl-5 backdrop-blur-[2px]"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setIsReadingReflectionOpen(false);
+          }}
+          role="presentation"
+        >
+          <section
+            className="flex h-full w-full max-w-xl flex-col overflow-hidden border-l border-[#dfe4e8] bg-[#fbfcfd] shadow-[0_18px_44px_rgba(24,29,38,0.18)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reading-reflection-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[#dfe4e8] px-6 pb-4 pt-5">
+              <div>
+                <p id="reading-reflection-title" className="text-base font-semibold leading-6 text-[var(--ink)]">
+                  {isReadingReflectionInvite ? "要写一段读后记录吗？" : "读后记录"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--ink-faint)]">
+                  {isReadingReflectionInvite
+                    ? "确认读过原书后，再留下真正属于你的思考。"
+                    : `《${currentBookDisplayTitle}》`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsReadingReflectionOpen(false)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[#dfe4e8] bg-[#f8fafc] text-[var(--ink-faint)] transition-all hover:border-[#9297a0] hover:text-[var(--ink)] active:scale-[0.98]"
+                aria-label="关闭读后记录"
+              >
+                <CloseIcon className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              {isReadingReflectionInvite && (
+                <div className="rounded-[10px] border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.82)] px-4 py-3 text-[13px] leading-6 text-[var(--ink-soft)]">
+                  这不是训练题的结果，也不是拆书自动生成的总结。它只记录你读完原书后，愿意带走的一个观点和一个现实问题。
+                </div>
+              )}
+              <label className="block">
+                <span className="text-[12px] font-semibold text-[var(--ink)]">最想留下的一个观点</span>
+                <textarea
+                  value={readingReflection.insight}
+                  onChange={(event) => updateReadingReflection("insight", event.target.value)}
+                  rows={4}
+                  placeholder="哪句话、哪个判断让你停了一下？"
+                  className="mt-2 w-full resize-none rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink)] outline-none transition focus:border-[#9297a0] focus:bg-[#fbfcfd]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-[12px] font-semibold text-[var(--ink)]">它击中了哪个现实问题</span>
+                <textarea
+                  value={readingReflection.question}
+                  onChange={(event) => updateReadingReflection("question", event.target.value)}
+                  rows={4}
+                  placeholder="工作、生活、创业里哪个问题被它照亮了？"
+                  className="mt-2 w-full resize-none rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-3 py-2.5 text-[13px] leading-6 text-[var(--ink)] outline-none transition focus:border-[#9297a0] focus:bg-[#fbfcfd]"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dfe4e8] px-6 py-4">
+              <p className="text-[12px] leading-5 text-[var(--ink-faint)]">
+                {hasReadingReflection ? "已自动保存在本地。" : "确认读过原书后，再留下这段思考。"}
+              </p>
+              <div className="flex items-center gap-2">
+                {isReadingReflectionInvite && currentBookId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      dismissReadingReflectionPrompt(currentBookId);
+                      recordLeapPracticeEvent(currentBookId, "reading_reflection_dismissed");
+                      setIsReadingReflectionInvite(false);
+                      setIsReadingReflectionOpen(false);
+                    }}
+                    className="inline-flex h-10 items-center justify-center rounded-[10px] border border-[#dfe4e8] bg-[#f8fafc] px-4 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[#9297a0] hover:text-[var(--ink)] active:scale-[0.98]"
+                  >
+                    以后再说
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReadingReflectionInvite(false);
+                    setIsReadingReflectionOpen(false);
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-[10px] bg-[#181d26] px-4 text-sm font-medium text-[#fbfcfd] transition hover:bg-[#0d1218] active:scale-[0.98]"
+                >
+                  {isReadingReflectionInvite ? "现在写好" : "完成"}
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
       )}
       
       <UpgradeReadingModal 

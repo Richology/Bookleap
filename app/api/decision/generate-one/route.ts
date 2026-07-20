@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { generateSingleDecisionScenario } from "@/lib/skills/generateDecisionScenarios";
-import { hasCompleteDecisionCards } from "@/types/decision";
+import {
+  generateDecisionBlueprintAndFirstScenario,
+  generateDecisionScenarioFromBlueprint,
+  generateSingleDecisionScenario,
+} from "@/lib/skills/generateDecisionScenarios";
+import {
+  buildDecisionBookId,
+  hasCompleteDecisionCards,
+  normalizeRoundBlueprint,
+} from "@/types/decision";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { bookTitle, cards, questionIndex } = body;
+    const { bookTitle, cards, questionIndex, blueprint, lifeCapital } = body;
 
     if (typeof bookTitle !== "string" || bookTitle.trim().length === 0 || !cards) {
       return NextResponse.json(
@@ -28,11 +36,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const scenario = await generateSingleDecisionScenario(
-      bookTitle.trim(),
-      cards,
-      questionIndex
+    const title = bookTitle.trim();
+
+    if (questionIndex === 0 && !blueprint) {
+      const result = await generateDecisionBlueprintAndFirstScenario(
+        title,
+        cards,
+        lifeCapital
+      );
+      return NextResponse.json({
+        success: true,
+        scenario: result.scenario,
+        blueprint: result.blueprint,
+      });
+    }
+
+    const normalizedBlueprint = normalizeRoundBlueprint(
+      blueprint,
+      buildDecisionBookId(title)
     );
+    const scenario = normalizedBlueprint
+      ? await generateDecisionScenarioFromBlueprint(title, normalizedBlueprint, questionIndex)
+      : await generateSingleDecisionScenario(title, cards, questionIndex);
 
     return NextResponse.json({ success: true, scenario });
   } catch (error) {
