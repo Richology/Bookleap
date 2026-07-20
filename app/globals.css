@@ -1142,9 +1142,32 @@ select {
 }
 
 @keyframes leap-orbit {
-  0%   { transform: scale(0.86); opacity: 0.88; }
-  70%  { transform: scale(1.08); opacity: 0.18; }
-  100% { transform: scale(1.14); opacity: 0; }
+  0%   { transform: scale(0.72); opacity: 0.92; }
+  72%  { transform: scale(1.22); opacity: 0.16; }
+  100% { transform: scale(1.34); opacity: 0; }
+}
+
+@keyframes leap-loader-ring {
+  0%   { transform: rotate(0deg) scale(1); opacity: 0.76; }
+  50%  { transform: rotate(180deg) scale(1.06); opacity: 1; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.76; }
+}
+
+@keyframes leap-loader-core {
+  0%, 100% { transform: scale(1); box-shadow: 0 18px 44px rgba(41, 117, 74, 0.18); }
+  50%      { transform: scale(1.08); box-shadow: 0 24px 62px rgba(41, 117, 74, 0.28); }
+}
+
+@keyframes leap-scan-line {
+  0%   { transform: translateX(-125%) scaleX(0.72); opacity: 0; }
+  18%  { opacity: 0.72; }
+  58%  { opacity: 0.56; }
+  100% { transform: translateX(125%) scaleX(1.05); opacity: 0; }
+}
+
+@keyframes leap-loader-step {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  38%      { transform: translateY(-3px); opacity: 1; }
 }
 
 @keyframes leap-dot {
@@ -1153,11 +1176,54 @@ select {
 }
 
 .leap-orbit {
-  animation: leap-orbit 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  animation: leap-orbit 1.75s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 .leap-orbit-delay {
-  animation-delay: 180ms;
+  animation-delay: 260ms;
+}
+
+.leap-loader-stage {
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
+.leap-loader-ring {
+  border-top-color: rgba(41, 117, 74, 0.72);
+  border-right-color: rgba(41, 117, 74, 0.18);
+  animation: leap-loader-ring 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.leap-loader-core {
+  animation: leap-loader-core 1.65s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.leap-scan-line {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(41, 117, 74, 0.42), transparent);
+  filter: blur(0.2px);
+  animation: leap-scan-line 2.15s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.leap-scan-line-one {
+  top: 30%;
+}
+
+.leap-scan-line-two {
+  top: 48%;
+  animation-delay: 420ms;
+}
+
+.leap-scan-line-three {
+  top: 66%;
+  animation-delay: 840ms;
+}
+
+.leap-loader-step {
+  animation: leap-loader-step 1.4s ease-in-out infinite;
 }
 
 .leap-dot {
@@ -1179,6 +1245,10 @@ select {
 
 @media (prefers-reduced-motion: reduce) {
   .leap-orbit,
+  .leap-loader-ring,
+  .leap-loader-core,
+  .leap-scan-line,
+  .leap-loader-step,
   .leap-dot,
   .workspace-mode-panel {
     animation: none;

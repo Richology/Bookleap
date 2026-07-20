@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   DecisionCardsInput,
   DecisionFeedbackBlock,
@@ -55,6 +55,38 @@ const FEEDBACK_SECTIONS: Array<{
   { key: "action", label: "下一步行动" },
 ];
 
+type LeapPracticeView = "map" | "loading" | "scenario" | "feedback" | "done";
+
+export type LeapPracticeReturnState = {
+  gateIndex: number;
+  view: Exclude<LeapPracticeView, "loading">;
+  selectedOption: DecisionOptionKey | null;
+};
+
+function normalizeRestoreState(
+  restoreState: LeapPracticeReturnState | null | undefined,
+  round: LeapPracticeRound
+): LeapPracticeReturnState {
+  if (!restoreState) {
+    return { gateIndex: 0, view: "map", selectedOption: null };
+  }
+
+  const gateIndex = Math.max(0, Math.min(GATES.length - 1, restoreState.gateIndex));
+  const restoredScenario = round.scenarios[gateIndex];
+  if ((restoreState.view === "scenario" || restoreState.view === "feedback") && !restoredScenario) {
+    return { gateIndex, view: "map", selectedOption: null };
+  }
+  if (restoreState.view === "feedback" && !restoreState.selectedOption) {
+    return { gateIndex, view: "scenario", selectedOption: null };
+  }
+
+  return {
+    gateIndex,
+    view: restoreState.view,
+    selectedOption: restoreState.selectedOption,
+  };
+}
+
 function CheckIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -100,18 +132,35 @@ function GateLoader({ gateIndex, bookTitle }: { gateIndex: number; bookTitle: st
   const gate = GATES[gateIndex] ?? GATES[0];
 
   return (
-    <section className="mx-auto flex min-h-[520px] max-w-3xl flex-col items-center justify-center px-5 py-10 text-center">
-      <div className="relative flex h-24 w-24 items-center justify-center">
-        <span className="leap-orbit absolute inset-0 rounded-full border border-[rgba(41,117,74,0.18)]" />
-        <span className="leap-orbit leap-orbit-delay absolute inset-3 rounded-full border border-[rgba(24,29,38,0.10)]" />
-        <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(41,117,74,0.20)] bg-[#fbfcfd] text-[rgba(41,117,74,0.96)] shadow-[0_14px_34px_rgba(41,117,74,0.12)]">
-          <SparkIcon className="h-6 w-6" />
-        </span>
+    <section className="mx-auto flex min-h-[620px] max-w-4xl flex-col items-center justify-center px-5 py-12 text-center">
+      <div className="leap-loader-stage relative flex h-64 w-full max-w-2xl items-center justify-center overflow-hidden rounded-[28px] border border-[rgba(41,117,74,0.12)] bg-[radial-gradient(circle_at_center,rgba(241,249,244,0.98),rgba(251,252,253,0.86)_52%,rgba(255,255,255,0.72))] shadow-[0_26px_80px_rgba(24,29,38,0.08)]">
+        <span className="leap-scan-line leap-scan-line-one" />
+        <span className="leap-scan-line leap-scan-line-two" />
+        <span className="leap-scan-line leap-scan-line-three" />
+        <div className="relative flex h-36 w-36 items-center justify-center">
+          <span className="leap-orbit absolute inset-0 rounded-full border border-[rgba(41,117,74,0.26)]" />
+          <span className="leap-orbit leap-orbit-delay absolute inset-3 rounded-full border border-[rgba(41,117,74,0.18)]" />
+          <span className="leap-loader-ring absolute inset-5 rounded-full border border-[rgba(24,29,38,0.10)]" />
+          <span className="leap-loader-core relative flex h-20 w-20 items-center justify-center rounded-full border border-[rgba(41,117,74,0.22)] bg-[#fbfcfd] text-[rgba(41,117,74,0.96)] shadow-[0_18px_44px_rgba(41,117,74,0.18)]">
+            <SparkIcon className="h-8 w-8" />
+          </span>
+        </div>
+        <div className="pointer-events-none absolute bottom-5 left-1/2 grid w-[min(92%,520px)] -translate-x-1/2 grid-cols-3 gap-2">
+          {["抽取原则", "生成场景", "校准选项"].map((label, index) => (
+            <div
+              key={label}
+              className="leap-loader-step rounded-full border border-[rgba(41,117,74,0.12)] bg-white/72 px-3 py-2 text-[11px] font-semibold text-[rgba(41,117,74,0.88)] shadow-[0_6px_18px_rgba(24,29,38,0.05)]"
+              style={{ animationDelay: `${index * 360}ms` }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
       </div>
       <p className="mt-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-faint)]">
         第 {gateIndex + 1} 关 · {gate.title}
       </p>
-      <h3 className="mt-3 text-[28px] font-semibold leading-tight tracking-[0] text-[var(--ink)] md:text-[34px]">
+      <h3 className="mt-3 text-[30px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)] md:text-[40px]">
         正在把《{bookTitle}》放进真实场景
       </h3>
       <p className="mx-auto mt-4 max-w-xl text-[15px] leading-7 text-[var(--ink-soft)]">
@@ -141,58 +190,104 @@ function FeedbackView({
   selectedOption,
   anchors,
   onOpenSourceCard,
+  getReturnState,
 }: {
   scenario: DecisionScenario;
   selectedOption: DecisionOptionKey;
   anchors: PrincipleAnchor[];
-  onOpenSourceCard?: (cardKey: keyof DecisionCardsInput) => void;
+  onOpenSourceCard?: (cardKey: keyof DecisionCardsInput, returnState: LeapPracticeReturnState) => void;
+  getReturnState: () => LeapPracticeReturnState;
 }) {
   const feedback = scenario.feedback[selectedOption];
+  const [activeSection, setActiveSection] = useState<keyof DecisionFeedbackBlock>("upgrade");
+  const activeSectionLabel = FEEDBACK_SECTIONS.find((section) => section.key === activeSection)?.label ?? "回到书中的方法";
+  const activeSectionBody =
+    activeSection === "empathy"
+      ? `${feedback.empathy}\n\n${feedback.analysis}`
+      : feedback[activeSection];
+  const primaryAnchor = anchors[0] ?? null;
 
   return (
     <div className="space-y-4">
-      <section className="rounded-[12px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-4 py-4">
-        <p className="text-[11px] font-semibold text-[var(--ink-faint)]">你的选择 · {selectedOption}</p>
-        <p className="mt-2 text-[15px] leading-7 text-[var(--ink)]">{scenario.options[selectedOption]}</p>
+      <section className="rounded-[18px] border border-[rgba(24,29,38,0.07)] bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(241,249,244,0.76))] px-5 py-5 shadow-[0_14px_34px_rgba(24,29,38,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgba(41,117,74,0.78)]">你的选择 · {selectedOption}</p>
+            <p className="mt-2 max-w-3xl text-[18px] font-semibold leading-8 tracking-[-0.01em] text-[var(--ink)]">
+              {scenario.options[selectedOption]}
+            </p>
+          </div>
+          <span className="inline-flex rounded-full border border-[rgba(41,117,74,0.16)] bg-white/70 px-3 py-1.5 text-[11px] font-semibold text-[rgba(41,117,74,0.92)]">
+            已完成一次真实判断
+          </span>
+        </div>
+        {feedback.empathy && (
+          <p className="mt-4 max-w-3xl text-[14px] leading-7 text-[var(--ink-soft)]">
+            {feedback.empathy}
+          </p>
+        )}
       </section>
       {anchors.length > 0 && (
-        <section className="rounded-[12px] border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.78)] px-4 py-4">
-          <p className="text-[11px] font-semibold text-[rgba(41,117,74,0.86)]">来自本书的方法</p>
-          <div className="mt-3 space-y-2">
-            {anchors.map((anchor) => (
+        <section className="rounded-[18px] border border-[rgba(41,117,74,0.14)] bg-[rgba(241,249,244,0.78)] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgba(41,117,74,0.74)]">来自本书的方法</p>
+              <h3 className="mt-2 text-[20px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
+                {primaryAnchor?.methodOrModel}
+                {primaryAnchor && <span className="ml-2 text-[12px] font-medium text-[var(--ink-faint)]">{CARD_LABELS[primaryAnchor.sourceCardKey]}</span>}
+              </h3>
+              <p className="mt-2 max-w-3xl text-[14px] leading-7 text-[var(--ink-soft)]">{primaryAnchor?.statement}</p>
+            </div>
+            {primaryAnchor && (
               <button
-                key={anchor.id}
                 type="button"
-                onClick={() => onOpenSourceCard?.(anchor.sourceCardKey)}
-                className="block w-full rounded-[9px] border border-[rgba(41,117,74,0.12)] bg-[#fbfcfd] px-3 py-2 text-left transition-all hover:border-[rgba(41,117,74,0.26)] hover:bg-white active:scale-[0.99]"
+                onClick={() => onOpenSourceCard?.(primaryAnchor.sourceCardKey, getReturnState())}
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-[rgba(41,117,74,0.18)] bg-white/72 px-3.5 text-[12px] font-medium text-[rgba(41,117,74,0.96)] transition-all hover:bg-white active:scale-[0.98]"
               >
-                <span className="text-[12px] font-semibold text-[var(--ink)]">{anchor.methodOrModel}</span>
-                <span className="ml-2 text-[11px] text-[var(--ink-faint)]">{CARD_LABELS[anchor.sourceCardKey]}</span>
-                <span className="mt-1 block text-[12px] leading-5 text-[var(--ink-soft)]">{anchor.statement}</span>
+                查看原书卡片
               </button>
-            ))}
+            )}
           </div>
+          {anchors.length > 1 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {anchors.slice(1).map((anchor) => (
+                <button
+                  key={anchor.id}
+                  type="button"
+                  onClick={() => onOpenSourceCard?.(anchor.sourceCardKey, getReturnState())}
+                  className="rounded-full border border-[rgba(41,117,74,0.12)] bg-white/58 px-3 py-1.5 text-[11px] font-medium text-[rgba(41,117,74,0.88)] transition-all hover:bg-white active:scale-[0.98]"
+                >
+                  {anchor.methodOrModel}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       )}
-      <div className="grid gap-3 md:grid-cols-2">
+      <section className="rounded-[18px] border border-[rgba(24,29,38,0.07)] bg-white/76 px-5 py-5 shadow-[0_12px_30px_rgba(24,29,38,0.045)]">
+        <div className="inline-flex rounded-full border border-[rgba(24,29,38,0.08)] bg-[rgba(248,250,252,0.82)] p-1">
         {FEEDBACK_SECTIONS.map((section) => (
-          <section
+          <button
             key={section.key}
-            className={`rounded-[12px] border px-4 py-4 ${
-              section.key === "action"
-                ? "border-[rgba(41,117,74,0.18)] bg-[rgba(241,249,244,0.92)]"
-                : "border-[rgba(24,29,38,0.08)] bg-[rgba(255,255,255,0.76)]"
+            type="button"
+            onClick={() => setActiveSection(section.key)}
+            className={`h-8 rounded-full px-3 text-[12px] font-medium transition-all active:scale-[0.98] ${
+              activeSection === section.key
+                ? "bg-[#181d26] text-[#fbfcfd] shadow-[0_4px_12px_rgba(24,29,38,0.12)]"
+                : "text-[var(--ink-soft)] hover:bg-white hover:text-[var(--ink)]"
             }`}
           >
-            <p className="text-[11px] font-semibold text-[var(--ink-faint)]">{section.label}</p>
-            <p className="mt-2 whitespace-pre-line text-[14px] leading-7 text-[var(--ink)]">
-              {section.key === "empathy"
-                ? `${feedback.empathy}\n\n${feedback.analysis}`
-                : feedback[section.key]}
-            </p>
-          </section>
+            {section.label}
+          </button>
         ))}
-      </div>
+        </div>
+        <div className="mt-5 max-w-3xl">
+          <p className="text-[12px] font-semibold text-[var(--ink-faint)]">{activeSectionLabel}</p>
+          <p className="mt-2 whitespace-pre-line text-[16px] leading-8 tracking-[-0.005em] text-[var(--ink)]">
+            {activeSectionBody}
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -209,6 +304,8 @@ export function LeapPracticePanel({
   onLifeCapitalChange,
   onOpenSourceCard,
   onStartNewRound,
+  restoreState,
+  onRestoreConsumed,
 }: {
   bookTitle: string;
   round: LeapPracticeRound;
@@ -219,12 +316,15 @@ export function LeapPracticePanel({
   onComplete?: () => void;
   onUpgradeClick?: () => void;
   onLifeCapitalChange?: (lifeCapital: LifeCapital | "auto") => void;
-  onOpenSourceCard?: (cardKey: keyof DecisionCardsInput) => void;
+  onOpenSourceCard?: (cardKey: keyof DecisionCardsInput, returnState: LeapPracticeReturnState) => void;
   onStartNewRound?: () => void;
+  restoreState?: LeapPracticeReturnState | null;
+  onRestoreConsumed?: () => void;
 }) {
-  const [activeGate, setActiveGate] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<DecisionOptionKey | null>(null);
-  const [view, setView] = useState<"map" | "loading" | "scenario" | "feedback" | "done">("map");
+  const initialRestoreState = normalizeRestoreState(restoreState, round);
+  const [activeGate, setActiveGate] = useState(initialRestoreState.gateIndex);
+  const [selectedOption, setSelectedOption] = useState<DecisionOptionKey | null>(initialRestoreState.selectedOption);
+  const [view, setView] = useState<LeapPracticeView>(initialRestoreState.view);
   const progress = getLeapPracticeProgress(round);
   const isRoundComplete = progress >= GATES.length;
   const currentScenario = round.scenarios[activeGate];
@@ -237,6 +337,17 @@ export function LeapPracticePanel({
     const index = round.statuses.findIndex((status) => status !== "completed");
     return index < 0 ? GATES.length - 1 : index;
   }, [round.statuses]);
+
+  useEffect(() => {
+    if (!restoreState) return;
+    onRestoreConsumed?.();
+  }, [onRestoreConsumed, restoreState]);
+
+  const getCurrentReturnState = (): LeapPracticeReturnState => ({
+    gateIndex: activeGate,
+    view: view === "loading" ? "map" : view,
+    selectedOption,
+  });
 
   const openGate = async (gateIndex: number) => {
     const isCompleted = round.statuses[gateIndex] === "completed";
@@ -398,7 +509,7 @@ export function LeapPracticePanel({
                     <button
                       key={anchor.id}
                       type="button"
-                      onClick={() => onOpenSourceCard?.(anchor.sourceCardKey)}
+                      onClick={() => onOpenSourceCard?.(anchor.sourceCardKey, getCurrentReturnState())}
                       className="block w-full rounded-[9px] border border-[#dfe4e8] bg-[#fbfcfd] px-3 py-2 text-left transition-all hover:border-[#9297a0] active:scale-[0.99]"
                     >
                       <span className="text-[12px] font-semibold text-[var(--ink)]">{anchor.methodOrModel}</span>
@@ -440,14 +551,12 @@ export function LeapPracticePanel({
           <Pill tone="green">{alreadyCompleted ? "回看反馈" : "完成这一关"}</Pill>
         </div>
         <div className="overflow-hidden rounded-[14px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-5 py-6 shadow-[0_16px_38px_rgba(24,29,38,0.07)] md:px-7">
-          <div className="mb-5 rounded-[12px] border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.78)] px-4 py-4">
-            <p className="text-[13px] font-semibold text-[rgba(41,117,74,0.96)]">这一关做得好：你已经把阅读从“懂了”推进到“我会怎么选”。</p>
-          </div>
           <FeedbackView
             scenario={currentScenario}
             selectedOption={selectedOption}
             anchors={currentAnchors}
             onOpenSourceCard={onOpenSourceCard}
+            getReturnState={getCurrentReturnState}
           />
           <div className="mt-6 flex justify-end border-t border-[#dfe4e8] pt-5">
             <button

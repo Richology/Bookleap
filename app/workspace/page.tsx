@@ -12,7 +12,10 @@ import {
 import { GrowthLedgerPanel } from "../components/GrowthLedgerPanel";
 import { PosterPreviewModal } from "../components/poster/PosterPreviewModal";
 import type { PosterContent } from "../components/poster/types";
-import { LeapPracticePanel } from "../components/LeapPracticePanel";
+import {
+  LeapPracticePanel,
+  type LeapPracticeReturnState,
+} from "../components/LeapPracticePanel";
 import { FeynmanPreview } from "../components/FeynmanPreview";
 import { UpgradeReadingModal } from "../components/UpgradeReadingModal";
 import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal";
@@ -1870,6 +1873,8 @@ export default function Home() {
   const [decisionError, setDecisionError] = useState("");
   const [workspaceContentMode, setWorkspaceContentMode] = useState<WorkspaceContentMode>("cards");
   const [leapPracticeRound, setLeapPracticeRound] = useState<LeapPracticeRound | null>(null);
+  const [leapPracticeReturnState, setLeapPracticeReturnState] =
+    useState<LeapPracticeReturnState | null>(null);
   const [readingCompletionStatus, setReadingCompletionStatus] =
     useState<ReadingCompletionStatus>("unconfirmed");
   const [isReadingReflectionOpen, setIsReadingReflectionOpen] = useState(false);
@@ -2053,6 +2058,7 @@ export default function Home() {
     if (!currentBookId) {
       setLeapPracticeRound(null);
       setDecisionScenarios([]);
+      setLeapPracticeReturnState(null);
       setWorkspaceContentMode("cards");
       return;
     }
@@ -2079,6 +2085,7 @@ export default function Home() {
 
     setLeapPracticeRound(round);
     setDecisionScenarios(round.scenarios.filter((scenario): scenario is DecisionScenario => !!scenario));
+    setLeapPracticeReturnState(null);
     setDecisionError("");
   }, [currentBookId]);
 
@@ -5555,7 +5562,10 @@ export default function Home() {
     }, 40);
   }, [immersiveCardList]);
 
-  const openDecisionSourceCard = useCallback((cardKey: keyof DecisionCardsInput) => {
+  const openDecisionSourceCard = useCallback((
+    cardKey: keyof DecisionCardsInput,
+    returnState: LeapPracticeReturnState
+  ) => {
     const cardMap: Record<keyof DecisionCardsInput, string> = {
       summary: "bookSummary",
       readingGuide: "readingGuide",
@@ -5564,9 +5574,14 @@ export default function Home() {
       models: "criticalExamination",
       insights: "ideaSourceTracing",
     };
+    setLeapPracticeReturnState(returnState);
     setIsDecisionPanelOpen(false);
     if (currentBookId) {
-      recordLeapPracticeEvent(currentBookId, "source_card_opened", { cardKey });
+      recordLeapPracticeEvent(currentBookId, "source_card_opened", {
+        cardKey,
+        gateIndex: returnState.gateIndex,
+        view: returnState.view,
+      });
     }
     window.setTimeout(() => openOverviewCard(cardMap[cardKey]), 40);
   }, [currentBookId, openOverviewCard, setIsDecisionPanelOpen]);
@@ -6866,13 +6881,10 @@ export default function Home() {
           <div ref={cardSectionRef} className="px-4 pb-4 pt-3 md:px-5 md:pb-5 md:pt-3 xl:px-5 xl:pb-5 xl:pt-3" style={{ scrollMarginTop: "24px" }}>
             {viewMode === "overview" && overviewCardList.length > 0 && (
               <div
-                className="mx-auto mb-5 flex max-w-6xl flex-wrap items-center justify-between gap-3 px-1"
+                className="mx-auto mb-5 flex max-w-6xl justify-end px-1"
                 role="tablist"
                 aria-label="书籍内容模式"
               >
-                <p className="text-[12px] font-medium text-[var(--ink-faint)]">
-                  当前书籍内容
-                </p>
                 <div className="inline-flex rounded-full border border-[rgba(24,29,38,0.08)] bg-[rgba(248,250,252,0.72)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
                   {[
                     { id: "cards" as const, label: "拆书精华", count: 6 },
@@ -6923,12 +6935,31 @@ export default function Home() {
                   onLifeCapitalChange={handleLeapLifeCapitalChange}
                   onOpenSourceCard={openDecisionSourceCard}
                   onStartNewRound={handleStartNewLeapRound}
+                  restoreState={leapPracticeReturnState}
+                  onRestoreConsumed={() => setLeapPracticeReturnState(null)}
                 />
               </div>
             )}
 
             {!isDecisionPanelOpen && viewMode === "overview" && overviewCardList.length > 0 && (
               <section id="analysis-card-grid" className="workspace-mode-panel mx-auto max-w-6xl" role="tabpanel">
+                {leapPracticeReturnState && (
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.74)] px-4 py-3">
+                    <p className="text-[13px] font-medium text-[rgba(41,117,74,0.96)]">
+                      正在查看本题对应的原书方法
+                      <span className="ml-2 text-[var(--ink-faint)]">
+                        第 {leapPracticeReturnState.gateIndex + 1} 关 · {leapPracticeReturnState.view === "feedback" ? "反馈页" : "题目页"}
+                      </span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsDecisionPanelOpen(true)}
+                      className="inline-flex h-9 items-center justify-center rounded-[9px] bg-[#181d26] px-3.5 text-[12px] font-medium text-[#fbfcfd] transition-all hover:bg-[#0d1218] active:scale-[0.98]"
+                    >
+                      回到第 {leapPracticeReturnState.gateIndex + 1} 关
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                   {overviewCardList.map((card) => {
                     const isReady = !card.isLoading && !!card.content.trim();
