@@ -199,8 +199,6 @@ function FeedbackView({
 
 export function LeapPracticePanel({
   bookTitle,
-  bookAuthor,
-  coverImageUrl,
   round,
   error,
   onBackToCards,
@@ -213,8 +211,6 @@ export function LeapPracticePanel({
   onStartNewRound,
 }: {
   bookTitle: string;
-  bookAuthor?: string;
-  coverImageUrl?: string;
   round: LeapPracticeRound;
   error?: string;
   onBackToCards: () => void;
@@ -469,28 +465,15 @@ export function LeapPracticePanel({
   }
 
   return (
-    <section className="mx-auto mb-10 max-w-6xl px-4 py-5">
-      <div className="overflow-hidden rounded-[14px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] shadow-[0_16px_38px_rgba(24,29,38,0.07)]">
-        <div className="grid gap-0 border-b border-[#dfe4e8] md:grid-cols-[8.5rem_minmax(0,1fr)]">
-          <div className="hidden bg-[#f8fafc] p-5 md:block">
-            <div className="flex h-44 w-full overflow-hidden rounded-[8px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd]">
-              {coverImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={coverImageUrl} alt={bookTitle} className="h-full w-full object-contain" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center px-3 text-center text-[13px] font-semibold leading-5 text-[var(--ink)]">
-                  {bookTitle}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="px-5 py-6 md:px-7">
+    <section className="mx-auto mb-10 max-w-6xl px-1 py-2">
+      <div className="overflow-hidden rounded-[18px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.82)] shadow-[0_12px_34px_rgba(24,29,38,0.06)]">
+        <div className="border-b border-[#dfe4e8] px-5 py-6 md:px-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-faint)]">跃迁练习</p>
                 <h2 className="mt-2 text-[28px] font-semibold leading-tight tracking-[0] text-[var(--ink)] md:text-[34px]">把这本书练成 3 次选择</h2>
-                <p className="mt-2 text-[14px] font-medium text-[var(--ink-soft)]">
-                  《{bookTitle}》{bookAuthor ? ` · ${bookAuthor}` : ""}
+                <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--ink-soft)]">
+                  基于《{bookTitle}》的 6 张精华卡片，进入一轮 3 关的判断训练。
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -534,7 +517,6 @@ export function LeapPracticePanel({
                 已完成 {round.previousRounds.length} 轮历史训练；开启新一轮不会覆盖旧记录。
               </p>
             )}
-          </div>
         </div>
 
         {error && (
