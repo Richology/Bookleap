@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
 import { JsonLd } from "./components/JsonLd";
 import { BookLeapCTA } from "./components/landing/BookLeapCTA";
@@ -11,7 +12,10 @@ import { NeedAHand } from "./components/landing/NeedAHand";
 import { ScrollSection } from "./components/landing/ScrollSection";
 import { Testimonials } from "./components/landing/Testimonials";
 import { WorkbenchStory } from "./components/landing/WorkbenchStory";
+import { LibraryArrival } from "./components/landing/LibraryArrival";
 import { buildFaqJsonLd, buildHomeJsonLd } from "@/lib/seo";
+
+const CTA_COVER_IDS = [4, 11, 18, 27, 35, 42, 51, 59, 66, 74, 83, 91, 98, 106, 114, 123, 131, 140, 148, 157, 165, 174, 182, 191, 199, 207];
 
 const ANALYSIS_FACETS = [
   {
@@ -112,15 +116,48 @@ function HomeV2Nav() {
   );
 }
 
+function ClosingShelfTexture() {
+  const rows = [CTA_COVER_IDS.slice(0, 13), CTA_COVER_IDS.slice(13)];
+
+  return (
+    <div className="closing-shelf-texture" aria-hidden="true">
+      {rows.map((row, rowIndex) => (
+        <div className="closing-shelf-texture__row" key={rowIndex}>
+          {row.map((coverId) => (
+            <Image
+              key={coverId}
+              src={`/library-covers/${String(coverId).padStart(3, "0")}.jpg`}
+              alt=""
+              width={104}
+              height={150}
+              sizes="(max-width: 768px) 10vw, 7vw"
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function HomeV2Page() {
   const [heroTextPhase, setHeroTextPhase] = useState(0);
+  const [introTextStarted, setIntroTextStarted] = useState(false);
+  const [introComplete, setIntroComplete] = useState(false);
+  const startIntroText = useCallback(() => setIntroTextStarted(true), []);
+  const finishIntro = useCallback(() => setIntroComplete(true), []);
 
   useEffect(() => {
+    if (!introTextStarted) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
     timers.push(setTimeout(() => setHeroTextPhase(1), 120));
-    timers.push(setTimeout(() => setHeroTextPhase(2), 1450));
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [introTextStarted]);
+
+  useEffect(() => {
+    if (!introComplete) return;
+    const timer = setTimeout(() => setHeroTextPhase(2), 320);
+    return () => clearTimeout(timer);
+  }, [introComplete]);
 
   const facetsRef = useRef<HTMLDivElement>(null);
   const [facetsVisible, setFacetsVisible] = useState(false);
@@ -144,6 +181,10 @@ export default function HomeV2Page() {
 
   return (
     <>
+      <LibraryArrival
+        onTitleReveal={startIntroText}
+        onComplete={finishIntro}
+      />
       <JsonLd data={buildHomeJsonLd()} />
       <JsonLd data={buildFaqJsonLd(FAQ_ITEMS)} />
       <HomeV2Nav />
@@ -153,8 +194,12 @@ export default function HomeV2Page() {
           <div className="relative mx-auto flex min-h-[calc(100vh-144px)] max-w-[1540px] flex-col items-center justify-center text-center">
             <div className="max-w-[980px]">
               <h1
-                className="font-editorial text-[2.45rem] font-semibold leading-[1.06] text-[var(--ink)] sm:text-[4rem] lg:text-[5.4rem]"
+                className={`font-editorial text-[2.45rem] font-semibold leading-[1.06] text-[var(--ink)] sm:text-[4rem] lg:text-[5.4rem] ${introTextStarted ? "relative z-[101]" : ""}`}
                 aria-label="让一本好书 变成一次清醒的决策"
+                style={{
+                  color: introTextStarted && !introComplete ? "oklch(93% 0.014 85)" : "var(--ink)",
+                  transition: "color 640ms cubic-bezier(0.16, 1, 0.3, 1)",
+                }}
               >
                 {HERO_TITLE_LINES.map((line, lineIndex) => {
                   const offset = HERO_TITLE_LINES.slice(0, lineIndex).join("").length;
@@ -274,8 +319,9 @@ export default function HomeV2Page() {
 
         <ScrollSection>
           <section className="px-6 pb-20 pt-8 md:px-10 md:pb-24 md:pt-12">
-            <div className="mx-auto grid max-w-[1440px] gap-8 rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
-              <div>
+            <div className="bookleap-closing-cta relative mx-auto grid max-w-[1440px] gap-8 overflow-hidden rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
+              <ClosingShelfTexture />
+              <div className="relative z-10">
                 <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[3rem]">
                   「时间才是我们成长时付出的最大成本」
                 </h2>
@@ -283,9 +329,11 @@ export default function HomeV2Page() {
                   现在就把一本书，整理进你的工作台
                 </p>
               </div>
-              <BookLeapCTA href="/workspace" tone="paper">
-                立即开始
-              </BookLeapCTA>
+              <div className="relative z-10">
+                <BookLeapCTA href="/workspace" tone="paper">
+                  立即开始
+                </BookLeapCTA>
+              </div>
             </div>
           </section>
         </ScrollSection>
