@@ -79,21 +79,25 @@ function ToolIcon({ id }: { id: string }) {
 
   if (id === "share") {
     return (
-      <svg
-        className="h-[18px] w-[18px]"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      <span
+        className="relative block h-[18px] w-[18px]"
         aria-hidden="true"
       >
-        <path d="M9 5H7.8A2.8 2.8 0 0 0 5 7.8v10.4A2.8 2.8 0 0 0 7.8 21h8.4a2.8 2.8 0 0 0 2.8-2.8V7.8A2.8 2.8 0 0 0 16.2 5H15" />
-        <path d="M9 4.7A1.7 1.7 0 0 1 10.7 3h2.6A1.7 1.7 0 0 1 15 4.7v1.1A1.2 1.2 0 0 1 13.8 7h-3.6A1.2 1.2 0 0 1 9 5.8V4.7Z" />
-        <path d="M9 11h5" />
-        <path d="M9 15h3.5" />
-      </svg>
+        <span
+          className="absolute inset-0 block bg-current"
+          style={{
+            WebkitMask: "url('/icons/book-share-streamline-ultimate.png') center / contain no-repeat",
+            mask: "url('/icons/book-share-streamline-ultimate.png') center / contain no-repeat",
+          }}
+        />
+        <span
+          className="absolute inset-0 block translate-x-px bg-current opacity-80"
+          style={{
+            WebkitMask: "url('/icons/book-share-streamline-ultimate.png') center / contain no-repeat",
+            mask: "url('/icons/book-share-streamline-ultimate.png') center / contain no-repeat",
+          }}
+        />
+      </span>
     );
   }
 
