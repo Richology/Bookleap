@@ -322,6 +322,7 @@ export function LeapPracticePanel({
   const [activeGate, setActiveGate] = useState(initialRestoreState.gateIndex);
   const [selectedOption, setSelectedOption] = useState<DecisionOptionKey | null>(initialRestoreState.selectedOption);
   const [view, setView] = useState<LeapPracticeView>(initialRestoreState.view);
+  const [isPrincipleDrawerOpen, setIsPrincipleDrawerOpen] = useState(false);
   const currentScenario = round.scenarios[activeGate];
   const currentGate = round.blueprint?.gates[activeGate] ?? null;
   const currentAnchors = currentGate
@@ -352,6 +353,7 @@ export function LeapPracticePanel({
     if (!isUnlocked && !isCompleted) return;
 
     setActiveGate(gateIndex);
+    setIsPrincipleDrawerOpen(false);
     if (isCompleted && round.answers[gateIndex] && round.scenarios[gateIndex]) {
       setSelectedOption(round.answers[gateIndex]);
       setView("feedback");
@@ -371,6 +373,7 @@ export function LeapPracticePanel({
   };
 
   const selectOption = (option: DecisionOptionKey) => {
+    setIsPrincipleDrawerOpen(false);
     setSelectedOption(option);
     setView("feedback");
   };
@@ -448,9 +451,10 @@ export function LeapPracticePanel({
 
   if (view === "scenario" && currentScenario) {
     const gate = GATES[activeGate] ?? GATES[0];
+    const hasPrinciples = currentAnchors.length > 0;
 
     return (
-      <section className="mx-auto mb-10 max-w-5xl px-4 py-5">
+      <section className="relative mx-auto mb-10 max-w-5xl px-4 py-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
@@ -462,50 +466,76 @@ export function LeapPracticePanel({
           <Pill tone="green">第 {activeGate + 1} 关 · {currentScenario.phase ?? gate.title}</Pill>
         </div>
 
-        <div className="overflow-hidden rounded-[14px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] shadow-[0_16px_38px_rgba(24,29,38,0.07)]">
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="px-5 py-6 md:px-7 md:py-7">
-              <div className="flex flex-wrap gap-2">
-                <Pill>{currentScenario.roleType}</Pill>
-                {currentScenario.lifeCapital && <Pill tone="green">{currentScenario.lifeCapital}</Pill>}
-                {currentScenario.scenarioType && <Pill>{currentScenario.scenarioType}</Pill>}
-                <Pill tone="green">{currentScenario.trainingAbility}</Pill>
-              </div>
-              <div className="mt-6 rounded-[12px] border border-[#dfe4e8] bg-[#f8fafc] px-5 py-5">
-                <p className="whitespace-pre-line text-[15px] leading-8 text-[var(--ink-soft)]">{currentScenario.scene}</p>
-                <div className="mt-5 border-t border-[#dfe4e8] pt-5">
-                  <h3 className="text-[23px] font-semibold leading-[1.55] tracking-[0] text-[var(--ink)] md:text-[28px]">
-                    {currentScenario.question}
-                  </h3>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                {(["A", "B"] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => selectOption(option)}
-                    aria-label={`选择 ${option}：${currentScenario.options[option]}`}
-                    className="group flex w-full items-start gap-4 rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] px-4 py-4 text-left transition-all hover:border-[#9297a0] hover:bg-[#f8fafc] active:scale-[0.99]"
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[rgba(24,29,38,0.10)] bg-[#f8fafc] text-[13px] font-semibold text-[var(--ink-soft)] group-hover:bg-[#181d26] group-hover:text-[#fbfcfd]">
-                      {option}
-                    </span>
-                    <span className="pt-0.5 text-[15px] leading-7 text-[var(--ink)]">{currentScenario.options[option]}</span>
-                  </button>
-                ))}
-              </div>
+        <div className="space-y-4">
+          <section className="rounded-[18px] border border-[rgba(24,29,38,0.07)] bg-[rgba(248,250,252,0.78)] px-5 py-5 shadow-[0_12px_30px_rgba(24,29,38,0.045)] md:px-7">
+            <div className="flex flex-wrap gap-2">
+              <Pill>{currentScenario.roleType}</Pill>
+              {currentScenario.lifeCapital && <Pill tone="green">{currentScenario.lifeCapital}</Pill>}
+              {currentScenario.scenarioType && <Pill>{currentScenario.scenarioType}</Pill>}
+              <Pill tone="green">{currentScenario.trainingAbility}</Pill>
             </div>
-            <aside className="border-t border-[#dfe4e8] bg-[#f8fafc] px-5 py-6 lg:border-l lg:border-t-0">
-              <p className="text-[11px] font-semibold text-[var(--ink-faint)]">本题原则</p>
-              {currentAnchors.length > 0 ? (
+            <p className="mt-5 whitespace-pre-line text-[15px] leading-8 text-[var(--ink-soft)]">{currentScenario.scene}</p>
+          </section>
+
+          <section className="rounded-[20px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-5 py-6 shadow-[0_18px_48px_rgba(24,29,38,0.07)] md:px-7 md:py-7">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+              你的判断
+            </p>
+            <h3 className="mt-3 text-[27px] font-semibold leading-[1.42] tracking-[-0.02em] text-[var(--ink)] md:text-[36px]">
+              {currentScenario.question}
+            </h3>
+            <div className="mt-7 space-y-3">
+              {(["A", "B"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => selectOption(option)}
+                  aria-label={`选择 ${option}：${currentScenario.options[option]}`}
+                  className="group flex w-full items-start gap-4 rounded-[16px] border border-[#dfe4e8] bg-[rgba(248,250,252,0.72)] px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[rgba(24,29,38,0.22)] hover:bg-white hover:shadow-[0_12px_28px_rgba(24,29,38,0.07)] active:scale-[0.99]"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd] text-[14px] font-semibold text-[var(--ink-soft)] transition-all group-hover:bg-[#181d26] group-hover:text-[#fbfcfd]">
+                    {option}
+                  </span>
+                  <span className="pt-0.5 text-[16px] leading-8 text-[var(--ink)]">{currentScenario.options[option]}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <div className="pointer-events-none absolute right-0 top-28 z-20 hidden lg:block">
+          <div
+            className={`pointer-events-auto flex items-start transition-transform duration-300 ease-out ${
+              isPrincipleDrawerOpen ? "translate-x-0" : "translate-x-[calc(100%-2.25rem)]"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setIsPrincipleDrawerOpen((open) => !open)}
+              aria-expanded={isPrincipleDrawerOpen}
+              className="mt-4 flex h-24 w-9 items-center justify-center rounded-l-[14px] border border-r-0 border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.92)] text-[12px] font-semibold text-[rgba(41,117,74,0.96)] shadow-[0_12px_28px_rgba(24,29,38,0.08)] backdrop-blur transition-all hover:bg-[#f1f9f4] active:scale-[0.98]"
+            >
+              <span className="[writing-mode:vertical-rl]">{isPrincipleDrawerOpen ? "收起原则" : "本题原则"}</span>
+            </button>
+            <aside className="w-72 rounded-l-[18px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.92)] px-4 py-5 shadow-[0_20px_54px_rgba(24,29,38,0.14)] backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] font-semibold text-[var(--ink)]">本题原则</p>
+                <button
+                  type="button"
+                  onClick={() => setIsPrincipleDrawerOpen(false)}
+                  className="rounded-full px-2 py-1 text-[11px] font-medium text-[var(--ink-faint)] transition-all hover:bg-[#eef2f4] hover:text-[var(--ink)] active:scale-[0.98]"
+                >
+                  收起
+                </button>
+              </div>
+              {hasPrinciples ? (
                 <div className="mt-3 space-y-2">
                   {currentAnchors.map((anchor) => (
                     <button
                       key={anchor.id}
                       type="button"
                       onClick={() => onOpenSourceCard?.(anchor.sourceCardKey, getCurrentReturnState())}
-                      className="block w-full rounded-[9px] border border-[#dfe4e8] bg-[#fbfcfd] px-3 py-2 text-left transition-all hover:border-[#9297a0] active:scale-[0.99]"
+                      className="block w-full rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] px-3 py-3 text-left transition-all hover:border-[rgba(41,117,74,0.24)] hover:bg-white active:scale-[0.99]"
                     >
                       <span className="text-[12px] font-semibold text-[var(--ink)]">{anchor.methodOrModel}</span>
                       <span className="ml-2 text-[11px] text-[var(--ink-faint)]">{CARD_LABELS[anchor.sourceCardKey]}</span>
@@ -514,16 +544,51 @@ export function LeapPracticePanel({
                   ))}
                 </div>
               ) : (
-                <p className="mt-2 text-[14px] leading-7 text-[var(--ink-soft)]">
+                <p className="mt-3 text-[13px] leading-6 text-[var(--ink-soft)]">
                   两个选项都不是标准答案。这里训练的是把书中的方法带进真实代价里，先选你最可能做的那一个。
                 </p>
               )}
-              <div className="mt-5 rounded-[10px] border border-[rgba(41,117,74,0.14)] bg-[rgba(241,249,244,0.72)] px-4 py-4">
+              <div className="mt-4 rounded-[12px] border border-[rgba(41,117,74,0.14)] bg-[rgba(241,249,244,0.72)] px-3 py-3">
                 <p className="text-[12px] font-semibold text-[rgba(41,117,74,0.96)]">{currentGate?.coreTension ?? gate.focus}</p>
                 <p className="mt-2 text-[12px] leading-6 text-[var(--ink-faint)]">{gate.subtitle}</p>
               </div>
             </aside>
           </div>
+        </div>
+
+        <div className="mt-4 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setIsPrincipleDrawerOpen((open) => !open)}
+            aria-expanded={isPrincipleDrawerOpen}
+            className="inline-flex h-9 items-center justify-center rounded-full border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.82)] px-3.5 text-[12px] font-medium text-[rgba(41,117,74,0.96)] transition-all active:scale-[0.98]"
+          >
+            {isPrincipleDrawerOpen ? "收起本题原则" : "查看本题原则"}
+          </button>
+          {isPrincipleDrawerOpen && (
+            <aside className="mt-3 rounded-[16px] border border-[rgba(24,29,38,0.08)] bg-[#fbfcfd] px-4 py-4 shadow-[0_12px_28px_rgba(24,29,38,0.07)]">
+              {hasPrinciples ? (
+                <div className="space-y-2">
+                  {currentAnchors.map((anchor) => (
+                    <button
+                      key={anchor.id}
+                      type="button"
+                      onClick={() => onOpenSourceCard?.(anchor.sourceCardKey, getCurrentReturnState())}
+                      className="block w-full rounded-[12px] border border-[#dfe4e8] bg-[#fbfcfd] px-3 py-3 text-left transition-all hover:border-[rgba(41,117,74,0.24)] active:scale-[0.99]"
+                    >
+                      <span className="text-[12px] font-semibold text-[var(--ink)]">{anchor.methodOrModel}</span>
+                      <span className="ml-2 text-[11px] text-[var(--ink-faint)]">{CARD_LABELS[anchor.sourceCardKey]}</span>
+                      <span className="mt-1 block text-[12px] leading-5 text-[var(--ink-soft)]">{anchor.statement}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] leading-6 text-[var(--ink-soft)]">
+                  两个选项都不是标准答案。这里训练的是把书中的方法带进真实代价里，先选你最可能做的那一个。
+                </p>
+              )}
+            </aside>
+          )}
         </div>
       </section>
     );
