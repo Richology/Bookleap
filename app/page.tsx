@@ -15,7 +15,7 @@ import { WorkbenchStory } from "./components/landing/WorkbenchStory";
 import { LibraryArrival } from "./components/landing/LibraryArrival";
 import { buildFaqJsonLd, buildHomeJsonLd } from "@/lib/seo";
 
-const CTA_COVER_IDS = [4, 11, 18, 27, 35, 42, 51, 59, 66, 74, 83, 91, 98, 106, 114, 123, 131, 140, 148, 157, 165, 174, 182, 191, 199, 207];
+const CTA_COVER_IDS = [4, 11, 18, 27, 35, 42, 51, 59, 66, 74, 83, 91, 98, 106, 114, 123, 131, 140, 148, 157, 165, 174, 182, 191, 199, 207, 12, 23, 31, 46, 57, 68, 79, 88, 102, 116, 128, 139, 150];
 
 const ANALYSIS_FACETS = [
   {
@@ -117,7 +117,7 @@ function HomeV2Nav() {
 }
 
 function ClosingShelfTexture() {
-  const rows = [CTA_COVER_IDS.slice(0, 13), CTA_COVER_IDS.slice(13)];
+  const rows = Array.from({ length: 3 }, (_, rowIndex) => CTA_COVER_IDS.slice(rowIndex * 13, (rowIndex + 1) * 13));
 
   return (
     <div className="closing-shelf-texture" aria-hidden="true">
@@ -319,17 +319,17 @@ export default function HomeV2Page() {
 
         <ScrollSection>
           <section className="px-6 pb-20 pt-8 md:px-10 md:pb-24 md:pt-12">
-            <div className="bookleap-closing-cta relative mx-auto grid max-w-[1440px] gap-8 overflow-hidden rounded-xl bg-[var(--ink)] px-6 py-8 text-[#faf7f6] md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:px-10 md:py-12">
+            <div className="bookleap-closing-cta relative mx-auto flex min-h-[380px] max-w-[1440px] flex-col items-center justify-center overflow-hidden rounded-xl bg-[var(--ink)] px-6 pb-16 pt-28 text-center text-[#faf7f6] md:min-h-[460px] md:px-10 md:pb-20 md:pt-32">
               <ClosingShelfTexture />
-              <div className="relative z-10">
-                <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.04em] text-white md:text-[3rem]">
+              <div className="relative z-10 max-w-[900px]">
+                <h2 className="font-editorial text-[2.5rem] font-semibold leading-[1.12] tracking-[-0.04em] text-white md:text-[3.25rem]">
                   「时间才是我们成长时付出的最大成本」
                 </h2>
-                <p className="mt-4 max-w-[560px] text-sm leading-7 text-white/70 md:text-base">
+                <p className="mx-auto mt-5 max-w-[560px] text-sm leading-7 text-white/75 md:text-base">
                   现在就把一本书，整理进你的工作台
                 </p>
               </div>
-              <div className="relative z-10">
+              <div className="relative z-10 mt-8">
                 <BookLeapCTA href="/workspace" tone="paper">
                   立即开始
                 </BookLeapCTA>
