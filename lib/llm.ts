@@ -34,7 +34,7 @@ async function generateWithOllama(prompt: string): Promise<string> {
 }
 
 export async function generateWithLLM(prompt: string): Promise<string> {
-  if (process.env.VERCEL) {
+  if (process.env.DEEPSEEK_API_KEY) {
     return generateWithDeepSeek(prompt);
   }
   return generateWithOllama(prompt);

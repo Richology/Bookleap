@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "books": [
+    {
+      "id": "cognitive-awakening",
+      "contentVersion": "2026-07-24.1",
+      "title": "认知觉醒",
+      "author": "周岭",
+      "coverImage": "/starter-books/cognitive-awakening.jpg",
+      "recommendation": "普通人跃迁的底层方法论",
+      "category": "认知入门",
+      "packageUrl": "/starter-books/cognitive-awakening.v1.json",
+      "defaultLifeCapital": "财富积累"
+    },
+    {
+      "id": "principles",
+      "contentVersion": "2026-07-24.1",
+      "title": "原则",
+      "author": "瑞·达利欧",
+      "coverImage": "/starter-books/principles.jpg",
+      "recommendation": "顶级决策者的思考系统",
+      "category": "认知入门",
+      "packageUrl": "/starter-books/principles.v1.json",
+      "defaultLifeCapital": "财富积累"
+    },
+    {
+      "id": "poor-charlies-almanack",
+      "contentVersion": "2026-07-24.1",
+      "title": "穷查理宝典",
+      "author": "查理·芒格",
+      "coverImage": "/starter-books/poor-charlies-almanack.jpg",
+      "recommendation": "一生受用的思维模型合集",
+      "category": "认知入门",
+      "packageUrl": "/starter-books/poor-charlies-almanack.v1.json",
+      "defaultLifeCapital": "财富积累"
+    }
+  ]
+}
