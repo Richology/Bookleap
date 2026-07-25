@@ -17,6 +17,7 @@ type FeynmanPreviewProps = {
   coverImageUrl: string;
   cards: FeynmanCardsInput;
   decisionExercises: FeynmanDecisionExerciseInput[];
+  starterBookId?: string | null;
   onClose: () => void;
   onGenerated?: () => void;
 };
@@ -33,6 +34,7 @@ export function FeynmanPreview({
   coverImageUrl,
   cards,
   decisionExercises,
+  starterBookId,
   onClose,
   onGenerated,
 }: FeynmanPreviewProps) {
@@ -88,6 +90,7 @@ export function FeynmanPreview({
           style: selectedStyle,
           cards,
           decisionExercises,
+          starterBookId: starterBookId || undefined,
         }),
       });
 

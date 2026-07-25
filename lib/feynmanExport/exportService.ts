@@ -1,7 +1,7 @@
 import { generateFeynmanContent } from "./generateFeynmanContent";
 import { renderFeynmanHtml } from "./renderHtml";
 import { selectGuizangPptStyle } from "./selectGuizangStyle";
-import type { FeynmanExportMode, FeynmanExportRequest } from "./types";
+import type { FeynmanExportMode, FeynmanExportRequest, FeynmanHtmlContent } from "./types";
 
 function sanitizeFilename(value: string): string {
   return value.replace(/[/\\:*?"<>|]/g, "-").replace(/\s+/g, " ").trim();
@@ -20,13 +20,13 @@ function normalizeCoverUrl(coverImageUrl: string | undefined, origin: string): s
 
 export async function createFeynmanExportHtml(
   request: FeynmanExportRequest,
-  options: { origin: string }
+  options: { origin: string; prebuiltContent?: FeynmanHtmlContent }
 ): Promise<{ html: string; filename: string }> {
   const bookTitle = request.bookTitle.trim() || "未知书名";
   const author = request.author?.trim() ?? "";
   const mode: FeynmanExportMode = request.mode ?? "all";
   const style = request.style ?? selectGuizangPptStyle({ bookTitle, cards: request.cards });
-  const content = await generateFeynmanContent({
+  const content = options.prebuiltContent ?? await generateFeynmanContent({
     bookTitle,
     author,
     coverImageUrl: normalizeCoverUrl(request.coverImageUrl, options.origin),
