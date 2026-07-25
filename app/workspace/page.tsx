@@ -59,6 +59,7 @@ import {
   type OnboardingProgress,
 } from "@/lib/onboarding";
 import {
+  loadStarterBook,
   starterBooks,
   starterBooksById,
   type StarterBookData,
@@ -242,6 +243,7 @@ type WorkspaceSearchWorkerMatch = {
 type WorkspaceTab = WorkspaceTabItem & {
   source: "starter" | "history" | "current" | "analysis";
   starterBookId?: string;
+  starterContentVersion?: string;
   recordId?: string;
   analysisTitle?: string;
 };
@@ -390,6 +392,7 @@ type HistoryRecord = {
   posterContent?: PosterContent | null;
   isStarterBook?: boolean;
   starterBookId?: string;
+  starterContentVersion?: string;
   author?: string;
   analysisContext?: StoredBookContext;
   cardEvidence?: Record<string, CardEvidence>;
@@ -2785,7 +2788,7 @@ export default function Home() {
   }, [currentWorkspaceTab]);
 
   useEffect(() => {
-    if (!currentHistoryRecord || currentHistoryRecord.originalReadingValue) return;
+    if (!currentHistoryRecord || currentHistoryRecord.originalReadingValue || currentHistoryRecord.isStarterBook) return;
     if (originalReadingValue || !bookSummary.trim() || !readingGuide.trim()) return;
     if (originalReadingBackfillRef.current.has(currentHistoryRecord.id)) return;
 
@@ -3552,20 +3555,23 @@ export default function Home() {
     setIsStarterLoading(false);
     setStarterLoadingStep(STARTER_LOADING_STEPS[0].text);
 
+    const starterBook = record.isStarterBook && record.starterBookId
+      ? starterBooksById[record.starterBookId] ?? null
+      : null;
     setSelectedFile(null);
     setBookTitle(record.title);
     setBookAuthor(record.author || "");
     setBookSummary(record.bookSummary);
     setReadingGuide(record.readingGuide);
-    setOriginalReadingValue(record.originalReadingValue ?? "");
+    setOriginalReadingValue(record.originalReadingValue ?? starterBook?.analysis.originalReadingValue ?? "");
     setViewMap(record.viewMap);
     setActionExtraction(record.actionExtraction);
     setCriticalExamination(record.viewValidation);
     setIdeaSourceTracing(record.ideaSourceTracing);
-    setWorkspaceQuote(pickWorkspaceQuote(record));
+    setWorkspaceQuote(pickWorkspaceQuote(record) || starterBook?.analysis.workspaceQuote || "");
     setCardEvidenceByKey(normalizeCardEvidenceMap(record.cardEvidence));
     setBookCoverImage(record.coverImage ?? "");
-    setPosterContent(record.posterContent ?? null);
+    setPosterContent(record.posterContent ?? starterBook?.posterContent ?? null);
     setCurrentStarterBookId(record.isStarterBook ? record.starterBookId ?? null : null);
     setIsLiteMode(record.mode === "lite");
     setIsLiteUnlocked(record.mode === "full");
@@ -4100,6 +4106,34 @@ export default function Home() {
     const existingScenario = currentRound.scenarios[gateIndex];
     if (existingScenario && currentRound.statuses[gateIndex] !== "error") return existingScenario;
 
+    const starterRound = currentStarterBook
+      ? currentStarterBook.practiceRounds[
+          currentRound.requestedLifeCapital === "auto"
+            ? "财富积累"
+            : currentRound.requestedLifeCapital
+        ]
+      : null;
+    if (starterRound) {
+      const scenario = starterRound.scenarios[gateIndex];
+      const nextRound = saveLeapPracticeRound(
+        updateLeapPracticeGate(currentRound, gateIndex, {
+          scenario,
+          blueprint: starterRound.blueprint,
+          status: "ready",
+          answer: null,
+        })
+      );
+      const scenarios = nextRound.scenarios.filter((item): item is DecisionScenario => !!item);
+      setLeapPracticeRound(nextRound);
+      setDecisionScenarios(scenarios);
+      recordLeapPracticeEvent(currentBookId, "gate_generation_succeeded", {
+        gateIndex,
+        lifeCapital: starterRound.blueprint.lifeCapital,
+        source: "starter-package",
+      });
+      return scenario;
+    }
+
     const generatingRound = saveLeapPracticeRound(
       updateLeapPracticeGate(currentRound, gateIndex, { status: "generating" })
     );
@@ -4165,7 +4199,7 @@ export default function Home() {
       setIsDecisionLoading(false);
       setDecisionLoadingStep("");
     }
-  }, [bookTitle, currentBookId, getDecisionCardsInput, leapPracticeRound]);
+  }, [bookTitle, currentBookId, currentStarterBook, getDecisionCardsInput, leapPracticeRound]);
 
   const handleCompleteLeapGate = useCallback((gateIndex: number, option: DecisionOptionKey) => {
     if (!currentBookId) return;
@@ -4316,8 +4350,9 @@ export default function Home() {
     setActionExtraction(starterBook.analysis.actionExtraction);
     setCriticalExamination(starterBook.analysis.viewValidation);
     setIdeaSourceTracing(starterBook.analysis.ideaSourceTracing);
-    setWorkspaceQuote(sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }));
-    setCardEvidenceByKey({});
+    setOriginalReadingValue(starterBook.analysis.originalReadingValue);
+    setWorkspaceQuote(sanitizeWorkspaceQuote(starterBook.analysis.workspaceQuote, { title: starterBook.title }));
+    setCardEvidenceByKey(starterBook.cardEvidence);
     setPosterContent(starterBook.posterContent);
     setDecisionScenarios(starterBook.decisionTraining);
     saveDecisionScenarioCache(buildDecisionBookId(starterBook.title), starterBook.decisionTraining);
@@ -4338,12 +4373,14 @@ export default function Home() {
       actionExtraction: starterBook.analysis.actionExtraction,
       viewValidation: starterBook.analysis.viewValidation,
       ideaSourceTracing: starterBook.analysis.ideaSourceTracing,
+      originalReadingValue: starterBook.analysis.originalReadingValue,
       bookRecommendation: "",
-      workspaceQuote: sanitizeWorkspaceQuote(starterBook.posterContent.highlight, { title: starterBook.title }),
-      cardEvidence: {},
+      workspaceQuote: sanitizeWorkspaceQuote(starterBook.analysis.workspaceQuote, { title: starterBook.title }),
+      cardEvidence: starterBook.cardEvidence,
       coverImage: starterBook.coverImage,
       isStarterBook: true,
       starterBookId: starterBook.id,
+      starterContentVersion: starterBook.contentVersion,
       author: starterBook.author,
     };
     const prev = loadHistory().filter((r) => r.id !== record.id);
@@ -4435,8 +4472,7 @@ export default function Home() {
   ]);
 
   const handleSelectStarterBook = useCallback(async (starterBookId: string) => {
-    const starterBook = starterBooksById[starterBookId];
-    if (!starterBook || isStarterLoading) return;
+    if (!starterBooksById[starterBookId] || isStarterLoading) return;
 
     resetDragState();
     markStarterModeSeen();
@@ -4451,6 +4487,7 @@ export default function Home() {
         await new Promise((resolve) => setTimeout(resolve, step.duration));
       }
 
+      const starterBook = await loadStarterBook(starterBookId);
       applyStarterBook(starterBook);
       setIsStarterModeVisible(false);
 
@@ -4475,6 +4512,14 @@ export default function Home() {
           durationMs: 5000,
         });
       }, 600);
+    } catch (error) {
+      console.error("加载示例内容包失败:", error);
+      enqueueGuidanceToast({
+        id: `starter-book-load-error-${starterBookId}`,
+        message: "示例内容暂不可用，请稍后重试。",
+        priority: TOAST_PRIORITY.GUIDANCE,
+        durationMs: 5000,
+      });
     } finally {
       resetDragState();
       setIsStarterLoading(false);
@@ -4486,7 +4531,7 @@ export default function Home() {
       (record) => record.isStarterBook && record.starterBookId === starterBookId
     );
 
-    if (starterRecord) {
+    if (starterRecord?.starterContentVersion === starterBooksById[starterBookId]?.contentVersion) {
       openHistoryRecord(starterRecord);
       return;
     }
@@ -7167,6 +7212,11 @@ export default function Home() {
                             <p className="mt-4 rounded-[9px] bg-[rgba(16,78,31,0.06)] px-3 py-2 text-[12px] leading-5 text-[var(--ink-soft)]">
                               {selectedEvidenceClaim.explanation}
                             </p>
+                            {currentStarterBookId && (
+                              <p className="mt-3 text-right text-[10px] leading-4 text-[var(--ink-faint)]">
+                                内容来自网络
+                              </p>
+                            )}
                           </article>
                         ))}
                       </div>
@@ -7877,6 +7927,7 @@ export default function Home() {
               B: `${scenario.feedback.B.analysis} ${scenario.feedback.B.upgrade}`.trim(),
             },
           }))}
+          starterBookId={currentStarterBookId}
           onClose={() => setIsFeynmanPreviewOpen(false)}
           onGenerated={() => {
             enqueueGuidanceToast({

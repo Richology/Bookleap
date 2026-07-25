@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { createFeynmanExportHtml } from "@/lib/feynmanExport/exportService";
+import { starterBooksById } from "@/src/data/starterBooks";
 import type {
   FeynmanCardsInput,
   FeynmanExportMode,
@@ -41,7 +44,7 @@ function normalizeStyle(value: unknown): GuizangPptStyle | undefined {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Partial<FeynmanExportRequest>;
+    const body = (await request.json()) as Partial<FeynmanExportRequest> & { starterBookId?: string };
 
     if (!isNonEmptyText(body.bookTitle) || !hasCompleteCards(body.cards)) {
       return NextResponse.json(
@@ -51,17 +54,40 @@ export async function POST(request: Request) {
     }
 
     const origin = new URL(request.url).origin;
+    const starterBookId = typeof body.starterBookId === "string" ? body.starterBookId : "";
+    const starterBook = starterBooksById[starterBookId];
+    const author = typeof body.author === "string" ? body.author : "";
+    const coverImageUrl = typeof body.coverImageUrl === "string" ? body.coverImageUrl : "";
+    const decisionExercises = Array.isArray(body.decisionExercises)
+      ? body.decisionExercises
+      : undefined;
+    const cards = body.cards as FeynmanCardsInput;
+    const style = normalizeStyle(body.style) ?? "magazine";
+
+    if (starterBook) {
+      const filename = `BookLeap-${starterBook.title}-讲书演示.html`;
+      const staticHtml = await readFile(
+        path.join(process.cwd(), "public", "starter-books", `${starterBook.id}.${style}.html`),
+        "utf8"
+      );
+      return new NextResponse(staticHtml, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        },
+      });
+    }
+
     const { html, filename } = await createFeynmanExportHtml(
       {
         bookTitle: body.bookTitle,
-        author: typeof body.author === "string" ? body.author : "",
-        coverImageUrl: typeof body.coverImageUrl === "string" ? body.coverImageUrl : "",
+        author,
+        coverImageUrl,
         mode: normalizeMode(body.mode),
-        style: normalizeStyle(body.style),
-        cards: body.cards,
-        decisionExercises: Array.isArray(body.decisionExercises)
-          ? body.decisionExercises
-          : undefined,
+        style,
+        cards,
+        decisionExercises,
       },
       { origin }
     );
