@@ -1898,7 +1898,7 @@ export default function Home() {
   const [experiencedStarterIds, setExperiencedStarterIds] = useState<string[]>([]);
   const [, setSelectedStarterBookIdState] = useState("");
   const [isStarterLoading, setIsStarterLoading] = useState(false);
-  const [starterLoadingStep, setStarterLoadingStep] = useState<string>(STARTER_LOADING_STEPS[0].text);
+  const [, setStarterLoadingStep] = useState<string>(STARTER_LOADING_STEPS[0].text);
   const [currentStarterBookId, setCurrentStarterBookId] = useState<string | null>(null);
   const [hasShownReturningUserToast, setHasShownReturningUserToast] = useState(false);
   const [showFabRedDot, setShowFabRedDot] = useState(false);
@@ -4472,22 +4472,30 @@ export default function Home() {
   ]);
 
   const handleSelectStarterBook = useCallback(async (starterBookId: string) => {
-    if (!starterBooksById[starterBookId] || isStarterLoading) return;
+    const starterPreview = starterBooksById[starterBookId];
+    if (!starterPreview || isStarterLoading) return;
 
     resetDragState();
+    resetAllState();
     markStarterModeSeen();
     setSelectedStarterBookIdState(starterBookId);
     setSelectedStarterBookId(starterBookId);
     setIsStarterLoading(true);
     setStarterLoadingStep(STARTER_LOADING_STEPS[0].text);
+    setAnalysisIntroTitle(starterPreview.title);
+    setAnalysisIntroCover(starterPreview.coverImage);
+    setIsLoading(true);
+    setMessage(STARTER_LOADING_STEPS[0].text);
+    const starterBookPromise = loadStarterBook(starterBookId);
 
     try {
       for (const step of STARTER_LOADING_STEPS) {
         setStarterLoadingStep(step.text);
+        setMessage(step.text);
         await new Promise((resolve) => setTimeout(resolve, step.duration));
       }
 
-      const starterBook = await loadStarterBook(starterBookId);
+      const starterBook = await starterBookPromise;
       applyStarterBook(starterBook);
       setIsStarterModeVisible(false);
 
@@ -4523,8 +4531,9 @@ export default function Home() {
     } finally {
       resetDragState();
       setIsStarterLoading(false);
+      setIsLoading(false);
     }
-  }, [applyStarterBook, enqueueGuidanceToast, isStarterLoading, resetDragState, resetReaderScrollPosition]);
+  }, [applyStarterBook, enqueueGuidanceToast, isStarterLoading, resetAllState, resetDragState, resetReaderScrollPosition]);
 
   const openStarterBook = useCallback((starterBookId: string) => {
     const starterRecord = recentHistory.find(
@@ -6249,19 +6258,6 @@ export default function Home() {
       />
 
       <section className={`${workspacePanelClass} relative overflow-hidden px-0 py-2`}>
-        {isStarterLoading && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[12px] bg-[rgba(247,248,249,0.96)] backdrop-blur-sm">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[10px] border border-[rgba(24,29,38,0.08)] bg-[#eef1f2]">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-70" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--ink)]" />
-              </span>
-            </div>
-            <p className="text-sm font-medium text-[var(--ink)]">正在为你准备这本书</p>
-            <p className="mt-1 text-xs text-[var(--ink-faint)]">{starterLoadingStep}</p>
-          </div>
-        )}
-
         <div
           role="button"
           tabIndex={0}
@@ -7973,14 +7969,14 @@ export default function Home() {
           }}
           onRegenerate={async () => {
             setIsPosterModalOpen(false);
-            setPosterContent(null);
-            // Small delay so modal closes before re-opening
+            // Keep the current poster as a fallback until the replacement succeeds.
             await new Promise((r) => setTimeout(r, 100));
             setIsGeneratingPoster(true);
             try {
               const res = await fetch("/api/skills/poster-content", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                signal: AbortSignal.timeout(60_000),
                 body: JSON.stringify({
                   title: bookTitle,
                   bookSummary,
@@ -7989,23 +7985,31 @@ export default function Home() {
                 }),
               });
               const d = await res.json();
-              if (d.success && d.content) {
-                setPosterContent(d.content);
-                setIsPosterModalOpen(true);
-                try {
-                  const ft = selectedFile?.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub";
-                  const rid = `${bookTitle}-${ft}`;
-                  const hist = loadHistory();
-                  const idx = hist.findIndex((r) => r.id === rid);
-                  if (idx >= 0) {
-                    hist[idx].posterContent = d.content;
-                    saveHistory(hist);
-                    setRecentHistory(hist);
-                  }
-                } catch { /* ignore */ }
+              if (!res.ok || !d.success || !d.content) {
+                throw new Error(d.error || "海报内容生成失败，请稍后重试。");
               }
+              setPosterContent(d.content);
+              setIsPosterModalOpen(true);
+              try {
+                const ft = selectedFile?.name.toLowerCase().endsWith(".pdf") ? "pdf" : "epub";
+                const rid = `${bookTitle}-${ft}`;
+                const hist = loadHistory();
+                const idx = hist.findIndex((r) => r.id === rid);
+                if (idx >= 0) {
+                  hist[idx].posterContent = d.content;
+                  saveHistory(hist);
+                  setRecentHistory(hist);
+                }
+              } catch { /* ignore */ }
             } catch (err) {
               console.error("海报内容重新生成失败:", err);
+              setIsPosterModalOpen(true);
+              enqueueGuidanceToast({
+                id: "poster-regenerate-failed",
+                message: "重新生成失败，已保留原海报。请稍后重试。",
+                priority: TOAST_PRIORITY.SYSTEM,
+                durationMs: 5000,
+              });
             } finally {
               setIsGeneratingPoster(false);
             }

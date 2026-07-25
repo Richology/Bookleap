@@ -503,21 +503,17 @@ export function LeapPracticePanel({
           </section>
         </div>
 
-        <div className="pointer-events-none absolute right-0 top-28 z-20 hidden lg:block">
-          <div
-            className={`pointer-events-auto flex items-start transition-transform duration-300 ease-out ${
-              isPrincipleDrawerOpen ? "translate-x-0" : "translate-x-[calc(100%-2.25rem)]"
-            }`}
-          >
+        <div className="mt-4 hidden lg:block">
+          <div className="flex items-start gap-3">
             <button
               type="button"
               onClick={() => setIsPrincipleDrawerOpen((open) => !open)}
               aria-expanded={isPrincipleDrawerOpen}
-              className="mt-4 flex h-24 w-9 items-center justify-center rounded-l-[14px] border border-r-0 border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.92)] text-[12px] font-semibold text-[rgba(41,117,74,0.96)] shadow-[0_12px_28px_rgba(24,29,38,0.08)] backdrop-blur transition-all hover:bg-[#f1f9f4] active:scale-[0.98]"
+              className="flex h-24 w-9 items-center justify-center rounded-[14px] border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.92)] text-[12px] font-semibold text-[rgba(41,117,74,0.96)] shadow-[0_12px_28px_rgba(24,29,38,0.08)] backdrop-blur transition-all hover:bg-[#f1f9f4] active:scale-[0.98]"
             >
               <span className="[writing-mode:vertical-rl]">{isPrincipleDrawerOpen ? "收起原则" : "本题原则"}</span>
             </button>
-            <aside className="w-72 rounded-l-[18px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.92)] px-4 py-5 shadow-[0_20px_54px_rgba(24,29,38,0.14)] backdrop-blur-xl">
+            <aside className={`w-72 rounded-[18px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.92)] px-4 py-5 shadow-[0_20px_54px_rgba(24,29,38,0.14)] backdrop-blur-xl ${isPrincipleDrawerOpen ? "" : "hidden"}`}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[12px] font-semibold text-[var(--ink)]">本题原则</p>
                 <button
