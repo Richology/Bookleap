@@ -503,17 +503,17 @@ export function LeapPracticePanel({
           </section>
         </div>
 
-        <div className="mt-4 hidden lg:block">
-          <div className="flex items-start gap-3">
+        <div className="pointer-events-none fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 lg:block">
+          <div className="pointer-events-auto flex flex-row-reverse items-center">
             <button
               type="button"
               onClick={() => setIsPrincipleDrawerOpen((open) => !open)}
               aria-expanded={isPrincipleDrawerOpen}
-              className="flex h-24 w-9 items-center justify-center rounded-[14px] border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.92)] text-[12px] font-semibold text-[rgba(41,117,74,0.96)] shadow-[0_12px_28px_rgba(24,29,38,0.08)] backdrop-blur transition-all hover:bg-[#f1f9f4] active:scale-[0.98]"
+              className={`flex h-24 w-9 items-center justify-center border border-[rgba(41,117,74,0.16)] bg-[rgba(241,249,244,0.92)] text-[12px] font-semibold text-[rgba(41,117,74,0.96)] shadow-[0_12px_28px_rgba(24,29,38,0.08)] backdrop-blur transition-all hover:bg-[#f1f9f4] active:scale-[0.98] ${isPrincipleDrawerOpen ? "rounded-r-[14px] border-l-0" : "rounded-[14px]"}`}
             >
               <span className="[writing-mode:vertical-rl]">{isPrincipleDrawerOpen ? "收起原则" : "本题原则"}</span>
             </button>
-            <aside className={`w-72 rounded-[18px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.92)] px-4 py-5 shadow-[0_20px_54px_rgba(24,29,38,0.14)] backdrop-blur-xl ${isPrincipleDrawerOpen ? "" : "hidden"}`}>
+            <aside className={`w-72 rounded-l-[18px] border border-[rgba(24,29,38,0.08)] bg-[rgba(251,252,253,0.96)] px-4 py-5 shadow-[0_20px_54px_rgba(24,29,38,0.14)] backdrop-blur-xl ${isPrincipleDrawerOpen ? "" : "hidden"}`}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[12px] font-semibold text-[var(--ink)]">本题原则</p>
                 <button
