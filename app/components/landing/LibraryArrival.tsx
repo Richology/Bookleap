@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 const COVER_COUNT = 222;
 const SHELF_COUNT = 10;
 const MIN_PREPARE_DURATION = 450;
-const MAX_PREPARE_DURATION = 3200;
+const MAX_PREPARE_DURATION = 6500;
 const SPRITE_COLUMNS = 23;
 const SPRITE_ROWS = 10;
 const EMPTY_SHELF_DURATION = 700;
@@ -76,7 +76,8 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
       setSpriteReady(true);
       if (canStartRef.current) startArrival();
     };
-    sprite.src = "/textures/library-wall-sprite-v1.webp";
+    sprite.fetchPriority = "high";
+    sprite.src = "/textures/library-wall-sprite-v2.webp";
 
     return () => {
       window.clearTimeout(minimumTimer);
@@ -123,7 +124,9 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
   if (phase === "complete") return null;
 
   return (
-    <section
+    <>
+      <link rel="preload" as="image" href="/textures/library-wall-sprite-v2.webp" fetchPriority="high" />
+      <section
       className={`library-arrival library-arrival--${phase}`}
       aria-label={phase === "loading" ? "正在准备书架" : "进入首页动画"}
     >
@@ -166,6 +169,7 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
       <button type="button" className="library-arrival__skip" onClick={finish}>
         跳过
       </button>
-    </section>
+      </section>
+    </>
   );
 }

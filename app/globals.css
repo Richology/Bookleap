@@ -267,7 +267,7 @@ select {
   border: 1px solid rgb(231 193 125 / 0.14);
   border-bottom: 0;
   background-color: oklch(21% 0.016 248);
-  background-image: url("/textures/library-wall-sprite-v1.webp");
+  background-image: url("/textures/library-wall-sprite-v2.webp");
   background-repeat: no-repeat;
   background-size: 2300% 1000%;
   box-shadow: 0 0 11px rgb(0 0 0 / 0.25);
