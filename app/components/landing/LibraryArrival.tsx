@@ -6,6 +6,9 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 
 const COVER_COUNT = 222;
 const SHELF_COUNT = 10;
+const MIN_READY_COVERS = 24;
+const MIN_PREPARE_DURATION = 450;
+const MAX_PREPARE_DURATION = 1800;
 const EMPTY_SHELF_DURATION = 700;
 const ARRIVAL_DURATION = 2350;
 const DISPLAY_DURATION = 750;
@@ -20,7 +23,7 @@ const shelfRows = Array.from({ length: SHELF_COUNT }, (_, shelfIndex) =>
 );
 
 function coverPath(index: number) {
-  return `/library-covers/${String(index).padStart(3, "0")}.jpg`;
+  return `/library-wall/${String(index).padStart(3, "0")}.webp`;
 }
 
 function disappearanceDelay(index: number) {
@@ -38,8 +41,12 @@ type LibraryArrivalProps = {
 
 export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProps) {
   const [phase, setPhase] = useState<"loading" | "empty" | "arriving" | "clearing" | "complete">("loading");
+  const [loadedCoverIndices, setLoadedCoverIndices] = useState<Set<number>>(() => new Set());
   const revealedRef = useRef(false);
   const completeRef = useRef(false);
+  const startedRef = useRef(false);
+  const canStartRef = useRef(false);
+  const loadedCoverIndicesRef = useRef<Set<number>>(new Set());
 
   const revealHome = useCallback(() => {
     if (revealedRef.current) return;
@@ -55,26 +62,31 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
     setPhase("complete");
   }, [onComplete, revealHome]);
 
+  const startArrival = useCallback(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    setPhase("empty");
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-    const preloaded = coverIndices.map((coverIndex) => new window.Image());
-    let loadedCount = 0;
-
-    const markLoaded = () => {
-      loadedCount += 1;
-      if (loadedCount === preloaded.length && !cancelled) setPhase("empty");
-    };
-
-    preloaded.forEach((image, index) => {
-      image.onload = markLoaded;
-      image.onerror = markLoaded;
-      image.src = coverPath(index + 1);
-    });
+    const minimumTimer = window.setTimeout(() => {
+      canStartRef.current = true;
+      if (loadedCoverIndicesRef.current.size >= MIN_READY_COVERS) startArrival();
+    }, MIN_PREPARE_DURATION);
+    const maximumTimer = window.setTimeout(startArrival, MAX_PREPARE_DURATION);
 
     return () => {
-      cancelled = true;
+      window.clearTimeout(minimumTimer);
+      window.clearTimeout(maximumTimer);
     };
-  }, []);
+  }, [startArrival]);
+
+  const markCoverLoaded = useCallback((coverIndex: number) => {
+    if (loadedCoverIndicesRef.current.has(coverIndex)) return;
+    loadedCoverIndicesRef.current.add(coverIndex);
+    setLoadedCoverIndices(new Set(loadedCoverIndicesRef.current));
+    if (canStartRef.current && loadedCoverIndicesRef.current.size >= MIN_READY_COVERS) startArrival();
+  }, [startArrival]);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -138,8 +150,17 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
                   } as CSSProperties;
 
                   return (
-                    <div className="library-arrival__book" key={coverIndex} style={bookStyle}>
-                      <img src={coverPath(coverIndex)} alt="" />
+                    <div
+                      className={`library-arrival__book${loadedCoverIndices.has(coverIndex) ? " library-arrival__book--loaded" : ""}`}
+                      key={coverIndex}
+                      style={bookStyle}
+                    >
+                      <img
+                        src={coverPath(coverIndex)}
+                        alt=""
+                        decoding="async"
+                        onLoad={() => markCoverLoaded(coverIndex)}
+                      />
                     </div>
                   );
                 })}

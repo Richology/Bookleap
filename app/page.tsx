@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
 import { JsonLd } from "./components/JsonLd";
@@ -14,8 +13,6 @@ import { Testimonials } from "./components/landing/Testimonials";
 import { WorkbenchStory } from "./components/landing/WorkbenchStory";
 import { LibraryArrival } from "./components/landing/LibraryArrival";
 import { buildFaqJsonLd, buildHomeJsonLd } from "@/lib/seo";
-
-const CTA_COVER_IDS = [4, 11, 18, 27, 35, 42, 51, 59, 66, 74, 83, 91, 98, 106, 114, 123, 131, 140, 148, 157, 165, 174, 182, 191, 199, 207, 12, 23, 31, 46, 57, 68, 79, 88, 102, 116, 128, 139, 150];
 
 const ANALYSIS_FACETS = [
   {
@@ -117,26 +114,7 @@ function HomeV2Nav() {
 }
 
 function ClosingShelfTexture() {
-  const rows = Array.from({ length: 3 }, (_, rowIndex) => CTA_COVER_IDS.slice(rowIndex * 13, (rowIndex + 1) * 13));
-
-  return (
-    <div className="closing-shelf-texture" aria-hidden="true">
-      {rows.map((row, rowIndex) => (
-        <div className="closing-shelf-texture__row" key={rowIndex}>
-          {row.map((coverId) => (
-            <Image
-              key={coverId}
-              src={`/library-covers/${String(coverId).padStart(3, "0")}.jpg`}
-              alt=""
-              width={104}
-              height={150}
-              sizes="(max-width: 768px) 10vw, 7vw"
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+  return <div className="closing-shelf-texture" aria-hidden="true" />;
 }
 
 export default function HomeV2Page() {
