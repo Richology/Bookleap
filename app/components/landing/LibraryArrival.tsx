@@ -1,14 +1,13 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 
 const COVER_COUNT = 222;
 const SHELF_COUNT = 10;
-const MIN_READY_COVERS = 24;
 const MIN_PREPARE_DURATION = 450;
-const MAX_PREPARE_DURATION = 1800;
+const MAX_PREPARE_DURATION = 3200;
+const SPRITE_COLUMNS = 23;
+const SPRITE_ROWS = 10;
 const EMPTY_SHELF_DURATION = 700;
 const ARRIVAL_DURATION = 2350;
 const DISPLAY_DURATION = 750;
@@ -21,10 +20,6 @@ const shelfRows = Array.from({ length: SHELF_COUNT }, (_, shelfIndex) =>
     Math.floor(((shelfIndex + 1) * COVER_COUNT) / SHELF_COUNT),
   ),
 );
-
-function coverPath(index: number) {
-  return `/library-wall/${String(index).padStart(3, "0")}.webp`;
-}
 
 function disappearanceDelay(index: number) {
   return Math.round((((index * 71) % COVER_COUNT) / (COVER_COUNT - 1)) * 1540);
@@ -41,12 +36,12 @@ type LibraryArrivalProps = {
 
 export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProps) {
   const [phase, setPhase] = useState<"loading" | "empty" | "arriving" | "clearing" | "complete">("loading");
-  const [loadedCoverIndices, setLoadedCoverIndices] = useState<Set<number>>(() => new Set());
+  const [spriteReady, setSpriteReady] = useState(false);
   const revealedRef = useRef(false);
   const completeRef = useRef(false);
   const startedRef = useRef(false);
   const canStartRef = useRef(false);
-  const loadedCoverIndicesRef = useRef<Set<number>>(new Set());
+  const spriteReadyRef = useRef(false);
 
   const revealHome = useCallback(() => {
     if (revealedRef.current) return;
@@ -71,21 +66,22 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
   useEffect(() => {
     const minimumTimer = window.setTimeout(() => {
       canStartRef.current = true;
-      if (loadedCoverIndicesRef.current.size >= MIN_READY_COVERS) startArrival();
+      if (spriteReadyRef.current) startArrival();
     }, MIN_PREPARE_DURATION);
     const maximumTimer = window.setTimeout(startArrival, MAX_PREPARE_DURATION);
+    const sprite = new window.Image();
+
+    sprite.onload = () => {
+      spriteReadyRef.current = true;
+      setSpriteReady(true);
+      if (canStartRef.current) startArrival();
+    };
+    sprite.src = "/textures/library-wall-sprite-v1.webp";
 
     return () => {
       window.clearTimeout(minimumTimer);
       window.clearTimeout(maximumTimer);
     };
-  }, [startArrival]);
-
-  const markCoverLoaded = useCallback((coverIndex: number) => {
-    if (loadedCoverIndicesRef.current.has(coverIndex)) return;
-    loadedCoverIndicesRef.current.add(coverIndex);
-    setLoadedCoverIndices(new Set(loadedCoverIndicesRef.current));
-    if (canStartRef.current && loadedCoverIndicesRef.current.size >= MIN_READY_COVERS) startArrival();
   }, [startArrival]);
 
   useEffect(() => {
@@ -143,25 +139,21 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
                 {shelfBooks.map((coverIndex) => {
                   const tilt = ((coverIndex * 13) % 5) - 2;
                   const lift = ((coverIndex * 7) % 4) - 1;
+                  const spriteColumn = (coverIndex - 1) % SPRITE_COLUMNS;
+                  const spriteRow = Math.floor((coverIndex - 1) / SPRITE_COLUMNS);
                   const bookStyle = {
                     transform: `translateY(${lift}px) rotate(${tilt * 0.42}deg)`,
+                    backgroundPosition: `${(spriteColumn / (SPRITE_COLUMNS - 1)) * 100}% ${(spriteRow / (SPRITE_ROWS - 1)) * 100}%`,
                     "--library-appear-delay": `${appearanceDelay(coverIndex)}ms`,
                     "--library-disappear-delay": `${disappearanceDelay(coverIndex)}ms`,
                   } as CSSProperties;
 
                   return (
                     <div
-                      className={`library-arrival__book${loadedCoverIndices.has(coverIndex) ? " library-arrival__book--loaded" : ""}`}
+                      className={`library-arrival__book${spriteReady ? " library-arrival__book--loaded" : ""}`}
                       key={coverIndex}
                       style={bookStyle}
-                    >
-                      <img
-                        src={coverPath(coverIndex)}
-                        alt=""
-                        decoding="async"
-                        onLoad={() => markCoverLoaded(coverIndex)}
-                      />
-                    </div>
+                    />
                   );
                 })}
               </div>

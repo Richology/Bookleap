@@ -266,7 +266,10 @@ select {
 .library-arrival__book--loaded {
   border: 1px solid rgb(231 193 125 / 0.14);
   border-bottom: 0;
-  background: oklch(21% 0.016 248);
+  background-color: oklch(21% 0.016 248);
+  background-image: url("/textures/library-wall-sprite-v1.webp");
+  background-repeat: no-repeat;
+  background-size: 2300% 1000%;
   box-shadow: 0 0 11px rgb(0 0 0 / 0.25);
 }
 
@@ -276,21 +279,6 @@ select {
 
 .library-arrival__book:nth-child(7n) {
   margin-bottom: 4px;
-}
-
-.library-arrival__book img {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-  opacity: 0;
-  filter: saturate(0.8) contrast(1.05) brightness(0.82);
-  transition: opacity 180ms ease-out;
-}
-
-.library-arrival__book--loaded img {
-  opacity: 1;
 }
 
 .library-arrival--loading .library-arrival__wall {

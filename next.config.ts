@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         source: "/textures/closing-shelf-v2.webp",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      {
+        source: "/textures/library-wall-sprite-v1.webp",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
   async redirects() {
