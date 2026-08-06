@@ -261,6 +261,9 @@ select {
   align-self: end;
   min-width: 0;
   overflow: hidden;
+}
+
+.library-arrival__book--loaded {
   border: 1px solid rgb(231 193 125 / 0.14);
   border-bottom: 0;
   background: oklch(21% 0.016 248);
