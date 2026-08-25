@@ -259,7 +259,9 @@ select {
 
 .library-arrival__book {
   align-self: end;
+  width: 100%;
   min-width: 0;
+  aspect-ratio: 2 / 3;
   overflow: hidden;
 }
 

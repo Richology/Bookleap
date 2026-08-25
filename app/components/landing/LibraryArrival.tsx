@@ -68,7 +68,13 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
       canStartRef.current = true;
       if (spriteReadyRef.current) startArrival();
     }, MIN_PREPARE_DURATION);
-    const maximumTimer = window.setTimeout(startArrival, MAX_PREPARE_DURATION);
+    const maximumTimer = window.setTimeout(() => {
+      if (spriteReadyRef.current) {
+        startArrival();
+      } else {
+        finish();
+      }
+    }, MAX_PREPARE_DURATION);
     const sprite = new window.Image();
 
     sprite.onload = () => {
@@ -76,6 +82,7 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
       setSpriteReady(true);
       if (canStartRef.current) startArrival();
     };
+    sprite.onerror = finish;
     sprite.fetchPriority = "high";
     sprite.src = "/textures/library-wall-sprite-v2.webp";
 
@@ -83,7 +90,7 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
       window.clearTimeout(minimumTimer);
       window.clearTimeout(maximumTimer);
     };
-  }, [startArrival]);
+  }, [finish, startArrival]);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
