@@ -6,6 +6,7 @@ const COVER_COUNT = 222;
 const SHELF_COUNT = 10;
 const MIN_PREPARE_DURATION = 450;
 const MAX_PREPARE_DURATION = 6500;
+const MAX_TOTAL_DURATION = 8000;
 const SPRITE_COLUMNS = 23;
 const SPRITE_ROWS = 10;
 const EMPTY_SHELF_DURATION = 700;
@@ -52,9 +53,9 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
   const finish = useCallback(() => {
     if (completeRef.current) return;
     completeRef.current = true;
+    setPhase("complete");
     revealHome();
     onComplete();
-    setPhase("complete");
   }, [onComplete, revealHome]);
 
   const startArrival = useCallback(() => {
@@ -64,6 +65,12 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
   }, []);
 
   useEffect(() => {
+    const shouldSkip = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (shouldSkip) {
+      const skipTimer = window.setTimeout(finish, 0);
+      return () => window.clearTimeout(skipTimer);
+    }
+
     const minimumTimer = window.setTimeout(() => {
       canStartRef.current = true;
       if (spriteReadyRef.current) startArrival();
@@ -75,6 +82,7 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
         finish();
       }
     }, MAX_PREPARE_DURATION);
+    const totalTimer = window.setTimeout(finish, MAX_TOTAL_DURATION);
     const sprite = new window.Image();
 
     sprite.onload = () => {
@@ -89,15 +97,13 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
     return () => {
       window.clearTimeout(minimumTimer);
       window.clearTimeout(maximumTimer);
+      window.clearTimeout(totalTimer);
+      sprite.onload = null;
+      sprite.onerror = null;
     };
   }, [finish, startArrival]);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const reducedMotionTimer = window.setTimeout(finish, 0);
-      return () => window.clearTimeout(reducedMotionTimer);
-    }
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -173,7 +179,7 @@ export function LibraryArrival({ onTitleReveal, onComplete }: LibraryArrivalProp
         })}
       </div>
 
-      <button type="button" className="library-arrival__skip" onClick={finish}>
+      <button type="button" className="library-arrival__skip" onPointerDown={finish} onClick={finish}>
         跳过
       </button>
       </section>
