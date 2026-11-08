@@ -320,6 +320,7 @@ export default function HomeV2Page() {
           <footer className="px-6 pb-8 md:px-10">
             <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-2 py-6 text-[12px] text-[var(--ink-faint)] md:flex-row md:items-center">
               <p>书跃 · BookLeap · 从好书中完成认知跃迁</p>
+              <a href="https://github.com/Richology/Bookleap" target="_blank" rel="noreferrer" className="underline underline-offset-4">源码 · AGPL-3.0</a>
               <a
                 href="https://richology.cn"
                 target="_blank"

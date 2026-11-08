@@ -3,10 +3,16 @@
 BookLeap 是一个面向中文深度阅读者的 AI 电子书分析与阅读训练产品。用户可以上传 EPUB、PDF、AZW3 或 TXT，获得全书摘要、阅读指南、观点地图、行动提炼、观点校验和思想溯源，并继续进行证据回看、跃迁练习、海报分享和内容导出。
 
 - 正式网站：<https://www.bookleap.cn>
+- 源码：[Richology/Bookleap](https://github.com/Richology/Bookleap)
+- 开源协议：[GNU AGPL-3.0-only](LICENSE)
 - 产品原则：[`PRODUCT.md`](./PRODUCT.md)
 - 完整工程指南：[`AGENTS.md`](./AGENTS.md)
 
 ## 技术栈
+
+本项目原创应用代码采用 AGPL-3.0-only，Copyright (C) 2026 Bookleap contributors。第三方组件保留各自许可，见 [第三方声明](THIRD_PARTY_NOTICES.md)。书籍封面、图标、商标及引用内容不因项目开源而被重新许可。用户上传的书籍、私人数据和密钥不属于应公开的程序源码。
+
+请勿在提交、Issue 或 PR 中上传完整电子书、用户书库或凭据。贡献代码默认遵循本项目许可。
 
 Next.js 16、React 19、TypeScript、Tailwind CSS 4、DeepSeek/Ollama、Vercel Blob、IndexedDB 和 localStorage。
 

@@ -502,5 +502,6 @@ export function renderFeynmanHtml(
   const slides = renderSlides(content, style);
 
   return injectSlides(template, slides)
-    .replace("[必填] 替换为 PPT 标题 · Deck Title", escapeHtml(title));
+    .replace("[必填] 替换为 PPT 标题 · Deck Title", escapeHtml(title))
+    .replace("</body>", `<aside style="position:fixed;bottom:6px;left:8px;z-index:1000;font:11px/1.5 sans-serif;background:#fff;color:#333;padding:3px 7px;border-radius:4px"><a href="https://github.com/Richology/Bookleap" target="_blank" rel="noreferrer">Bookleap 源码 · AGPL-3.0</a> · <a href="https://github.com/op7418/guizang-ppt-skill" target="_blank" rel="noreferrer">归藏模板</a> · 内容权利归原作者</aside></body>`);
 }

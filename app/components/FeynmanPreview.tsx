@@ -197,8 +197,9 @@ export function FeynmanPreview({
             <span>技术说明：本功能为 Beta，使用开源演示生成组件，遵循 AGPL-3.0。</span>
             <span className="text-[#c4c9cf]" aria-hidden="true">·</span>
             <a className="font-medium text-[var(--ink-faint)] underline underline-offset-2" href={GUIZANG_UPSTREAM_URL} target="_blank" rel="noreferrer">
-              开源项目
+              上游模板
             </a>
+            <a href="https://github.com/Richology/Bookleap" target="_blank" rel="noreferrer" className="underline underline-offset-2">Bookleap 完整源码</a>
           </section>
 
           {error && (

@@ -7,7 +7,7 @@ module.exports = {
   forceCodeSigning: Boolean(release),
   appId: 'cn.bookleap.local', productName: '书跃本地同步助手', asar: false,
   directories: {output: 'dist'},
-  files: ['src/**/*', 'ui/**/*', 'extension/**/*', 'package.json', ...(release ? ['release-config.json'] : [])],
+  files: ['LICENSE', 'NOTICE.md', 'src/**/*', 'ui/**/*', 'extension/**/*', 'package.json', ...(release ? ['release-config.json'] : [])],
   protocols: [{name: 'BookLeap citation', schemes: ['bookleap-local']}],
   mac: {target: [{target: 'dmg', arch: ['arm64', 'x64']}, {target: 'zip', arch: ['arm64', 'x64']}], hardenedRuntime: true, notarize: Boolean(release)},
   win: {target: [{target: 'nsis', arch: ['x64']}], verifyUpdateCodeSignature: true, ...(release?.publisherName ? {publisherName: release.publisherName} : {})},
