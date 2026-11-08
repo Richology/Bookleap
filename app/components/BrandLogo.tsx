@@ -1,20 +1,17 @@
 import Image from "next/image";
 
-export function BrandLogo() {
+export function BrandLogo({ variant = "monochrome" }: { variant?: "color" | "monochrome" }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap leading-none sm:gap-3">
+    <span className="inline-flex shrink-0 items-center leading-none">
       <Image
-        src="/brand/bookleap-monochrome.svg"
-        alt="BookLeap"
-        width={1810}
-        height={280}
-        className="relative top-px block h-auto w-[112px] sm:w-[160px]"
+        src={`/brand/bookleap-lockup-${variant}.png`}
+        alt="BookLeap 书跃"
+        width={1920}
+        height={240}
+        className="block h-auto w-[160px] sm:w-[224px]"
         loading="eager"
         unoptimized
       />
-      <span className="bg-linear-to-br from-[#777] via-[#555] to-[#242424] bg-clip-text font-sans text-[17px] leading-none font-semibold tracking-[0.04em] text-transparent sm:text-[23px]">
-        书跃
-      </span>
     </span>
   );
 }
