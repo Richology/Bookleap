@@ -68,6 +68,8 @@ BookLeap 是一个面向中文深度阅读者的 AI 电子书分析与阅读训�
 
 首页导航会平滑滚动到对应区块。核心 CTA 进入 `/workspace`。
 
+当前首页导航提供 GitHub 图标入口，在新标签页打开 `Richology/Bookleap`，保留 Star 提示与键盘焦点样式。
+
 ### 4.2 初次进入工作台
 
 工作台会显示免责声明、引导层和推荐体验书。体验书位于 `src/data/starterBooks/`，发布版静态包位于 `public/starter-books/`。
@@ -311,6 +313,8 @@ node --test lib/*.test.mjs lib/**/*.test.mjs
 - 讲书演示模板包含第三方代码，许可说明见 `lib/feynmanExport/guizang/LICENSE-AGPL-3.0.txt` 和根目录 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 文档维护规则
+
+`README.md` 为默认英文产品介绍，`README.zh-CN.md` 为对应中文版；两版互链，功能、安装步骤和支持范围应同步维护。产品截图位于 `docs/images/`。
 
 当以下内容发生变化时，同一次提交中更新本文档：
 

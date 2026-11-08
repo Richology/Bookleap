@@ -73,17 +73,17 @@ function HomeV2Nav() {
           : "bg-[#faf9f8]/82 backdrop-blur-md"
       }`}
     >
-      <div className="mx-auto flex max-w-[1540px] items-center justify-between px-6 py-4 md:px-10">
+      <div className="mx-auto flex max-w-[1540px] items-center justify-between gap-2 px-4 py-4 sm:px-6 md:px-10">
         <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/"
-            className="flex items-baseline gap-3 font-editorial text-[1.6rem] font-semibold tracking-tight text-[var(--ink)]"
+            className="flex shrink-0 items-baseline gap-3 whitespace-nowrap font-editorial text-xl font-semibold tracking-tight text-[var(--ink)] sm:text-[1.6rem]"
           >
             书跃 · BookLeap
           </Link>
         </div>
 
-        <div className="flex items-center gap-5 md:gap-8">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-5 md:gap-8">
           <div className="hidden items-center gap-8 md:flex">
             {NAV_ITEMS.map((item) => (
               <a
@@ -101,6 +101,18 @@ function HomeV2Nav() {
               </a>
             ))}
           </div>
+          <a
+            href="https://github.com/Richology/Bookleap"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="去 GitHub 给书跃点个 Star（新标签页打开）"
+            title="喜欢书跃？去 GitHub 点个 Star"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-[var(--ink-soft)] transition-colors hover:bg-black/5 hover:text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+          </a>
           <Link
             href="/workspace"
             className="rounded-md bg-[var(--ink)] px-4 py-2 text-[13px] font-medium text-[#faf7f6] transition-all hover:opacity-92 active:scale-[0.97]"
