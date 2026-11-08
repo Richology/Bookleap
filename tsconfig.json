@@ -37,6 +37,7 @@
     "local-mcp/dist-smoke",
     "local-mcp/dist-renamed",
     "local-mcp/dist-desktop-ui",
-    "local-mcp/dist-agent-ui"
+    "local-mcp/dist-agent-ui",
+    "local-mcp/dist-trial"
   ]
 }

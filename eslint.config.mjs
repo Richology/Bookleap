@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
     "local-mcp/dist-renamed/**",
     "local-mcp/dist-desktop-ui/**",
     "local-mcp/dist-agent-ui/**",
+    "local-mcp/dist-trial/**",
     "local-mcp/safari/build/**",
   ]),
 ]);

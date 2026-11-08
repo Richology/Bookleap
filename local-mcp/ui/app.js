@@ -20,6 +20,8 @@ async function refresh() {
   el('pairButton').textContent = status.sourceCount ? '连接新来源' : '连接网页';
   el('pauseButton').textContent = status.paused ? '恢复同步' : '暂停同步';
   el('version').textContent = `书跃本地同步助手 ${status.version}`;
+  el('updates').disabled = Boolean(status.unsignedTrial);
+  if (status.unsignedTrial) el('updateStatus').textContent = '未签名测试版 · 请从官网下载新版，自动更新已停用。';
   for (const input of document.querySelectorAll('[data-setting]')) input.checked = Boolean(status[input.dataset.setting]);
 }
 async function showPane(name) {
@@ -33,10 +35,12 @@ for (const button of document.querySelectorAll('button[data-action]')) button.ad
   const action = button.dataset.action; button.disabled = true;
   try {
     const result = await invoke(action);
-    if (action === 'books' && result) renderLibrary(result, action);
+    if (action === 'connection' && result) {el('connectionConfig').textContent = JSON.stringify(result, null, 2); el('connectionDetails').open = true;}
+    else if (action === 'books' && result) renderLibrary(result, action);
     else if (action === 'pair' && typeof result === 'string') {el('pair').textContent = result; el('copyPair').textContent = '复制配对码'; if(!el('pairDialog').open) el('pairDialog').showModal();}
     else if (result !== undefined) {
-      const message = typeof result === 'string' ? result : result.state || result.message || '操作已完成';
+      let message = typeof result === 'string' ? result : result.state || result.message || '操作已完成';
+      if (action === 'test' && result.result?.content?.[0]?.text) {try {message += ` · 可读取 ${JSON.parse(result.result.content[0].text).bookCount} 本书`;} catch { /* Keep SDK status if no count. */ }}
       if (['configure','restore','test'].includes(action)) {el('result').hidden = false; el('result').textContent = message;}
       else if (['update','installUpdate'].includes(action)) el('updateStatus').textContent = message;
       else notify(message);
@@ -77,3 +81,5 @@ function renderLibrary(result, action, bookId) {
   }
   if (action === 'search' && result.nextCursor) {const note = document.createElement('p'); note.textContent = '显示前 20 个匹配；请使用更具体的关键词，或通过 MCP 分页读取。'; container.append(note);}
 }
+
+el('copyConnection').addEventListener('click', async () => {try {await navigator.clipboard.writeText(el('connectionConfig').textContent); notify('MCP 配置已复制');} catch {notify('请选中配置并复制。');}});

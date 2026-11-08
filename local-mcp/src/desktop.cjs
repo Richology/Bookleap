@@ -57,6 +57,8 @@ if (!app.requestSingleInstanceLock()) { app.quit(); } else {
     window.webContents.setWindowOpenHandler(() => ({action: 'deny'}));
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.on('close', event => {if (!quitting) {event.preventDefault(); window.hide();}});
+    const unsignedTrial = Boolean(require(path.join(app.getAppPath(), 'package.json')).bookleapUnsignedTrial);
+    if (unsignedTrial) {settings.updates = false; save();}
     const releaseFile = path.join(app.getAppPath(), 'release-config.json');
     const release = app.isPackaged && fs.existsSync(releaseFile) ? JSON.parse(fs.readFileSync(releaseFile, 'utf8')) : null;
     updates = new UpdateController(require('electron-updater').autoUpdater, release, {busy: () => bridge.activeRequests > 0 || readersActive(runtime)});
@@ -64,7 +66,7 @@ if (!app.requestSingleInstanceLock()) { app.quit(); } else {
     ipcMain.handle('bookleap', async (event, action, value) => {
       if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('denied');
       switch (action) {
-        case 'status': return {path: store.root, paused: bridge.paused, version: VERSION, platform: process.platform === 'win32' ? 'Windows x64' : process.arch === 'arm64' ? 'Apple Silicon Mac' : 'Intel Mac', sourceCount: bridge.pairs.length, lastAcknowledgedAt: store.state.sources.map(s => s.acknowledgedAt).filter(Boolean).sort().at(-1) || null, bookCount: store.state.sources.reduce((n, s) => n + s.books.length, 0), updates: settings.updates, autostart: settings.autostart, preview: Boolean(settings.preview)};
+        case 'status': return {path: store.root, paused: bridge.paused, version: VERSION, platform: process.platform === 'win32' ? 'Windows x64' : process.arch === 'arm64' ? 'Apple Silicon Mac' : 'Intel Mac', sourceCount: bridge.pairs.length, lastAcknowledgedAt: store.state.sources.map(s => s.acknowledgedAt).filter(Boolean).sort().at(-1) || null, bookCount: store.state.sources.reduce((n, s) => n + s.books.length, 0), updates: settings.updates, unsignedTrial, autostart: settings.autostart, preview: Boolean(settings.preview)};
         case 'pair': return bridge.createPairing().code;
         case 'pause': bridge.paused = !bridge.paused; settings.paused = bridge.paused; save(); return bridge.paused ? '已暂停；旧数据仍可查询' : '已恢复接收';
         case 'choose': {
@@ -76,7 +78,8 @@ if (!app.requestSingleInstanceLock()) { app.quit(); } else {
         }
         case 'preview': if (typeof value !== 'boolean') throw new Error('invalid'); settings.preview = value; bridge.origins = ['https://www.bookleap.cn', ...(value ? ['http://localhost:3000'] : [])]; save(); return;
         case 'autostart': if (typeof value !== 'boolean') throw new Error('invalid'); settings.autostart = value; app.setLoginItemSettings({openAtLogin: value, path: process.execPath}); save(); return;
-        case 'updates': if (typeof value !== 'boolean') throw new Error('invalid'); settings.updates = value; save(); return;
+        case 'updates': if (unsignedTrial) return '测试版请手动下载更新'; if (typeof value !== 'boolean') throw new Error('invalid'); settings.updates = value; save(); return;
+        case 'connection': return {mcpServers: {bookleap: {command: process.execPath, args: [path.join(app.getAppPath(), 'src/mcp.mjs')], env: {ELECTRON_RUN_AS_NODE: '1', BOOKLEAP_LIBRARY: store.root, BOOKLEAP_RUNTIME: runtime}}}};
         case 'configure': {
           let preview;
           try {preview = previewConfig(configFile, process.execPath, path.join(app.getAppPath(), 'src/mcp.mjs'), store.root, runtime);}

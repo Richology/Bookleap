@@ -1,0 +1,44 @@
+name: Build unsigned sync assistant trial
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: local-mcp/package-lock.json
+      - run: npm ci
+        working-directory: local-mcp
+      - run: npm test
+        working-directory: local-mcp
+      - run: npx electron-builder --config electron-builder.trial.cjs --win --x64 --publish never
+        working-directory: local-mcp
+      - name: Install and test actual installed app
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem local-mcp/dist-trial/*.exe | Select-Object -First 1
+          $installDir = "$env:RUNNER_TEMP\BookLeap Installed"
+          $process = Start-Process -FilePath $installer.FullName -ArgumentList "/S /D=$installDir" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          $app = Join-Path $installDir '书跃本地同步助手.exe'
+          if (!(Test-Path $app)) { throw 'Installed executable missing' }
+          node local-mcp/test/desktop-smoke.mjs "$app"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $uninstaller = Get-ChildItem $installDir -Filter '*Uninstall*.exe' | Select-Object -First 1
+          if (!$uninstaller) { throw 'Uninstaller missing' }
+          Start-Process -FilePath $uninstaller.FullName -ArgumentList '/S' -Wait
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bookleap-windows-unsigned-trial
+          path: local-mcp/dist-trial/*.exe
+          if-no-files-found: error
+          retention-days: 14

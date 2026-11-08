@@ -73,7 +73,7 @@ test('reject unmanaged directories and symlink escape', t => {
   const parent = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'bookleap-path-')); t.after(() => fs.rmSync(parent, {recursive: true, force: true}));
   fs.mkdirSync(path.join(parent, 'BookLeapLibrary')); fs.writeFileSync(path.join(parent, 'BookLeapLibrary', 'private.txt'), 'keep');
   assert.throws(() => new LibraryStore(parent), /directory_not_owned/);
-  fs.symlinkSync(parent, path.join(parent, 'alias'));
+  fs.symlinkSync(parent, path.join(parent, 'alias'), process.platform === 'win32' ? 'junction' : 'dir');
   assert.throws(() => new LibraryStore(path.join(parent, 'alias')), /symlink_not_allowed/);
 });
 test('Codex config preserves comments, refuses races and same-name conflicts, restores safely', t => {
