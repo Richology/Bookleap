@@ -16,8 +16,8 @@ try {
   await page.getByRole('button', {name: '我已阅读并同意'}).click();
   await page.getByRole('button', {name: '本地 MCP', exact: true}).click();
   await page.getByLabel('来源名称').fill('合成 Chrome 测试');
-  await page.getByLabel('本地组件显示的配对码').fill(bridge.createPairing().code);
-  await page.getByLabel('我同意同步自己的拆书内容').check();
+  await page.getByLabel('配对码', {exact:true}).fill(bridge.createPairing().code);
+  await page.getByLabel('我同意同步，并了解上述数据用途。').check();
   await page.getByRole('button', {name: '配对并自动同步'}).click();
   await page.waitForFunction(() => document.querySelector('dialog[open]')?.textContent.includes('已同步'));
   console.log('empty library paired and acknowledged', store.state.sources.length);

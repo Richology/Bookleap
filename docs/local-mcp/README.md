@@ -1,6 +1,19 @@
 # 本地 MCP 开发与试用
 
-当前发布范围为 Chrome 限定试用，供已持有 Apple Silicon Mac 开发助手的用户进行线上真实书库验收。网页接入、跨来源同步核心、只读 MCP 和桌面试用组件已实现；Safari 扩展、正式签名分发、真实 Codex 用户验收与完整更新切换验收仍有未完成项。不得以单元测试通过替代发布门槛。
+当前交付为 Chrome + Mac Apple Silicon / Windows x64 **未签名测试版**。用户明确授权先跑通流程；测试构建不自动更新，不代表已完成正式签名分发与全部 spec 验收。
+
+下载安装：[下载与安装帮助](DOWNLOADS.md)。公开仓库 `Richology/bookleap-downloads` 只保存安装包和说明，源码仓库保持私有。线上配对与 localhost 配对相互独立。
+
+## 可复现的测试包构建
+
+- `npm ci --prefix local-mcp`
+- Apple Silicon Mac：`npm run trial:mac --prefix local-mcp`。先构建应用目录，再由系统 hdiutil 生成 DMG，无额外 DMG 工具下载依赖。
+- Windows x64：`npm run trial:win --prefix local-mcp`。原生 Windows CI 可手动运行 `.github/workflows/local-mcp-trial.yml`，先测试核心，再安装 EXE、测试实际已安装应用和独立 MCP，最后上传安装包。
+- 产物在 `local-mcp/dist-trial`（Git 忽略）；使用 Electron 44.9.3、版本 `0.1.0-trial.1`，无 Developer ID、公证、Authenticode，自动更新关闭。
+- 测试配置独立于 `electron-builder.cjs` 与正式发布预检；不能用测试版跳过正式发布的可信更新校验。
+- 原版配置参数和已存知识库保留；移动应用位置后需要重新确认 Agent 命令路径。
+
+以下是此前实现和验证细节；“正式”安装分发指未来签名版，不是本轮未签名下载。
 
 ## 试用方式
 
@@ -11,8 +24,8 @@
 5. 在桌面组件首次配对前选知识库父目录。只管理其中 `BookLeapLibrary` 专用子目录；非空无标记目录、符号链接会被拒绝。已有配对时不静默迁移目录。
 6. 生成五分钟配对码。在网页左侧「本地 MCP」输入来源名称与配对码，了解授权说明并勾选同意；本地组件再次确认准确来源。
 7. 看到本地确认时间和书籍数量才算同步成功。体验书默认排除，个人高亮/反思/练习需单独勾选。之后修改、新增、删除和范围变化自动同步；不要把“立即同步”当作日常必经步骤。
-8. 在桌面组件点「预览并添加只读连接」，核对新增的 `mcp_servers.bookleap` 内容后确认。已有同名连接会拒绝覆盖，配置变化会要求重新预览。会先生成权限为 0600 的备份；恢复操作不覆盖随后用户的编辑。
-9. 点「测试实际 MCP 工具」，这验证真实 SDK stdio 子进程，不等于 Codex 已连接。在 Codex 重连/重启后调用 `library_status`、`list_books` 和 `search_library`，最后由用户确认实际结果。
+8. 在桌面组件点「配置 Codex…」，核对新增的 `mcp_servers.bookleap` 内容后确认。已有同名连接会拒绝覆盖，配置变化会要求重新预览。会先生成权限为 0600 的备份；恢复操作不覆盖随后用户的编辑。
+9. 点「测试连接」，这验证真实 SDK stdio 子进程，不等于 Codex 已连接。在 Codex 重连/重启后调用 `library_status`、`list_books` 和 `search_library`，最后由用户确认实际结果。
 10. 关闭网页、退出接收组件后，再用 Codex 查询最后成功同步内容。未送达的变化只有网页重开后才会补传。
 
 本机预览页面与线上页面是不同浏览器来源，不能直接访问线上的 IndexedDB。开发自动测试使用新浏览器配置和合成书籍，不读取线上私人书库。用户若要在本机预览真实书库，可自行选择把已有备份迁入试用页面；这是首次试用的数据准备，不是日常同步方式。用户已授权上线 Chrome 限定试用；线上来源需重新配对，不能沿用 localhost 配对。
@@ -45,7 +58,7 @@ MCP 进程只额外在组件运行状态目录写入 PID 存活标记，以避�
 ## 构建、更新与卸载
 
 - `npm run pack --prefix local-mcp -- --mac --arm64`：本机应用目录。
-- Intel Mac / Windows x64 在各自构建机器构建，配置已列出 dmg/zip、NSIS 目标；尚未实测。
+- Windows x64 未签名安装器已在 Windows CI 构建、安装并运行桌面/MCP 回归；Intel Mac 目标保留但尚未实测。
 - `npm run dist --prefix local-mcp`：发布预检后构建，默认 `--publish never`。没有真实配置/签名时明确失败。
 - `release-config.json`（被 Git 忽略）需要真实 `feedUrl`、每平台/架构的 `manifestUrl`、Ed25519 `publicKey`、Windows `publisherName`。不得填示例地址后当成有效发布渠道。
 - 签名清单 envelope 的 `payload` 是原始 JSON 字符串，包含 schemaVersion=1、librarySchema=1、platform、arch、version、expiresAt（七天内）、files（url/sha512）；`signature` 为 Ed25519 base64。用 `scripts/sign-manifest.mjs` 签名，私钥路径仅由环境提供。

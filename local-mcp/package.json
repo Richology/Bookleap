@@ -9,7 +9,9 @@
     "start": "electron .",
     "mcp": "node src/mcp.mjs",
     "pack": "electron-builder --dir",
-    "dist": "node scripts/release-check.mjs && electron-builder --publish never"
+    "dist": "node scripts/release-check.mjs && electron-builder --publish never",
+    "trial:mac": "node scripts/package-mac-trial.mjs",
+    "trial:win": "electron-builder --config electron-builder.trial.cjs --win --x64 --publish never"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",

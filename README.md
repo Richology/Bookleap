@@ -81,10 +81,10 @@ public/starter-books/        推荐书发布产物
 
 工作台左侧「本地 MCP」用于把已授权内容自动同步到电脑，再由 Codex 通过只读 MCP 查询。网页关闭或接收组件退出后仍可读最后成功同步内容；个人记录需单独选择。当前实现与试用步骤见 [本地 MCP 文档](docs/local-mcp/README.md)。
 
-本地组件为独立 npm 子项目 `local-mcp/`，最终安装包内置 Electron 运行时。Safari 需要原生扩展桥接，已编译通过但缺签名与实测；Windows/Intel Mac 尚未实测。正式签名、公证、更新渠道及用户真实书库验收未完成，不提供公开下载地址，也未部署线上。
+本地组件为独立 npm 子项目 `local-mcp/`，最终安装包内置 Electron 运行时。Safari 需要原生扩展桥接，已编译通过但缺签名与实测；Windows 提供 x64 未签名测试安装包；Intel Mac 尚未支持。正式签名、公证、更新渠道及用户真实书库验收未完成。
 
 桌面程序显示名为「书跃本地同步助手」，网页入口仍为「本地 MCP」。关闭助手窗口继续后台同步，退出助手停止接收；已同步内容仍可通过独立 MCP 查询。改名时保留内部 appId、包名及原用户数据目录，避免丢失配对与配置。
 
 ### 本地 MCP：Chrome 限定试用
 
-目前面向已有 Apple Silicon Mac「书跃本地同步助手」开发包的 Chrome 用户，供线上真实书库与 Agent 验收。尚无正式安装包下载；Safari、其他浏览器、Windows/Intel 以及签名更新、回退、自启与卸载尚未完成验收。线上与 localhost 须分别配对。详见 [试用与未完成项](docs/local-mcp/README.md)。
+目前提供 Apple Silicon Mac 与 Windows x64 未签名测试安装包，供 Chrome 用户验收真实书库与 Agent 查询。[下载与安装帮助](docs/local-mcp/DOWNLOADS.md)。自动更新已停用；Safari、其他浏览器、Intel Mac 与正式签名更新不在本轮范围。线上与 localhost 须分别配对。详见 [试用与未完成项](docs/local-mcp/README.md)。
