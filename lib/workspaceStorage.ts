@@ -182,6 +182,7 @@ async function writeHistoryRecordsToIndexedDb<T extends WorkspaceHistoryRecordLi
     } satisfies WorkspaceMetaRecord);
 
     await transactionDone(transaction);
+    window.dispatchEvent(new Event("bookleap-history-saved"));
     return { recordCount: records.length };
   } finally {
     db.close();
@@ -206,4 +207,24 @@ export async function markIndexedDbStorageReady() {
   } finally {
     db.close();
   }
+}
+
+// Sync must observe a completed IndexedDB write, never a storage fallback.
+export async function waitForHistoryMirror() { await historyMirrorQueue; }
+
+// A complete read and its deletion marker share one transaction. A newly recreated,
+// empty database must not erase a previously acknowledged local MCP source.
+export async function getLocalMcpHistorySnapshot<T extends WorkspaceHistoryRecordLike>() {
+  const db = await openWorkspaceDatabase();
+  try {
+    const transaction = db.transaction([HISTORY_STORE, META_STORE], "readonly");
+    const done = transactionDone(transaction);
+    const [records, marker] = await Promise.all([
+      requestToPromise<T[]>(transaction.objectStore(HISTORY_STORE).getAll()),
+      requestToPromise<WorkspaceMetaRecord | undefined>(transaction.objectStore(META_STORE).get("localStorage_history_mirror")),
+    ]);
+    await done;
+    const value = marker?.value as {recordCount?: unknown} | undefined;
+    return {records, confirmedEmpty: records.length === 0 && value?.recordCount === 0};
+  } finally { db.close(); }
 }

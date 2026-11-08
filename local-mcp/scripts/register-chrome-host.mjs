@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {assertSafePath, atomicWrite} from '../src/store.mjs';
+// Optional Chrome extension route. Direct HTTP is preferred on verified Chrome versions.
+const [extensionId, executable] = process.argv.slice(2);
+if (process.platform !== 'darwin' || !/^[a-p]{32}$/.test(extensionId ?? '') || !executable || !path.isAbsolute(executable)) throw new Error('macOS usage: register-chrome-host.mjs EXTENSION_ID ABSOLUTE_ELECTRON_EXECUTABLE');
+assertSafePath(executable);
+const directory = assertSafePath(path.join(os.homedir(), 'Library/Application Support/BookLeapNativeHost'));
+fs.mkdirSync(directory, {recursive:true, mode:0o700});
+const script = path.resolve(import.meta.dirname, '../src/native-host.mjs');
+const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
+const launcher = path.join(directory, 'bookleap-host');
+atomicWrite(launcher, `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${quote(executable)} ${quote(script)}\n`); fs.chmodSync(launcher, 0o700);
+const manifestDir = assertSafePath(path.join(os.homedir(), 'Library/Application Support/Google/Chrome/NativeMessagingHosts'));
+fs.mkdirSync(manifestDir, {recursive:true});
+const manifestPath = path.join(manifestDir, 'com.bookleap.local.json');
+if (fs.existsSync(manifestPath)) throw new Error('Existing native host registration preserved; review manually');
+fs.writeFileSync(manifestPath, JSON.stringify({name:'com.bookleap.local', description:'BookLeap local sync', path:launcher, type:'stdio', allowed_origins:[`chrome-extension://${extensionId}/`]}), {flag:'wx', mode:0o600});
+console.log('Registered only the explicitly supplied extension identity.');

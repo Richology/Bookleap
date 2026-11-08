@@ -41,3 +41,16 @@ yarn-error.log*
 next-env.d.ts
 
 uploads/
+# Local MCP runtime/build artifacts (never commit user libraries)
+/local-mcp/node_modules/
+/local-mcp/dist/
+/local-mcp/.test-data/
+/local-mcp/release-config.json
+
+/local-mcp/dist-smoke/
+/local-mcp/safari/build/
+**/xcuserdata/
+
+/local-mcp/dist-renamed/
+/local-mcp/dist-desktop-ui/
+/local-mcp/dist-agent-ui/

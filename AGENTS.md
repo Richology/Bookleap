@@ -321,3 +321,15 @@ node --test lib/*.test.mjs lib/**/*.test.mjs
 - 重组关键目录或移动真源文件。
 
 不要把临时计划或单次任务记录写进本文档；这些内容放在 `docs/`。本文档只保留当前仍然成立、能帮助下一位开发者正确行动的信息。
+
+## 16. 本地 MCP（试用实现）
+
+- 工作台新增「本地 MCP」入口，必须继续使用 `public/icons/mcp.svg`。`LocalMcpPanel.tsx` 常驻同步控制器，`lib/localMcpAdapter.ts` 只在 IndexedDB 成功就绪后自动同步。
+- 本地组件代码位于独立 npm 子项目 `local-mcp/`；使用其独立 `package-lock.json`，不要混入网页依赖。安装与验证见 `docs/local-mcp/README.md`。
+- 浏览器配对状态键 `bl-local-mcp-v1` 刻意不在备份前缀中；不要将 token/sourceId 混入可迁移的书库备份。`workspaceStorage.ts` 的完整读取/清空事务标记用于防止重建空数据库误删本地副本。
+- 接收服务独立运行，固定 loopback 48720，生产 Origin 精确为 `https://www.bookleap.cn`；本机预览来源需用户在组件中单独开启。来源绑定、CAS revision、schema 校验和原子提交不能省略。
+- stdio MCP 只有五个只读工具，查询不依赖接收服务运行。schema 1 目前为原子 JSON 快照和有界中文子串检索；没有向量服务，不承诺语义召回。
+- 新增验证：`npm test --prefix local-mcp`；浏览器与打包运行时回归脚本位于 `local-mcp/test/`，只用隔离配置和合成数据。
+- Safari 扩展、正式签名/公证、可信更新实际安装恢复及真实 Codex 用户验收仍有未完成项。当前经用户授权上线 Chrome 限定试用，仅供已有 Apple Silicon Mac 开发助手的用户验收真实书库。网页必须明确未验收平台与更新等缺项，不提供伪造的正式下载链接；全量正式发布仍需完成 spec 验收。
+
+桌面程序显示名为「书跃本地同步助手」，网页入口仍为「本地 MCP」。关闭助手窗口继续后台同步，退出助手停止接收；已同步内容仍可通过独立 MCP 查询。改名时保留内部 appId、包名及原用户数据目录，避免丢失配对与配置。

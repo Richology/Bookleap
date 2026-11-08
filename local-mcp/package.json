@@ -1,0 +1,29 @@
+{
+  "name": "bookleap-local-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/desktop.cjs",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "electron .",
+    "mcp": "node src/mcp.mjs",
+    "pack": "electron-builder --dir",
+    "dist": "node scripts/release-check.mjs && electron-builder --publish never"
+  },
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "electron-updater": "^6.8.11",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "playwright-core": "^1.65.0"
+  },
+  "description": "BookLeap local library sync and read-only MCP",
+  "overrides": {
+    "minimatch": "11.0.1"
+  }
+}

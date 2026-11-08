@@ -30,5 +30,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "local-mcp/node_modules",
+    "local-mcp/dist",
+    "local-mcp/dist-smoke",
+    "local-mcp/dist-renamed",
+    "local-mcp/dist-desktop-ui",
+    "local-mcp/dist-agent-ui"
+  ]
 }

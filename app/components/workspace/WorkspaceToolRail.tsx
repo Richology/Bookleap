@@ -28,6 +28,9 @@ type WorkspaceToolAction = {
 const WORKSPACE_WECHAT_ID = "iwbr1988";
 
 function ToolIcon({ id }: { id: string }) {
+  if (id === "localMcp") {
+    return <span aria-hidden="true" className="block h-[18px] w-[18px] bg-current" style={{mask: "url(/icons/mcp.svg) center / contain no-repeat", WebkitMask: "url(/icons/mcp.svg) center / contain no-repeat"}} />;
+  }
   if (id === "search") {
     return <SearchIcon className="h-[18px] w-[18px]" aria-hidden="true" />;
   }

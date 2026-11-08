@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "BookLeap 本地同步",
+  "version": "0.1.0",
+  "description": "仅桥接书跃已授权内容到本机知识库。",
+  "permissions": ["nativeMessaging"],
+  "host_permissions": ["https://www.bookleap.cn/*"],
+  "background": {"service_worker": "background.js"},
+  "content_scripts": [{"matches": ["https://www.bookleap.cn/*"], "js": ["content.js"], "run_at": "document_start"}]
+}

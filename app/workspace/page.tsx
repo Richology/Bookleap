@@ -1,5 +1,7 @@
 "use client";
 
+import { markLocalMcpHistoryReady } from "@/lib/localMcpAdapter";
+import LocalMcpPanel from "@/app/components/workspace/LocalMcpPanel";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -1943,6 +1945,7 @@ export default function Home() {
   const [isDisclaimerModalOpen, setIsDisclaimerModalOpen] = useState(false);
   const [isBackupNoticeOpen, setIsBackupNoticeOpen] = useState(false);
   const [backupImportPreview, setBackupImportPreview] = useState<BackupImportPreview | null>(null);
+  const [isLocalMcpOpen, setIsLocalMcpOpen] = useState(false);
   const [backupImportError, setBackupImportError] = useState("");
   const [isLegacyDomainNoticeVisible, setIsLegacyDomainNoticeVisible] = useState(false);
   const [isCoverageDetailOpen, setIsCoverageDetailOpen] = useState(false);
@@ -2678,6 +2681,7 @@ export default function Home() {
         const indexedDbHistory = await getIndexedDbHistoryRecords<HistoryRecord>();
         const nextHistory = indexedDbHistory.length > 0 ? indexedDbHistory : legacyHistory;
         setHistoryCache(nextHistory);
+        markLocalMcpHistoryReady();
 
         if (!cancelled) {
           setRecentHistory(nextHistory);
@@ -6208,6 +6212,7 @@ export default function Home() {
     },
   ];
   const bottomToolActions = [
+    {id: "localMcp", label: "本地 MCP", title: "本地 MCP", onClick: () => setIsLocalMcpOpen(true), active: isLocalMcpOpen},
     {
       id: "coffee",
       label: "请书跃喝杯咖啡",
@@ -8443,6 +8448,7 @@ export default function Home() {
           onBackupData={handleBackupLocalData}
         />
       </div>
+      <LocalMcpPanel open={isLocalMcpOpen} onClose={() => setIsLocalMcpOpen(false)} books={recentHistory.filter(record => !record.isStarterBook).map(record => ({id: record.id, title: record.title}))} />
     </>
   );
 }
