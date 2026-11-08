@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "./components/BrandLogo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookComparison } from "./components/landing/BookComparison";
 import { JsonLd } from "./components/JsonLd";
@@ -77,9 +78,10 @@ function HomeV2Nav() {
         <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/"
-            className="flex shrink-0 items-baseline gap-3 whitespace-nowrap font-editorial text-xl font-semibold tracking-tight text-[var(--ink)] sm:text-[1.6rem]"
+            aria-label="书跃 BookLeap 首页"
+            className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
           >
-            书跃 · BookLeap
+            <BrandLogo />
           </Link>
         </div>
 

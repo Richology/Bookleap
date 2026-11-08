@@ -1,6 +1,8 @@
 <div align="center">
 
-# 📖 Bookleap · 书跃
+<img src="public/brand/bookleap-color.svg" alt="Bookleap" width="420" />
+
+# Bookleap · 书跃
 
 ### Turn a good book into a clearer decision.
 

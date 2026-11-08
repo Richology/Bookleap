@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1810" height="280" viewBox="130 220 1810 280" role="img" aria-labelledby="title"><title id="title">Bookleap — monochrome ribbon wordmark</title><defs><linearGradient id="flow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#777777"/><stop offset=".48" stop-color="#555555"/><stop offset="1" stop-color="#242424"/></linearGradient>
+<linearGradient id="fold" x1="0" y1="0" x2="1" y2=".2"><stop stop-color="#191919"/><stop offset="1" stop-color="#242424"/></linearGradient>
+<linearGradient id="cross" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#777777"/><stop offset=".5" stop-color="#686868"/><stop offset="1" stop-color="#242424"/></linearGradient></defs><g fill="none" stroke="url(#flow)" stroke-width="50" stroke-linecap="round" stroke-linejoin="round">
+<path stroke-width="40" d="M166 251 H332 C407 251 407 355 332 355 H166 M332 355 C407 355 407 455 332 455 H166 M166 302 H326 M166 405 H326"/>
+<path d="M668 355 C624 293 590 257 542 257 C482 257 445 300 445 355 C445 411 483 454 542 454 C590 454 625 416 668 355 C712 294 748 257 797 257 C856 257 891 301 891 355 C891 411 854 454 797 454 C747 454 712 416 668 355"/>
+<path d="M1054 255 L949 354 L1054 453"/>
+<path d="M1120 256 V448 H1246"/>
+<path d="M1301 258 H1447 M1301 348 H1418 M1301 449 H1440"/>
+<path d="M1499 451 L1605 257 L1694 451"/>
+<path d="M1746 257 H1849 C1928 257 1928 359 1849 359 H1748 V452"/>
+</g><g stroke="none">
+<!-- Flat ribbon overpass follows original infinity diagonal. -->
+<path fill="url(#cross)" d="M522 232 C595 219 630 259 689 340 C733 402 760 430 797 429 L797 479 C738 479 700 433 647 370 C593 294 571 277 542 282 Z"/>
+<!-- Small inner L fold, confined to the horizontal arm, not a large outer highlight. -->
+<path opacity=".42" fill="url(#fold)" d="M1145 423 H1246 A25 25 0 0 1 1246 473 H1172 C1154 469 1145 453 1145 438 Z"/>
+<path opacity=".42" fill="url(#fold)" d="M952 387 C947 368 953 352 966 338 L1071 435 A25 25 0 0 1 1037 471 Z"/>
+<path opacity=".42" fill="url(#fold)" d="M1590 285 C1600 266 1618 265 1631 280 L1717 440 A25 25 0 0 1 1671 462 Z"/>
+<path opacity=".42" fill="url(#fold)" d="M1723 386 C1730 370 1753 359 1777 359 H1773 V452 A25 25 0 0 1 1723 452 Z"/>
+</g></svg>

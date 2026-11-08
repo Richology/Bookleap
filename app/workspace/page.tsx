@@ -1,6 +1,7 @@
 "use client";
 
 import { markLocalMcpHistoryReady } from "@/lib/localMcpAdapter";
+import { BrandLogo } from "@/app/components/BrandLogo";
 import LocalMcpPanel from "@/app/components/workspace/LocalMcpPanel";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import ReactMarkdown from "react-markdown";
@@ -6596,7 +6597,7 @@ export default function Home() {
       ) : !bookTitle ? (
         <div className="flex min-h-[680px] flex-col items-center justify-center px-8 py-14">
           <div className="max-w-2xl text-center">
-            <p className="archive-kicker">Workspace</p>
+            <BrandLogo />
             <h2 className="font-editorial mt-4 text-[2.4rem] font-semibold tracking-[-0.05em] text-[var(--ink)] md:text-[3.2rem]">
               选择一本书开始阅读
             </h2>
