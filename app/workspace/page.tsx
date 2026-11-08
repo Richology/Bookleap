@@ -6212,7 +6212,7 @@ export default function Home() {
     },
   ];
   const bottomToolActions = [
-    {id: "source", label: "源码 · AGPL-3.0", title: "获取 Bookleap 源码 · AGPL-3.0", onClick: () => window.open("https://github.com/Richology/Bookleap", "_blank", "noopener,noreferrer")},
+    {id: "source", label: "去 GitHub 给书跃点个 Star", title: "喜欢书跃？去 GitHub 点个 Star", onClick: () => window.open("https://github.com/Richology/Bookleap", "_blank", "noopener,noreferrer")},
     {id: "localMcp", label: "本地 MCP", title: "本地 MCP", onClick: () => setIsLocalMcpOpen(true), active: isLocalMcpOpen},
     {
       id: "coffee",
