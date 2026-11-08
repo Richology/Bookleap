@@ -81,7 +81,7 @@ function HomeV2Nav() {
             aria-label="书跃 BookLeap 首页"
             className="flex shrink-0 items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
           >
-            <BrandLogo variant="color" />
+            <BrandLogo />
           </Link>
         </div>
 
