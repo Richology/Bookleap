@@ -88,8 +88,8 @@ The optional **Bookleap Local Sync Assistant** (installed as **书跃本地同�
 
 | Trial download | Platform |
 | --- | --- |
-| [Download for Mac](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.1/bookleap-sync-0.1.0-trial.1-mac-arm64.dmg) | Apple Silicon / M-series |
-| [Download for Windows](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.1/bookleap-sync-0.1.0-trial.1-win-x64.exe) | x64 |
+| [Download for Mac](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) | Apple Silicon / M-series |
+| [Download for Windows](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) | x64 |
 
 1. Install the assistant and choose your local library folder.
 2. In **Chrome**, open **本地 MCP** in the workspace, enter the pairing code, and confirm the source in the assistant.
