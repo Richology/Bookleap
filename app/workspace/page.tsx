@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+import SelectionExplanation, { type SelectionExplanationHandle } from "@/app/components/workspace/SelectionExplanation";
 import { markLocalMcpHistoryReady } from "@/lib/localMcpAdapter";
 import { BrandLogo } from "@/app/components/BrandLogo";
 import LocalMcpPanel from "@/app/components/workspace/LocalMcpPanel";
@@ -1800,6 +1802,7 @@ export default function Home() {
   const touchStartXRef = useRef(0);
   const immersiveContainerRef = useRef<HTMLDivElement>(null);
   const immersiveContentRef = useRef<HTMLDivElement>(null);
+  const selectionExplanationRef = useRef<SelectionExplanationHandle>(null);
   const renderedHighlightRangesRef = useRef<RenderedHighlightRange[]>([]);
   const renderedSearchMatchRangesRef = useRef<Range[]>([]);
   const readerScrollContainerRef = useRef<HTMLDivElement>(null);
@@ -5974,9 +5977,11 @@ export default function Home() {
       window.setTimeout(handleReaderTextSelection, 0);
     };
 
+    document.addEventListener("selectionchange", handleSelectionEnd);
     document.addEventListener("mouseup", handleSelectionEnd);
     document.addEventListener("keyup", handleSelectionEnd);
     return () => {
+      document.removeEventListener("selectionchange", handleSelectionEnd);
       document.removeEventListener("mouseup", handleSelectionEnd);
       document.removeEventListener("keyup", handleSelectionEnd);
     };
@@ -7340,6 +7345,14 @@ export default function Home() {
                         </p>
                       </div>
                     ) : (
+                      <SelectionExplanation
+                        ref={selectionExplanationRef}
+                        key={`${currentHighlightBookRef}:${currentImmersiveCard.key}`}
+                        title={currentBookDisplayTitle}
+                        cardContent={currentImmersiveCard.content}
+                        context={currentAnalysisContext}
+                        onCreateQuote={pendingQuoteSelection ? handleCreateQuoteShareFromSelection : undefined}
+                      >
                       <div
                         ref={immersiveContentRef}
                         onMouseUp={handleReaderTextSelection}
@@ -7351,54 +7364,44 @@ export default function Home() {
                           {currentImmersiveCard.content}
                         </ReactMarkdown>
                       </div>
+                      </SelectionExplanation>
                     )}
                   </div>
 
-                  {pendingQuoteSelection && (
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={handleCreateQuoteShareFromSelection}
-                      className="fixed z-50 rounded-[10px] border border-[rgba(24,29,38,0.12)] bg-[#181d26] px-3 py-2 text-xs font-medium text-[#fbfcfd] shadow-[0_10px_24px_rgba(24,29,38,0.22)] transition hover:bg-[#0d1218] active:scale-[0.98]"
-                      style={{
-                        left: pendingQuoteSelection.x,
-                        top: pendingQuoteSelection.y,
-                      }}
-                    >
-                      生成书摘图
-                    </button>
-                  )}
-
-                  {!pendingQuoteSelection && highlightActionBubble && activeBubbleHighlight && (
+                  {!pendingQuoteSelection && highlightActionBubble && activeBubbleHighlight && createPortal(
                     <div
                       data-highlight-action-bubble="true"
-                      className="fixed z-50 flex items-center gap-1.5 rounded-[10px] border border-[rgba(24,29,38,0.10)] bg-[#fbfcfd] p-1 shadow-[0_10px_24px_rgba(24,29,38,0.16)]"
+                      className="highlight-selection-toolbar"
+                      role="group"
+                      aria-label="高亮文字操作"
                       style={{
-                        left: highlightActionBubble.x,
+                        left: Math.max(12, Math.min(window.innerWidth - 350, highlightActionBubble.x)),
                         top: highlightActionBubble.y,
                       }}
                       onPointerLeave={() => setHighlightActionBubble(null)}
                       onMouseDown={(event) => event.preventDefault()}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
+                      <div className="selection-actions">
+                        <button type="button" className="selection-action-explain" onClick={() => {
+                          selectionExplanationRef.current?.explain(activeBubbleHighlight.selectedText);
+                          setHighlightActionBubble(null);
+                        }}>
+                          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none"><path d="M5 3.5h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z" /><path d="M7 7h6M7 10h4" /></svg>
+                          <span>解释一下</span>
+                        </button>
+                        <button type="button" onClick={() => {
                           handleOpenQuoteShareFromHighlight(activeBubbleHighlight);
                           setHighlightActionBubble(null);
-                        }}
-                        className="rounded-[8px] bg-[#181d26] px-2.5 py-1.5 text-[11px] font-medium text-[#fbfcfd] transition hover:bg-[#0d1218]"
-                      >
-                        生成书摘图
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteHighlight(activeBubbleHighlight.id)}
-                        className="rounded-[8px] px-2.5 py-1.5 text-[11px] font-medium text-[var(--ink-faint)] transition hover:bg-[#f1f3f5] hover:text-[var(--ink)]"
-                      >
-                        删除
-                      </button>
+                        }}>
+                          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none"><rect x="4" y="2.5" width="12" height="15" rx="2" /><path d="M7 6.5h6M7 9.5h6M7 12.5h3" /></svg>
+                          <span>生成书摘图</span>
+                        </button>
+                        <button type="button" className="selection-action-delete" onClick={() => handleDeleteHighlight(activeBubbleHighlight.id)}>
+                          删除高亮
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  , document.body)}
 
                   <div
                     className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 pb-[env(safe-area-inset-bottom)] md:bottom-6 xl:left-[calc(var(--workspace-dock-shell-edge)+48px+0.625rem+var(--workspace-reader-inset-left))] xl:right-[calc(var(--workspace-dock-shell-edge)+var(--workspace-reader-inset-right))] xl:px-0"

@@ -1719,3 +1719,75 @@ select {
   animation: needAHandPulse 2s ease-out infinite;
   pointer-events: none;
 }
+
+/* Compact reading actions share one paper surface, with independent hit areas. */
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) {
+  position: fixed;
+  z-index: 55;
+  left: var(--selection-x);
+  top: var(--selection-y);
+  max-width: calc(100vw - 24px);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  box-shadow: 0 6px 24px rgba(24,29,38,0.18);
+}
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions { display: flex; align-items: center; gap: 6px; }
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: 1 0 auto;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+}
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions .selection-action-explain {
+  background: #eaf3ed;
+  color: #234c32;
+}
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions button:hover:not(:disabled) { background: #edf0f2; }
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions .selection-action-explain:hover:not(:disabled) { background: #dcebe1; }
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions button:active:not(:disabled) { background: #d4e2d9; }
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions-hint { padding: 6px 10px; font-size: 12px; }
+@media (pointer: coarse), (max-width: 767px) {
+  :is(.selection-explanation-toolbar, .highlight-selection-toolbar) {
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    max-width: none;
+  }
+  :is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions button { min-height: 44px; }
+}
+
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions .selection-action-delete {
+  color: var(--ink-soft);
+  padding-inline: 8px;
+}
+:is(.selection-explanation-toolbar, .highlight-selection-toolbar) .selection-actions .selection-action-delete:hover {
+  background: #f8ece9;
+  color: #903b2b;
+}
