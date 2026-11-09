@@ -27,7 +27,7 @@ import { WorkspaceDisclaimerModal } from "../components/WorkspaceDisclaimerModal
 import { SupportCoffeeModal } from "../components/SupportCoffeeModal";
 import { Toast } from "../components/Toast";
 import { FabMenu, type FabMenuHandle } from "../components/FabMenu";
-import { QuoteShareModal } from "../components/QuoteShareModal";
+import { QuoteShareModal, preloadQuotePaperTexture } from "../components/QuoteShareModal";
 import {
   CloseIcon,
   ExternalLinkIcon,
@@ -1965,6 +1965,10 @@ export default function Home() {
     setIsLoadingActionExtraction(false);
     setIsLoadingViewValidation(false);
     setIsLoadingIdeaSourceTracing(false);
+  }, []);
+
+  useEffect(() => {
+    preloadQuotePaperTexture();
   }, []);
 
   const isAnalyzing =

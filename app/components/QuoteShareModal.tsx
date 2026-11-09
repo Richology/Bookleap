@@ -15,7 +15,7 @@ type QuoteImageSize = "portrait" | "xiaoyuzhou";
 const PAPER_COLOR = "#d8d3c9";
 const INK_COLOR = "#100f0d";
 const HIGHLIGHT_COLOR = "rgba(213, 197, 0, 0.9)";
-const PAPER_TEXTURE_SRC = "/textures/quote-paper-texture.png";
+const PAPER_TEXTURE_SRC = "/textures/quote-paper-texture-v1.webp";
 
 let paperTexturePromise: Promise<HTMLImageElement | null> | null = null;
 
@@ -86,11 +86,19 @@ function loadPaperTexture() {
   paperTexturePromise = new Promise((resolve) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
+    image.onerror = () => {
+      paperTexturePromise = null;
+      resolve(null);
+    };
+    image.fetchPriority = "low";
     image.src = PAPER_TEXTURE_SRC;
   });
 
   return paperTexturePromise;
+}
+
+export function preloadQuotePaperTexture() {
+  void loadPaperTexture();
 }
 
 function getBodyFontSize(text: string, size: QuoteImageSize) {

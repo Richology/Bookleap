@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/textures/quote-paper-texture-v1.webp",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
         source: "/library-wall/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
