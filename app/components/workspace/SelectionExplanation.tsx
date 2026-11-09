@@ -26,7 +26,6 @@ export default function SelectionExplanation({children, title, cardContent, cont
   const [selected, setSelected] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [result, setResult] = useState<HighlightExplanation | null>(null);
-  const [saved, setSaved] = useState(false);
   const [position, setPosition] = useState({left: 12, top: 12, maxHeight: 400});
 
   useEffect(() => {
@@ -88,7 +87,7 @@ export default function SelectionExplanation({children, title, cardContent, cont
   async function explain(text: string) {
     controller.current?.abort();
     const request = new AbortController(); controller.current = request;
-    setStatus('loading'); setResult(null); setSaved(false);
+    setStatus('loading'); setResult(null);
     const timeout = setTimeout(() => request.abort(), 60000);
     try {
       const response = await fetch('/api/skills/selection-explanation', {
@@ -100,7 +99,7 @@ export default function SelectionExplanation({children, title, cardContent, cont
       if (typeof data.explanation !== 'string' || !data.explanation.trim() || typeof data.example !== 'string') throw new Error('invalid response');
       if (controller.current !== request) return;
       setResult(data); setStatus('done');
-      setSaved(!!highlightId.current && onSaveExplanation(highlightId.current, data));
+      if (highlightId.current) onSaveExplanation(highlightId.current, data);
     } catch {
       if (controller.current === request) setStatus('error');
     } finally { clearTimeout(timeout); }
@@ -117,7 +116,7 @@ export default function SelectionExplanation({children, title, cardContent, cont
     selection?.removeAllRanges();
     if (mark?.saved) {
       controller.current?.abort(); controller.current = null;
-      setResult(mark.saved); setSaved(true); setStatus('done');
+      setResult(mark.saved); setStatus('done');
     } else { void explain(text); }
     requestAnimationFrame(() => panel.current?.focus({preventScroll: true}));
   }
@@ -134,7 +133,7 @@ export default function SelectionExplanation({children, title, cardContent, cont
       {invalid && <p className="selection-actions-hint" role="status">{invalid}</p>}
     </div>, document.body)}
     {open && createPortal(<section ref={panel} role="dialog" aria-modal="false" tabIndex={-1} aria-label="划线解释" aria-busy={status === 'loading'} onKeyDown={e => {if (e.key === 'Escape') {e.stopPropagation(); close();}}} className="selection-explanation-popover" style={position}>
-      <header><strong>划线解释</strong><button type="button" onClick={close} aria-label="关闭解释">关闭</button></header>
+      <header><strong>划线解释</strong><button type="button" onClick={close} aria-label="关闭解释"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button></header>
       <blockquote>{selected}</blockquote>
       <div aria-live="polite">
         {status === 'loading' && <p role="status">正在解释…</p>}
@@ -142,7 +141,6 @@ export default function SelectionExplanation({children, title, cardContent, cont
         {result && <>
           <p className="whitespace-pre-wrap">{result.explanation}</p>
           {result.example && <><h4 className="flex items-center gap-1.5">举个例子 <span role="img" aria-label="AI 生成的辅助例子，非作者原例" title="AI 生成的辅助例子，非作者原例" tabIndex={0} className="inline-flex rounded text-[var(--ink-soft)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="m10 3 1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8L10 3Z"/><path d="M16 1v4m-2-2h4"/></svg></span></h4><p>{result.example}</p></>}
-          <footer>{saved ? '已保存到本机高亮' : '本次解释未保存'}</footer>
         </>}
       </div>
     </section>, document.body)}

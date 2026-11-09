@@ -40,7 +40,7 @@ try {
   const marks=await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('bookleap_highlights_v1:')).flatMap(k=>JSON.parse(localStorage.getItem(k))));
   assert.equal(marks.length,1);assert.equal(marks[0].explanation,undefined);
   fail=false;await dialog.getByRole('button',{name:'重试',exact:true}).click();
-  await dialog.getByText('已保存到本机高亮',{exact:true}).waitFor();
+  await dialog.getByText('这里强调通过清晰理解来改善行动。',{exact:true}).waitFor();
   assert.equal(await dialog.getByText('原文依据',{exact:true}).count(),0);
   await dialog.getByRole('heading',{name:'举个例子'}).waitFor();
   await dialog.getByRole('img',{name:'AI 生成的辅助例子，非作者原例'}).waitFor();
