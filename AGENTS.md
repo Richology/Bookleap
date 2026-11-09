@@ -43,7 +43,7 @@ BookLeap 是一个面向中文深度阅读者的 AI 电子书分析与阅读训�
 | `/api/analyze` | 接收文件或 Blob URL，解析书名、作者、封面和章节 |
 | `/api/upload` | 生成 Vercel Blob 客户端上传令牌 |
 | `/api/skills/book-summary` | 全书摘要 |
-| `/api/skills/selection-explanation` | 精华卡片划线解释，逐字核验抽样原文引用 |
+| `/api/skills/selection-explanation` | 精华卡片划线解释（卡片解读，不提供原文追溯） |
 | `/api/skills/reading-guide` | 阅读指南 |
 | `/api/skills/view-map` | 观点地图 |
 | `/api/skills/action-extraction` | 行动提炼 |
@@ -114,7 +114,7 @@ BookLeap 是一个面向中文深度阅读者的 AI 电子书分析与阅读训�
 - `immersive`：逐卡沉浸阅读，可用左右方向键切换。
 - `evidence`：查看卡片结论与原文证据。
 
-用户在打开的精华卡片中可以选中最多 800 字进行一次性解释，解释仅存于当前卡片会话；原文引用必须匹配当前书籍原文抽样，无法核验时明确提示依据有限。移动端解释入口位于底部，不替代系统选择菜单。
+用户在打开的精华卡片中可以选中最多 800 字进行解释。解释在选区附近的非模态浮层中打开，不改变阅读滚动位置；划线会保存为本机高亮，成功解释保存在同一高亮记录的可选 `explanation` 字段，旧高亮兼容。高亮菜单可查看已有解释，删除高亮同时删除解释。划线解释只做卡片解读，不提供原文追溯；独立的卡片证据视图保持原有功能。移动端选择操作不替代系统菜单，解释浮层限制在屏幕范围内。
 
 用户可以选中文字生成书摘、保存高亮、生成海报，并进入三关“跃迁练习”。训练状态由 `lib/leapPractice.ts` 和 `lib/addictionSystem.ts` 管理，成长记录由 `lib/growthLedger.ts` 管理。
 

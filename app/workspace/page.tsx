@@ -122,6 +122,8 @@ import {
   deleteBookHighlight,
   hashHighlightContent,
   loadBookHighlights,
+  saveHighlightExplanation,
+  type HighlightExplanation,
   normalizeHighlightText,
   type BookHighlight,
 } from "@/lib/highlights";
@@ -5987,6 +5989,32 @@ export default function Home() {
     };
   }, [currentImmersiveCard, handleReaderTextSelection, viewMode]);
 
+  const rememberExplanationSelection = (text: string, range: Range) => {
+    const root = immersiveContentRef.current;
+    if (!root || !root.contains(range.commonAncestorContainer) || !currentImmersiveCard || !currentHighlightBookRef) return;
+    const offsets = getRangeOffsets(root, range);
+    const existing = loadBookHighlights(currentHighlightBookRef).find(item => item.cardKey === currentImmersiveCard.key && item.contentHash === currentImmersiveCardHash && item.startOffset === offsets.startOffset && item.endOffset === offsets.endOffset);
+    const highlight: BookHighlight = existing ?? {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      bookRef: currentHighlightBookRef, bookTitle: currentBookDisplayTitle, author: currentBookAuthor,
+      cardKey: currentImmersiveCard.key, cardLabel: currentImmersiveCard.label, selectedText: text,
+      ...offsets, contentHash: currentImmersiveCardHash, createdAt: new Date().toISOString(),
+    };
+    const next = addBookHighlight(highlight);
+    setBookHighlights(next);
+    setPendingQuoteSelection(null);
+    setHighlightActionBubble(null);
+    window.setTimeout(() => renderVisibleCardHighlights(next.filter(item => item.cardKey === currentImmersiveCard.key)), 0);
+    return {id: highlight.id, saved: highlight.explanation};
+  };
+
+  const rememberExplanationResult = (id: string, explanation: HighlightExplanation) => {
+    if (!currentHighlightBookRef) return false;
+    const saved = saveHighlightExplanation(currentHighlightBookRef, id, explanation);
+    if (saved) setBookHighlights(loadBookHighlights(currentHighlightBookRef));
+    return saved;
+  };
+
   const handleCreateQuoteShareFromSelection = () => {
     if (!pendingQuoteSelection || !currentImmersiveCard || !currentHighlightBookRef) return;
 
@@ -7351,6 +7379,8 @@ export default function Home() {
                         title={currentBookDisplayTitle}
                         cardContent={currentImmersiveCard.content}
                         context={currentAnalysisContext}
+                        onRemember={rememberExplanationSelection}
+                        onSaveExplanation={rememberExplanationResult}
                         onCreateQuote={pendingQuoteSelection ? handleCreateQuoteShareFromSelection : undefined}
                       >
                       <div
@@ -7383,11 +7413,14 @@ export default function Home() {
                     >
                       <div className="selection-actions">
                         <button type="button" className="selection-action-explain" onClick={() => {
-                          selectionExplanationRef.current?.explain(activeBubbleHighlight.selectedText);
+                          selectionExplanationRef.current?.explain(activeBubbleHighlight.selectedText, {
+                            range: renderedHighlightRangesRef.current.find(item => item.highlight.id === activeBubbleHighlight.id)?.range,
+                            highlightId: activeBubbleHighlight.id, saved: activeBubbleHighlight.explanation,
+                          });
                           setHighlightActionBubble(null);
                         }}>
                           <svg viewBox="0 0 20 20" aria-hidden="true" fill="none"><path d="M5 3.5h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z" /><path d="M7 7h6M7 10h4" /></svg>
-                          <span>解释一下</span>
+                          <span>{activeBubbleHighlight.explanation ? "查看解释" : "解释一下"}</span>
                         </button>
                         <button type="button" onClick={() => {
                           handleOpenQuoteShareFromHighlight(activeBubbleHighlight);

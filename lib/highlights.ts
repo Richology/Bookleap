@@ -1,3 +1,5 @@
+export type HighlightExplanation = { explanation: string; example: string };
+
 export type BookHighlight = {
   id: string;
   bookRef: string;
@@ -10,6 +12,7 @@ export type BookHighlight = {
   endOffset: number;
   contentHash: number;
   createdAt: string;
+  explanation?: HighlightExplanation;
 };
 
 const STORAGE_PREFIX = "bookleap_highlights_v1";
@@ -60,6 +63,7 @@ export function loadBookHighlights(bookRef: string): BookHighlight[] {
 
     return parsed
       .filter(isValidHighlight)
+      .map((item) => ({...item, explanation: item.explanation && typeof item.explanation.explanation === 'string' && typeof item.explanation.example === 'string' ? item.explanation : undefined}))
       .sort((a, b) => a.startOffset - b.startOffset);
   } catch {
     return [];
@@ -67,19 +71,21 @@ export function loadBookHighlights(bookRef: string): BookHighlight[] {
 }
 
 export function saveBookHighlights(bookRef: string, highlights: BookHighlight[]) {
-  if (typeof window === "undefined" || !bookRef) return;
+  if (typeof window === "undefined" || !bookRef) return false;
 
   try {
     localStorage.setItem(getStorageKey(bookRef), JSON.stringify(highlights));
+    return true;
   } catch {
-    // Best-effort local reading marks.
+    return false;
   }
 }
 
 export function addBookHighlight(highlight: BookHighlight) {
   const prev = loadBookHighlights(highlight.bookRef);
+  const existing = prev.find(item => item.cardKey === highlight.cardKey && item.startOffset === highlight.startOffset && item.endOffset === highlight.endOffset && item.contentHash === highlight.contentHash);
   const next = [
-    highlight,
+    existing ? {...highlight, id: existing.id, explanation: highlight.explanation ?? existing.explanation} : highlight,
     ...prev.filter(
       (item) =>
         item.cardKey !== highlight.cardKey ||
@@ -96,4 +102,10 @@ export function deleteBookHighlight(bookRef: string, highlightId: string) {
   const next = loadBookHighlights(bookRef).filter((item) => item.id !== highlightId);
   saveBookHighlights(bookRef, next);
   return next;
+}
+
+export function saveHighlightExplanation(bookRef: string, id: string, explanation: HighlightExplanation) {
+  const highlights = loadBookHighlights(bookRef);
+  if (!highlights.some(item => item.id === id)) return false;
+  return saveBookHighlights(bookRef, highlights.map(item => item.id === id ? {...item, explanation} : item));
 }

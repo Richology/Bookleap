@@ -1,27 +1,33 @@
-'use client';
+"use client";
 
 import { createPortal } from 'react-dom';
-import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
+import { useEffect, useLayoutEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
 import type { BookContext, StoredBookContext } from '@/lib/bookAnalysis/context';
+import type { HighlightExplanation } from '@/lib/highlights';
 import { explanationSources, selectionError } from '@/lib/bookAnalysis/selectionExplanation.mjs';
 
-type Result = {explanation: string; example: string; evidence: {sourceId: string; chapterTitle: string; chapterIndex: number; quote: string}[]};
 type Pick = {text: string; x: number; y: number};
+type OpenOptions = {range?: Range; highlightId?: string; saved?: HighlightExplanation};
+export type SelectionExplanationHandle = { explain: (text: string, options?: OpenOptions) => void };
 
-export type SelectionExplanationHandle = { explain: (text: string) => void };
-
-export default function SelectionExplanation({children, title, cardContent, context, onCreateQuote, ref}: {
-  children: ReactNode; title: string; cardContent: string; context?: BookContext | StoredBookContext; onCreateQuote?: () => void; ref?: Ref<SelectionExplanationHandle>;
+export default function SelectionExplanation({children, title, cardContent, context, onCreateQuote, onRemember, onSaveExplanation, ref}: {
+  children: ReactNode; title: string; cardContent: string; context?: BookContext | StoredBookContext;
+  onCreateQuote?: () => void;
+  onRemember: (text: string, range: Range) => {id: string; saved?: HighlightExplanation} | undefined;
+  onSaveExplanation: (id: string, result: HighlightExplanation) => boolean;
+  ref?: Ref<SelectionExplanationHandle>;
 }) {
   const content = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
+  const anchor = useRef<Range | null>(null);
+  const highlightId = useRef<string | undefined>(undefined);
   const controller = useRef<AbortController | null>(null);
   const [pick, setPick] = useState<Pick | null>(null);
   const [selected, setSelected] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
-  const [result, setResult] = useState<Result | null>(null);
-  const [error, setError] = useState('');
-  const origin = useRef<{element: Element; top: number}[]>([]);
+  const [result, setResult] = useState<HighlightExplanation | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [position, setPosition] = useState({left: 12, top: 12, maxHeight: 400});
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -39,65 +45,83 @@ export default function SelectionExplanation({children, title, cardContent, cont
     document.addEventListener('selectionchange', capture);
     document.addEventListener('touchend', capture);
     document.addEventListener('mouseup', capture);
-    window.addEventListener('scroll', capture, true);
     return () => {
-      clearTimeout(timer);
-      controller.current?.abort();
+      clearTimeout(timer); controller.current?.abort(); controller.current = null;
       document.removeEventListener('selectionchange', capture);
       document.removeEventListener('touchend', capture);
       document.removeEventListener('mouseup', capture);
-      window.removeEventListener('scroll', capture, true);
     };
   }, []);
 
+  const open = status !== 'idle';
+  useLayoutEffect(() => {
+    if (!open) return;
+    const positionPanel = () => {
+      const rect = anchor.current?.getBoundingClientRect() ?? content.current?.getBoundingClientRect();
+      if (!rect) return;
+      const viewport = window.visualViewport;
+      const height = viewport?.height ?? window.innerHeight;
+      const width = viewport?.width ?? window.innerWidth;
+      const offsetTop = viewport?.offsetTop ?? 0;
+      const below = height + offsetTop - rect.bottom - 24;
+      const above = rect.top - offsetTop - 24;
+      const maxHeight = Math.max(120, Math.min(440, height - 24, Math.max(below, above)));
+      const measuredHeight = Math.min(panel.current?.scrollHeight ?? maxHeight, maxHeight);
+      const top = below >= Math.min(300, measuredHeight) || below >= above ? rect.bottom + 10 : rect.top - measuredHeight - 10;
+      setPosition({left: Math.max(12, Math.min(width - Math.min(420, width - 24) - 12, rect.left)), top: Math.max(offsetTop + 12, Math.min(offsetTop + height - measuredHeight - 12, top)), maxHeight});
+    };
+    positionPanel();
+    const observer = new ResizeObserver(positionPanel);
+    if (panel.current) observer.observe(panel.current);
+    window.addEventListener('scroll', positionPanel, true);
+    window.addEventListener('resize', positionPanel);
+    window.visualViewport?.addEventListener('resize', positionPanel);
+    return () => { observer.disconnect(); window.removeEventListener('scroll', positionPanel, true); window.removeEventListener('resize', positionPanel); window.visualViewport?.removeEventListener('resize', positionPanel); };
+  }, [open, result, selected]);
+
+  function close() {
+    controller.current?.abort(); controller.current = null;
+    setStatus('idle');
+    content.current?.focus({preventScroll: true});
+  }
+
   async function explain(text: string) {
-    if (selectionError(text)) return;
     controller.current?.abort();
-    const request = new AbortController();
-    controller.current = request;
-    setSelected(text); setPick(null); setStatus('loading'); setResult(null); setError('');
-    window.getSelection()?.removeAllRanges();
-    requestAnimationFrame(() => {
-      panel.current?.scrollIntoView({block: 'nearest'});
-      panel.current?.focus({preventScroll: true});
-    });
+    const request = new AbortController(); controller.current = request;
+    setStatus('loading'); setResult(null); setSaved(false);
     const timeout = setTimeout(() => request.abort(), 60000);
     try {
-      // Send only the bounded original samples selected for this fragment.
       const response = await fetch('/api/skills/selection-explanation', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, signal: request.signal,
         body: JSON.stringify({title, selection: text, cardContent: cardContent.slice(0, 12000), context: {samples: explanationSources(context, text)}}),
       });
       if (!response.ok) throw new Error('request failed');
-      const data: Result = await response.json();
-      if (!data.explanation || !Array.isArray(data.evidence)) throw new Error('invalid response');
+      const data: HighlightExplanation = await response.json();
+      if (typeof data.explanation !== 'string' || !data.explanation.trim() || typeof data.example !== 'string') throw new Error('invalid response');
       if (controller.current !== request) return;
       setResult(data); setStatus('done');
+      setSaved(!!highlightId.current && onSaveExplanation(highlightId.current, data));
     } catch {
-      if (controller.current !== request) return;
-      setError('暂时无法解释，请重试。'); setStatus('error');
+      if (controller.current === request) setStatus('error');
     } finally { clearTimeout(timeout); }
   }
 
-  function close() {
-    controller.current?.abort(); controller.current = null;
-    setStatus('idle');
-    requestAnimationFrame(() => {
-      content.current?.focus({preventScroll: true});
-      origin.current.forEach(({element, top}) => { element.scrollTop = top; });
-    });
-  }
-  function beginExplanation(text: string) {
-    origin.current = [];
-    let element: Element | null = content.current;
-    while (element) {
-      origin.current.push({element, top: element.scrollTop});
-      element = element.parentElement;
-    }
-    void explain(text);
+  function beginExplanation(text: string, options?: OpenOptions) {
+    if (selectionError(text)) return;
+    const selection = window.getSelection();
+    const range = options?.range ?? (selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : undefined);
+    anchor.current = range ?? null;
+    const mark = options?.highlightId ? {id: options.highlightId, saved: options.saved} : range ? onRemember(text, range) : undefined;
+    highlightId.current = mark?.id;
+    setSelected(text); setPick(null);
+    selection?.removeAllRanges();
+    if (mark?.saved) {
+      controller.current?.abort(); controller.current = null;
+      setResult(mark.saved); setSaved(true); setStatus('done');
+    } else { void explain(text); }
+    requestAnimationFrame(() => panel.current?.focus({preventScroll: true}));
   }
   useImperativeHandle(ref, () => ({explain: beginExplanation}));
-
   const invalid = pick ? selectionError(pick.text) : '';
   return <>
     <div ref={content} tabIndex={-1}>{children}</div>
@@ -109,19 +133,18 @@ export default function SelectionExplanation({children, title, cardContent, cont
       </div>
       {invalid && <p className="selection-actions-hint" role="status">{invalid}</p>}
     </div>, document.body)}
-    {status !== 'idle' && <section ref={panel} tabIndex={-1} aria-label="划线解释" aria-busy={status === 'loading'} onKeyDown={e => {if (e.key === 'Escape') {e.stopPropagation(); close();}}} className="mx-auto mt-5 max-w-[42rem] rounded-xl border border-[rgba(24,29,38,0.12)] bg-[var(--paper)] p-5 text-sm leading-7 text-[var(--ink)]">
-      <div className="flex items-center justify-between gap-4"><strong>划线解释</strong><button type="button" onClick={close} className="shrink-0 rounded px-2 py-1 text-[var(--accent)]">收起解释</button></div>
-      <blockquote className="my-3 max-h-28 overflow-auto border-l-2 border-[var(--accent)] pl-3 text-[var(--ink-soft)]">{selected}</blockquote>
-      <div role="status" aria-live="polite">
-        {status === 'loading' && <p>正在解释…</p>}
-        {status === 'error' && <p>{error} <button type="button" className="underline" onClick={() => void explain(selected)}>重试</button></p>}
+    {open && createPortal(<section ref={panel} role="dialog" aria-modal="false" tabIndex={-1} aria-label="划线解释" aria-busy={status === 'loading'} onKeyDown={e => {if (e.key === 'Escape') {e.stopPropagation(); close();}}} className="selection-explanation-popover" style={position}>
+      <header><strong>划线解释</strong><button type="button" onClick={close} aria-label="关闭解释">关闭</button></header>
+      <blockquote>{selected}</blockquote>
+      <div aria-live="polite">
+        {status === 'loading' && <p role="status">正在解释…</p>}
+        {status === 'error' && <p role="alert">暂时无法解释，请重试。 <button type="button" className="underline" onClick={() => void explain(selected)}>重试</button></p>}
         {result && <>
-          <h4 className="font-semibold">通俗解释</h4><p className="whitespace-pre-wrap">{result.explanation}</p>
-          {result.example && <><h4 className="mt-4 font-semibold">辅助理解的例子（AI 生成）</h4><p>{result.example}</p></>}
-          <h4 className="mt-4 font-semibold">原文依据</h4>
-          {result.evidence.length ? result.evidence.map((e, i) => <blockquote key={`${e.sourceId}-${i}`} className="my-2 border-l-2 border-[var(--accent)] pl-3"><p>{e.quote}</p><footer className="text-xs text-[var(--ink-soft)]">{e.chapterTitle} · 原文片段 {e.sourceId}</footer></blockquote>) : <p>暂未找到可核对的原文位置。以上解释基于现有上下文，依据有限。</p>}
+          <p className="whitespace-pre-wrap">{result.explanation}</p>
+          {result.example && <><h4 className="flex items-center gap-1.5">举个例子 <span role="img" aria-label="AI 生成的辅助例子，非作者原例" title="AI 生成的辅助例子，非作者原例" tabIndex={0} className="inline-flex rounded text-[var(--ink-soft)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="m10 3 1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8L10 3Z"/><path d="M16 1v4m-2-2h4"/></svg></span></h4><p>{result.example}</p></>}
+          <footer>{saved ? '已保存到本机高亮' : '本次解释未保存'}</footer>
         </>}
       </div>
-    </section>}
+    </section>, document.body)}
   </>;
 }
