@@ -23,5 +23,10 @@ export default function WorkspaceLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return children;
+  return (
+    <>
+      <link rel="preload" as="image" href="/textures/quote-paper-texture-v1.webp" fetchPriority="low" />
+      {children}
+    </>
+  );
 }

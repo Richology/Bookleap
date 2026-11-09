@@ -18,6 +18,7 @@ const HIGHLIGHT_COLOR = "rgba(213, 197, 0, 0.9)";
 const PAPER_TEXTURE_SRC = "/textures/quote-paper-texture-v1.webp";
 
 let paperTexturePromise: Promise<HTMLImageElement | null> | null = null;
+let paperTextureImage: HTMLImageElement | null = null;
 
 const SIZE_OPTIONS: Record<
   QuoteImageSize,
@@ -79,18 +80,23 @@ function fontStack(size: number, weight = 900) {
   return `${weight} ${size}px "Times New Roman", Georgia, "Songti SC", STSong, serif`;
 }
 
-function loadPaperTexture() {
+function loadPaperTexture(priority: "low" | "high" = "high") {
   if (typeof window === "undefined") return Promise.resolve(null);
-  if (paperTexturePromise) return paperTexturePromise;
+  if (paperTexturePromise) {
+    if (priority === "high" && paperTextureImage) paperTextureImage.fetchPriority = "high";
+    return paperTexturePromise;
+  }
 
   paperTexturePromise = new Promise((resolve) => {
     const image = new Image();
+    paperTextureImage = image;
     image.onload = () => resolve(image);
     image.onerror = () => {
       paperTexturePromise = null;
+      paperTextureImage = null;
       resolve(null);
     };
-    image.fetchPriority = "low";
+    image.fetchPriority = priority;
     image.src = PAPER_TEXTURE_SRC;
   });
 
@@ -98,7 +104,7 @@ function loadPaperTexture() {
 }
 
 export function preloadQuotePaperTexture() {
-  void loadPaperTexture();
+  void loadPaperTexture("low");
 }
 
 function getBodyFontSize(text: string, size: QuoteImageSize) {
