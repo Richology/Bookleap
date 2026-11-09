@@ -81,7 +81,9 @@ BookLeap 是一个面向中文深度阅读者的 AI 电子书分析与阅读训�
 
 支持格式：EPUB、PDF、AZW3、TXT。单文件上限为 50 MB，真源在 `lib/fileFormats.ts`。
 
-本地开发默认把文件直接 POST 到 `/api/analyze`。生产环境优先通过 Vercel Blob 上传，再把文件 URL 交给 `/api/analyze`，5 MB 以上启用 multipart。
+本地开发默认把文件直接 POST 到 `/api/analyze`。生产环境优先通过 Vercel Blob 上传，再把文件 URL 交给 `/api/analyze`，5 MB 以上启用 multipart。Blob 是临时中转：解析接口只读取本存储库中上传不足 23 小时的对象，生产解析最长 300 秒；本地归档仅处理满 24 小时的对象，二者保留一小时安全间隔。过期上传需重新选择原文件上传。
+
+`GET /api/upload` 公布归档安全窗口，`POST /api/upload` 仍签发直传令牌。本地 `scripts/archive-blobs.mjs` 默认只备份，`--delete` 在核实生产安全窗口、磁盘大小及 SHA-256、云端 ETag 后逐个条件删除。归档位于项目根 `book-archive/`，凭据在该目录 `.env`；整个目录必须同时被 Git 和 Vercel 部署忽略，禁止提交原书、清单、日志或凭据。每 24 小时由 Codex 本机自动化运行，电脑和 Codex 必须可运行；离线或下载失败不删除云端副本。操作与故障恢复见 `docs/blob-archive.md`。
 
 解析层位于 `app/api/analyze/route.ts`：
 

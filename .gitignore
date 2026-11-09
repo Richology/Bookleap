@@ -41,6 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 uploads/
+# Private source books, archive manifests, logs, and Blob credentials
+/book-archive/
 # Local MCP runtime/build artifacts (never commit user libraries)
 /local-mcp/node_modules/
 /local-mcp/dist/

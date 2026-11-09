@@ -1,6 +1,17 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { MAX_UPLOAD_SIZE_BYTES } from "@/lib/fileFormats";
+import { BLOB_LIFECYCLE_VERSION, BLOB_PARSE_MAX_AGE_MS, BLOB_ARCHIVE_MIN_AGE_MS } from "@/lib/blobLifecycle.mjs";
+
+// Lets the local archiver verify that the production parser has the safety window.
+export async function GET() {
+  return NextResponse.json({
+    version: BLOB_LIFECYCLE_VERSION,
+    parseMaxAgeMs: BLOB_PARSE_MAX_AGE_MS,
+    archiveMinAgeMs: BLOB_ARCHIVE_MIN_AGE_MS,
+    parserMaxDurationSeconds: 300,
+  }, { headers: { "Cache-Control": "no-store" } });
+}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as HandleUploadBody;

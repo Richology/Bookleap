@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { head } from "@vercel/blob";
+import { canParseBlob, ownedBlobUrl } from "@/lib/blobLifecycle.mjs";
+
+export const maxDuration = 300;
 import fs from "fs";
 import path from "path";
 import Epub from "epub2";
@@ -72,7 +76,32 @@ export async function POST(request: Request) {
 
       filename = fn;
 
-      const fileRes = await fetch(fileUrl);
+      const safeUrl = ownedBlobUrl(fileUrl, process.env.BLOB_READ_WRITE_TOKEN);
+      if (!safeUrl) {
+        return NextResponse.json(
+          { success: false, error: "文件地址无效，请重新上传这本书。" },
+          { status: 400 }
+        );
+      }
+      const metadata = await head(safeUrl);
+      if (!canParseBlob(metadata.uploadedAt)) {
+        return NextResponse.json(
+          { success: false, error: "本次上传已过期，请重新上传这本书。" },
+          { status: 400 }
+        );
+      }
+      if (metadata.size > MAX_UPLOAD_SIZE_BYTES) {
+        return NextResponse.json(
+          { success: false, error: "文件超过 50MB，暂不支持上传" },
+          { status: 400 }
+        );
+      }
+      const fileRes = await fetch(safeUrl, {
+        redirect: "error",
+        cache: "no-store",
+        signal: AbortSignal.timeout(60_000),
+        headers: { "If-Match": metadata.etag },
+      });
       if (!fileRes.ok) {
         return NextResponse.json(
           { success: false, error: "文件地址已失效，请重新上传这本书。" },
