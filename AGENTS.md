@@ -331,6 +331,8 @@ node --test lib/*.test.mjs lib/**/*.test.mjs
 
 ## 16. 本地 MCP（试用实现）
 
+首次引导分为下载安装、配对书库、连接 Agent；书库名默认填写，配对后的范围与暂停操作收在「同步设置」中。助手默认保存目录可直接使用。手动配置复制必须读取有效配置，不能复制空内容；网页不能将配对成功标为 Agent 连接成功。
+
 - 工作台新增「本地 MCP」入口，必须继续使用 `public/icons/mcp.svg`。`LocalMcpPanel.tsx` 常驻同步控制器，`lib/localMcpAdapter.ts` 只在 IndexedDB 成功就绪后自动同步。
 - 本地组件代码位于独立 npm 子项目 `local-mcp/`；使用其独立 `package-lock.json`，不要混入网页依赖。安装与验证见 `docs/local-mcp/README.md`。
 - 浏览器配对状态键 `bl-local-mcp-v1` 刻意不在备份前缀中；不要将 token/sourceId 混入可迁移的书库备份。`workspaceStorage.ts` 的完整读取/清空事务标记用于防止重建空数据库误删本地副本。

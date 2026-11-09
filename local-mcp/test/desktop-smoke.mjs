@@ -28,7 +28,7 @@ try {
   await page.getByRole('button',{name:'连接网页',exact:true}).click();
   const code = await page.locator('#pair').textContent();
   await page.screenshot({path:screenshot('bookleap-ui-pair.png')});
-  await page.getByRole('button',{name:'完成',exact:true}).click();
+  await page.getByRole('button',{name:'关闭，回到网页配对',exact:true}).click();
   const sourceId = randomUUID();
   const headers = {'Content-Type':'application/json',Origin:'https://www.bookleap.cn','X-BookLeap-Protocol':'1'};
   const paired = await fetch('http://127.0.0.1:48724/pair',{method:'POST',headers,body:JSON.stringify({schemaVersion:1,sourceId,sourceName:'桌面合成来源',code})});
@@ -40,6 +40,9 @@ try {
   await page.evaluate(() => window.bookleap.invoke('pause'));
   await page.waitForFunction(() => document.getElementById('navCount').textContent === '1');
   assert.equal(await page.locator('#sourceCount').textContent(), '1');
+  await page.locator('#agentNext').getByRole('button', {name: '连接 Agent'}).click();
+  await page.waitForFunction(() => document.getElementById('connectionConfig').textContent.includes('mcpServers'));
+  assert.ok((await page.locator('#connectionConfig').textContent()).includes(executablePath.replaceAll('\\', '\\\\')));
   await page.getByRole('button',{name:'本地书库'}).click();
   await page.getByRole('button',{name:'阅读分析'}).click();
   await page.getByRole('button',{name:'核验此引用与证据'}).click();

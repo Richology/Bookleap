@@ -17,6 +17,8 @@ async function refresh() {
   el('overviewTitle').textContent = status.paused ? '同步已暂停' : status.bookCount ? '你的书库，已保存在本机' : status.sourceCount ? '已连接，等待第一本书' : '准备好接收你的书库';
   el('overviewSubtitle').textContent = status.paused ? '恢复后继续接收新内容，已保存的书籍仍可查询。' : '连接一次，网页拆书结果自动保存到这台电脑。';
   el('pairHint').textContent = status.sourceCount ? `已配对 ${status.sourceCount} 个来源，网页运行时自动同步` : '配对后，开始自动保存你的拆书内容';
+  el('agentNext').hidden = !status.sourceCount;
+  el('agentNextHint').textContent = status.bookCount ? `已保存 ${status.bookCount} 本书，可以开始查询。` : '已配对。上传自己的书后会自动同步，内置体验书不参与。';
   el('pairButton').textContent = status.sourceCount ? '连接新来源' : '连接网页';
   el('pauseButton').textContent = status.paused ? '恢复同步' : '暂停同步';
   el('version').textContent = `书跃本地同步助手 ${status.version}`;
@@ -28,6 +30,7 @@ async function showPane(name) {
   for (const pane of document.querySelectorAll('.pane')) pane.hidden = pane.id !== `pane-${name}`;
   for (const button of document.querySelectorAll('nav [data-pane]')) { if(button.dataset.pane === name) {button.setAttribute('aria-current','page'); el('pageTitle').textContent = button.childNodes[1].textContent;} else button.removeAttribute('aria-current'); }
   document.querySelector('.content').scrollTop = 0;
+  if (name === 'agent') {const config = await invoke('connection'); if (config) el('connectionConfig').textContent = JSON.stringify(config, null, 2);}
   if (name === 'library') {const result = await invoke('books'); if(result) renderLibrary(result, 'books');}
 }
 for (const button of document.querySelectorAll('[data-pane]')) button.addEventListener('click', () => showPane(button.dataset.pane));
@@ -51,7 +54,7 @@ for (const button of document.querySelectorAll('button[data-action]')) button.ad
 for (const input of document.querySelectorAll('[data-setting]')) input.addEventListener('change', async () => { input.disabled = true; try {await invoke(input.dataset.setting, input.checked); await refresh();} finally {input.disabled = false;} });
 el('closePair').addEventListener('click', () => el('pairDialog').close());
 el('donePair').addEventListener('click', () => {el('pairDialog').close(); void refresh();});
-el('copyPair').addEventListener('click', async () => {try {await navigator.clipboard.writeText(el('pair').textContent); el('copyPair').textContent = '已复制';} catch {notify('请选中配对码并按 ⌘C 复制。');}});
+el('copyPair').addEventListener('click', async () => {try {await navigator.clipboard.writeText(el('pair').textContent); el('copyPair').textContent = '已复制';} catch {notify('请选中配对码，按 ⌘C（Mac）或 Ctrl+C（Windows）复制。');}});
 el('searchForm').addEventListener('submit', async event => {event.preventDefault(); const result = await invoke('search', el('query').value); if(result) renderLibrary(result, 'search');});
 void refresh(); setInterval(refresh, 5000);
 window.bookleap.onCitation(async id => {await showPane('library'); const result = await invoke('citation', id); if(result) renderLibrary({items:[result]}, 'citation'); else el('library').textContent = '引用已撤销或版本已更新。';});
@@ -82,4 +85,19 @@ function renderLibrary(result, action, bookId) {
   if (action === 'search' && result.nextCursor) {const note = document.createElement('p'); note.textContent = '显示前 20 个匹配；请使用更具体的关键词，或通过 MCP 分页读取。'; container.append(note);}
 }
 
-el('copyConnection').addEventListener('click', async () => {try {await navigator.clipboard.writeText(el('connectionConfig').textContent); notify('MCP 配置已复制');} catch {notify('请选中配置并复制。');}});
+el('copyConnection').addEventListener('click', async () => {
+  const button = el('copyConnection'); button.disabled = true;
+  try {
+    const config = await invoke('connection');
+    if (!config?.mcpServers?.bookleap) return;
+    const text = JSON.stringify(config, null, 2);
+    el('connectionConfig').textContent = text;
+    await navigator.clipboard.writeText(text);
+    notify('MCP 配置已复制，请到 Agent 的本地 MCP 设置中添加。');
+  } catch {notify('无法自动复制，请选中上方配置手动复制。');}
+  finally {button.disabled = false;}
+});
+el('copyPrompt').addEventListener('click', async () => {
+  try {await navigator.clipboard.writeText(el('agentPrompt').textContent); notify('问题已复制，回到 Agent 粘贴即可。');}
+  catch {notify('请选中上方问题手动复制。');}
+});

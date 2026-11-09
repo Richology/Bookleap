@@ -9,7 +9,7 @@
 - `npm ci --prefix local-mcp`
 - Apple Silicon Mac：`npm run trial:mac --prefix local-mcp`。先构建应用目录，再由系统 hdiutil 生成 DMG，无额外 DMG 工具下载依赖。
 - Windows x64：`npm run trial:win --prefix local-mcp`。原生 Windows CI 可手动运行 `.github/workflows/local-mcp-trial.yml`，先测试核心，再安装 EXE、测试实际已安装应用和独立 MCP，最后上传安装包。
-- 产物在 `local-mcp/dist-trial`（Git 忽略）；使用 Electron 44.9.3、版本 `0.1.0-trial.1`，无 Developer ID、公证、Authenticode，自动更新关闭。
+- 产物在 `local-mcp/dist-trial`（Git 忽略）；使用 Electron 44.9.3、版本 `0.1.0-trial.2`，无 Developer ID、公证、Authenticode，自动更新关闭。
 - 测试配置独立于 `electron-builder.cjs` 与正式发布预检；不能用测试版跳过正式发布的可信更新校验。
 - 原版配置参数和已存知识库保留；移动应用位置后需要重新确认 Agent 命令路径。
 

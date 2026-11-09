@@ -21,9 +21,10 @@
       <div class="stats"><div><strong id="bookCount">0<span> 本</span></strong><span>已保存书籍</span></div><div><strong id="sourceCount">—</strong><span>已配对来源</span></div><div><strong id="lastSync" class="time-value">尚未同步</strong><span>最近保存</span></div></div>
       <div class="section-heading"><h2>同步连接</h2><button data-action="pause" id="pauseButton" class="text-button">暂停同步</button></div>
       <div class="group">
-        <div class="row"><span class="row-icon folder"><svg><use href="#i-folder"/></svg></span><div class="row-text"><strong>知识库位置</strong><span id="path" class="path">正在读取…</span></div><button data-action="choose">更改…</button></div>
+        <div class="row"><span class="row-icon folder"><svg><use href="#i-folder"/></svg></span><div class="row-text"><strong>保存位置（已自动准备）</strong><span id="path" class="path">正在读取…</span></div><button data-action="choose">更改…</button></div>
         <div class="row"><span class="row-icon green"><svg><use href="#i-link"/></svg></span><div class="row-text"><strong>BookLeap 网页</strong><span id="pairHint">配对后，开始自动保存你的拆书内容</span></div><button data-action="pair" class="primary" id="pairButton">连接网页</button></div>
       </div>
+      <div id="agentNext" class="group" hidden><div class="row"><span class="step-number">3</span><div class="row-text"><strong>下一步：连接你的 Agent</strong><span id="agentNextHint">书库已配对，现在添加只读查询连接。</span></div><button data-pane="agent" class="primary">连接 Agent</button></div></div>
       <div class="note"><span class="info-icon">i</span><p><strong>关闭窗口，继续同步。</strong>助手会留在后台。退出助手才会停止接收；已保存的书籍仍可通过 MCP 查询。<button class="inline-button" data-pane="settings">了解运行方式</button></p></div>
     </section>
     <section id="pane-library" class="pane" aria-label="本地书库" hidden>
@@ -34,7 +35,8 @@
     <section id="pane-agent" class="pane" aria-label="连接 Agent" hidden>
       <div class="page-heading"><span class="app-icon"><img src="mcp.svg" alt=""></span><h1>让你的 Agent 读懂你的书库</h1><p>通过只读 MCP，检索、比较并引用已经保存的内容。适用于支持本地 MCP 的 Agent；具体连接方式以所用客户端为准。</p></div>
       <div class="group steps"><div class="row"><span class="step-number">1</span><div class="row-text"><strong>添加书库连接</strong><span>在你的 Agent 中添加 MCP。下方快捷配置仅适用于 Codex。</span></div><button data-action="configure" class="primary">配置 Codex…</button></div><div class="row"><span class="step-number">2</span><div class="row-text"><strong>检查读取能力</strong><span>验证本地 MCP 能否读取知识库。</span></div><button data-action="test">测试连接</button></div><div class="row"><span class="step-number">3</span><div class="row-text"><strong>回到你的 Agent 开始查询</strong><span>重新连接 MCP 后，可以问：“我的书库里有哪些书？”</span></div></div></div>
-      <details id="connectionDetails" class="advanced"><summary>其他 Agent：手动添加 MCP</summary><p>在客户端的本地 MCP 设置中填写下方 command、args 和 env，或使用支持的 JSON 导入。各客户端格式可能不同，尚未逐一验收。</p><button data-action="connection">显示连接参数</button><pre id="connectionConfig"></pre><button id="copyConnection">复制配置</button></details>
+      <details id="connectionDetails" class="advanced"><summary>其他 Agent：手动添加 MCP</summary><p>在客户端的本地 MCP 设置中填写下方 command、args 和 env，或使用支持的 JSON 导入。各客户端格式可能不同，尚未逐一验收。</p><button data-action="connection">显示连接参数</button><pre id="connectionConfig"></pre><button id="copyConnection" class="primary">复制 MCP 配置</button></details>
+      <div class="group"><div class="row"><div class="row-text"><strong>在 Agent 里试问一次</strong><span id="agentPrompt">请调用书跃 MCP 列出我的书库，然后选择一本书，概括它的核心观点并标注来源。</span></div><button id="copyPrompt">复制问题</button></div></div>
       <p id="result" class="feedback" role="status" hidden></p>
       <div class="note"><span class="info-icon">i</span><p>本地检索不会上传书库。使用云模型时，查询返回的片段可能进入模型上下文。配置写入或本地测试成功，不代表你的 Agent 已连接。</p></div>
       <details class="advanced"><summary>Codex 配置恢复</summary><p>如果配置没有后续修改，可以恢复本次运行创建的备份。</p><button data-action="restore">恢复配置备份</button></details>
@@ -51,6 +53,6 @@
     </section>
   </div>
 </main>
-<dialog id="pairDialog" aria-labelledby="pairTitle"><div class="dialog-heading"><span class="row-icon green"><svg><use href="#i-link"/></svg></span><button id="closePair" class="icon-button" aria-label="关闭配对">×</button></div><h2 id="pairTitle">连接 BookLeap 网页</h2><p class="secondary">一次配对，以后自动保存。</p><ol class="pair-steps"><li>复制下方配对码，在网页「本地 MCP」中粘贴。</li><li>为浏览器书库命名，并选择授权范围。</li><li>回到助手确认网页来源，等待首次保存完成。</li></ol><div class="code-box"><span class="code-label">配对码 · 五分钟内有效</span><code id="pair">正在生成…</code><button id="copyPair" class="primary">复制配对码</button></div><label class="preview-row"><div class="row-text"><strong>在本机网页中试用</strong><span>允许 localhost:3000，仍需配对确认。</span></div><input data-setting="preview" class="switch" type="checkbox" role="switch"></label><p class="privacy">默认只同步拆书分析与已有证据，个人记录需另行授权。Agent 使用云模型时，查询片段可能进入模型上下文。</p><div class="dialog-footer"><button data-action="pair">重新生成</button><button id="donePair">完成</button></div></dialog>
+<dialog id="pairDialog" aria-labelledby="pairTitle"><div class="dialog-heading"><span class="row-icon green"><svg><use href="#i-link"/></svg></span><button id="closePair" class="icon-button" aria-label="关闭配对">×</button></div><h2 id="pairTitle">连接 BookLeap 网页</h2><p class="secondary">一次配对，以后自动保存。</p><ol class="pair-steps"><li>复制下方配对码，在网页「本地 MCP」中粘贴。</li><li>点击「配对并自动同步」，允许 Chrome 的本地网络访问。</li><li>回到助手确认网页来源，等待首次保存完成。</li></ol><div class="code-box"><span class="code-label">配对码 · 五分钟内有效</span><code id="pair">正在生成…</code><button id="copyPair" class="primary">复制配对码</button></div><label class="preview-row"><div class="row-text"><strong>在本机网页中试用</strong><span>允许 localhost:3000，仍需配对确认。</span></div><input data-setting="preview" class="switch" type="checkbox" role="switch"></label><p class="privacy">默认只同步拆书分析与已有证据，个人记录需另行授权。Agent 使用云模型时，查询片段可能进入模型上下文。</p><div class="dialog-footer"><button data-action="pair">重新生成</button><button id="donePair">关闭，回到网页配对</button></div></dialog>
 <div id="toast" class="toast" role="status" hidden></div>
 <script src="app.js"></script></body></html>

@@ -30,7 +30,7 @@ async function request(route: string, config: LocalMcpConfig, body?: unknown) {
   if (extensionReady) {
     const id = crypto.randomUUID();
     return await new Promise<{token?: string; revision: number; acknowledgedAt: string | null; count: number; paused?: boolean; scope: {personal: boolean; excludedIds: string[]} | null}>((resolve, reject) => {
-      const timeout = setTimeout(() => {window.removeEventListener('message', receive); reject(new Error('native_host_unavailable'));}, 18000);
+      const timeout = setTimeout(() => {window.removeEventListener('message', receive); reject(new Error('native_host_unavailable'));}, route === '/pair' ? 60000 : 18000);
       const receive = (event: MessageEvent) => {
         if (event.source !== window || event.origin !== location.origin || event.data?.channel !== 'bookleap-local-response' || event.data.id !== id) return;
         clearTimeout(timeout); window.removeEventListener('message', receive);
@@ -43,7 +43,7 @@ async function request(route: string, config: LocalMcpConfig, body?: unknown) {
   }
   const response = await fetch(`${ENDPOINT}${route}`, {method: body ? 'POST' : 'GET',
     headers: {'Content-Type': 'application/json', 'X-BookLeap-Protocol': '1', ...(config.token ? {Authorization: `Bearer ${config.token}`} : {})},
-    body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000), cache: 'no-store'});
+    body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(route === '/pair' ? 60000 : 15000), cache: 'no-store'});
   const result = await response.json();
   if (!response.ok) throw new Error(String(result.error ?? 'connection_interrupted'));
   return result as {token?: string; revision: number; acknowledgedAt: string | null; count: number; paused?: boolean; scope: {personal: boolean; excludedIds: string[]} | null};

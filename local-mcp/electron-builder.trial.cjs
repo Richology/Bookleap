@@ -7,7 +7,7 @@ module.exports = {
   directories: {output: 'dist-trial'},
   forceCodeSigning: false,
   artifactName: 'bookleap-sync-${version}-${os}-${arch}.${ext}',
-  extraMetadata: {version: '0.1.0-trial.1', bookleapUnsignedTrial: true},
+  extraMetadata: {version: '0.1.0-trial.2', bookleapUnsignedTrial: true},
   mac: {...base.mac, target: [{target: 'dmg', arch: ['arm64']}], identity: null, notarize: false},
   win: {...base.win, signAndEditExecutable: false},
 };
