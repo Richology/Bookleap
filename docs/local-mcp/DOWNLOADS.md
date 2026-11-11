@@ -8,10 +8,10 @@
 
 | 系统 | 安装包 |
 | --- | --- |
-| macOS（Apple Silicon / M 系列芯片） | [下载 Mac 版（.dmg）](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) |
-| Windows（x64） | [下载 Windows 版（.exe）](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) |
+| macOS（Apple Silicon / M 系列芯片） | [下载 Mac 版（.dmg）](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) |
+| Windows（x64） | [下载 Windows 版（.exe）](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) |
 
-可下载 [SHA256SUMS.txt 校验文件](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/SHA256SUMS.txt) 核对安装包。安装包由专用下载仓库托管，安装与配对步骤见下文。
+可下载 [SHA256SUMS.txt 校验文件](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/SHA256SUMS.txt) 核对安装包。安装包与源码统一由本仓库托管，安装与配对步骤见下文。
 
 ## Mac（Apple Silicon：M 系列芯片）
 

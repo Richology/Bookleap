@@ -88,8 +88,8 @@ EPUB、AZW3 更适合完整结构化分析；PDF、TXT 使用简化分析流程�
 
 | 试用版下载 | 适用平台 |
 | --- | --- |
-| [下载 Mac 版](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) | Apple Silicon / M 系列芯片 |
-| [下载 Windows 版](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) | x64 |
+| [下载 Mac 版](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) | Apple Silicon / M 系列芯片 |
+| [下载 Windows 版](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) | x64 |
 
 1. 安装助手，选择本地书库目录。
 2. 用 **Chrome** 打开工作台中的「本地 MCP」，填写配对码，并在助手中确认来源。

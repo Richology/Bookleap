@@ -2,7 +2,7 @@
 
 当前交付为 Chrome + Mac Apple Silicon / Windows x64 **未签名测试版**。用户明确授权先跑通流程；测试构建不自动更新，不代表已完成正式签名分发与全部 spec 验收。
 
-下载安装：[下载与安装帮助](DOWNLOADS.md)。公开仓库 `Richology/bookleap-downloads` 只保存安装包和说明，源码仓库保持私有。线上配对与 localhost 配对相互独立。
+下载安装：[下载与安装帮助](DOWNLOADS.md)。安装包、校验文件与对应发布附带的源码归档统一保存在 [`Richology/Bookleap` Releases](https://github.com/Richology/Bookleap/releases)，应用源码在同一仓库维护。线上配对与 localhost 配对相互独立。
 
 ## 可复现的测试包构建
 

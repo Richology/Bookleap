@@ -36,8 +36,8 @@ export default function LocalMcpPanel({open, onClose, books}: {open: boolean; on
       {step === 'install' ? <div className="rounded-xl border border-[var(--border)] p-3">
         <p className="font-medium">1. 下载并打开同步助手</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <a href="https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg" className={`${button} text-center`}>下载 Mac 版<span className="mt-0.5 block text-xs opacity-60">M 系列芯片</span></a>
-          <a href="https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe" className={`${button} text-center`}>下载 Windows 版<span className="mt-0.5 block text-xs opacity-60">x64</span></a>
+          <a href="https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg" className={`${button} text-center`}>下载 Mac 版<span className="mt-0.5 block text-xs opacity-60">M 系列芯片</span></a>
+          <a href="https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe" className={`${button} text-center`}>下载 Windows 版<span className="mt-0.5 block text-xs opacity-60">x64</span></a>
         </div>
         <details className="mt-3 text-xs leading-5"><summary className="cursor-pointer">下载后怎么安装？</summary><div className="mt-2 space-y-2 opacity-70"><p>Mac：打开 DMG，将助手拖到「应用程序」，再从「应用程序」打开。仅支持 M 系列芯片。</p><p>Windows：运行 EXE 完成安装，再从开始菜单打开助手。</p><p>此版本未签名。确认来自上述下载入口后，Mac 可在「系统设置 → 隐私与安全性」选择「仍要打开」；Windows 如提供此选项，可选「更多信息 → 仍要运行」。不需要关闭系统防护。</p></div></details>
         <p className="mt-3 text-xs leading-5 opacity-65">无需安装 Node 或其他开发工具。助手已准备默认保存目录，也可以在配对前更改。</p>
