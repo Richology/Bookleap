@@ -2,12 +2,21 @@
 
 本轮先打通 Chrome 网页到本地书库、再到 Agent 查询的流程。无需预装 Node、Python 或 WSL。
 
-从 [测试版发布页](https://github.com/Richology/bookleap-downloads/releases/tag/v0.1.0-trial.2) 选择系统安装包，并可用同页 SHA256SUMS.txt 核对下载文件。
+## 直接下载安装包
+
+当前测试版：`v0.1.0-trial.2`。点击对应系统的链接即可下载，无需前往发布仓库选择文件。
+
+| 系统 | 安装包 |
+| --- | --- |
+| macOS（Apple Silicon / M 系列芯片） | [下载 Mac 版（.dmg）](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) |
+| Windows（x64） | [下载 Windows 版（.exe）](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) |
+
+可下载 [SHA256SUMS.txt 校验文件](https://github.com/Richology/bookleap-downloads/releases/download/v0.1.0-trial.2/SHA256SUMS.txt) 核对安装包。安装包由专用下载仓库托管，安装与配对步骤见下文。
 
 ## Mac（Apple Silicon：M 系列芯片）
 
 1. 下载 `.dmg`，打开后将「书跃本地同步助手」拖到「应用程序」。先安装到固定位置再配置 Agent，避免路径变化。
-2. 从「应用程序」打开助手。此测试版没有 Developer ID 签名与 Apple 公证。如系统提示无法验证开发者，在确认下载来自本发布页后，可在「系统设置 → 隐私与安全性」对该应用选择「仍要打开」。不需要关闭整个系统的安全保护。被管理的设备可能禁止放行。
+2. 从「应用程序」打开助手。此测试版没有 Developer ID 签名与 Apple 公证。如系统提示无法验证开发者，在确认使用上方官方下载链接后，可在「系统设置 → 隐私与安全性」对该应用选择「仍要打开」。不需要关闭整个系统的安全保护。被管理的设备可能禁止放行。
 3. 若已有旧助手运行，先从旧助手选择「退出助手」，再启动新版本；已有知识库与配对保留。
 
 Intel Mac 本轮不提供安装包。
