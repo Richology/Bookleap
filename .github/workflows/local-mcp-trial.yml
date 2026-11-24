@@ -79,7 +79,6 @@ jobs:
           node test/webview-runtime-smoke.mjs "$dir/runtime"
           if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
           $env:BOOKLEAP_TEST_HOME = (New-Item -Type Directory (Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid()))).FullName
-          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=48725'
           $p = Start-Process "$dir/bookleap-sync.exe" -ArgumentList '--bookleap-test' -PassThru
           for ($i=0; $i -lt 45; $i++) {
             $p.Refresh()
@@ -92,8 +91,7 @@ jobs:
             Get-Process -Id $p.Id | Select-Object ProcessName,MainWindowTitle
             throw "Installed WebView did not initialize its isolated library"
           }
-          node test/webview-window-smoke.mjs
-          if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+          ./test/webview-window-smoke.ps1 -AppPid $p.Id
           $mainHwnd = $p.MainWindowHandle
           Add-Type -Name NativeWindow -Namespace BookLeapTest -MemberDefinition '[System.Runtime.InteropServices.DllImport("user32.dll")] public static extern bool IsWindowVisible(System.IntPtr hwnd);'
           if (!$p.CloseMainWindow()) {throw "Expected a real desktop window"}
