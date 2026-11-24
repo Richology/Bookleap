@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import trialConfig from '../electron-builder.trial.cjs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -9,6 +10,7 @@ run(process.execPath, ['node_modules/electron-builder/cli.js', '--config', 'elec
 const stage = fs.mkdtempSync(path.join(os.tmpdir(), 'bookleap-installer-'));
 try {
   run('/usr/bin/ditto', [path.join(root,'dist-trial/mac-arm64/书跃本地同步助手.app'), path.join(stage,'书跃本地同步助手.app')]);
+  run('/usr/bin/codesign', ['--verify', '--deep', '--strict', path.join(stage, '书跃本地同步助手.app')]);
   fs.symlinkSync('/Applications', path.join(stage, 'Applications'));
-  run('/usr/bin/hdiutil', ['create', '-volname', '书跃本地同步助手', '-srcfolder', stage, '-format', 'UDZO', '-ov', path.join(root, 'dist-trial/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg')]);
+  run('/usr/bin/hdiutil', ['create', '-volname', '书跃本地同步助手', '-srcfolder', stage, '-format', 'UDZO', '-ov', path.join(root, `dist-trial/bookleap-sync-${trialConfig.extraMetadata.version}-mac-arm64.dmg`)]);
 } finally {fs.rmSync(stage,{recursive:true,force:true});}
