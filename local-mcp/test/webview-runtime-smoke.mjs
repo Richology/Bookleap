@@ -32,7 +32,7 @@ try {
   assert.equal(fs.realpathSync(config.command),fs.realpathSync(node));
   const code=await call('pair'); const sourceId=randomUUID();
   const response=fetch('http://127.0.0.1:48724/pair',{method:'POST',headers:{Origin:'https://www.bookleap.cn','Content-Type':'application/json','X-BookLeap-Protocol':'1'},body:JSON.stringify({schemaVersion:1,sourceId,sourceName:'验收书库',code})});
-  const confirm=await next();assert.equal(confirm.native,'confirm');assert.match(confirm.value,/https:\/\/www\.bookleap\.cn/);
+  const confirm=await next();assert.equal(confirm.native,'confirm-source');assert.match(confirm.value,/https:\/\/www\.bookleap\.cn/);
   send({reply:confirm.id,value:true});assert.equal((await response).status,200);
   assert.equal((await call('status')).sourceCount,1);
   assert.match(await call('pause'),/暂停/);

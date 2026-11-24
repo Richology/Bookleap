@@ -3,7 +3,10 @@ use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
     process::{ChildStdin, Command, Stdio},
-    sync::{atomic::{AtomicU64, Ordering}, Arc, Mutex},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+    },
     thread,
 };
 use tauri::{AppHandle, Manager};
@@ -44,30 +47,52 @@ impl Service {
         let mut docs = app.path().document_dir()?;
         let testing = std::env::args().any(|arg| arg == "--bookleap-test");
         if testing {
-            docs = std::fs::canonicalize(std::env::var("BOOKLEAP_TEST_HOME")?)?;
+            docs = dunce::canonicalize(std::env::var("BOOKLEAP_TEST_HOME")?)?;
             data = docs.join("app");
         }
-        let mut cmd = Command::new(runtime.join(if cfg!(windows) {"node.exe"} else {"node"}));
-        if !testing { cmd.env_remove("BOOKLEAP_TEST_HOME"); }
-        #[cfg(windows)] {
+        let mut cmd = Command::new(runtime.join(if cfg!(windows) { "node.exe" } else { "node" }));
+        if testing {
+            let log = std::fs::File::create(docs.join("service-startup.log"))?;
+            cmd.stderr(Stdio::from(log));
+        } else {
+            cmd.env_remove("BOOKLEAP_TEST_HOME");
+            cmd.stderr(Stdio::null());
+        }
+        #[cfg(windows)]
+        {
             use std::os::windows::process::CommandExt;
             cmd.creation_flags(0x08000000);
         }
-        let mut child = cmd.arg(runtime.join("src/webview-service.mjs")).arg(data).arg(docs)
-            .arg(runtime.join("src/mcp.mjs")).stdin(Stdio::piped()).stdout(Stdio::piped()).spawn()?;
+        let mut child = cmd
+            .arg(runtime.join("src/webview-service.mjs"))
+            .arg(data)
+            .arg(docs)
+            .arg(runtime.join("src/mcp.mjs"))
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()?;
         let mut reader = BufReader::new(child.stdout.take().unwrap());
         let mut first = String::new();
         reader.read_line(&mut first)?;
-        if serde_json::from_str::<Value>(&first).ok().and_then(|v| v["ready"].as_bool()) != Some(true) {
-            let _ = child.kill(); let _ = child.wait();
+        if serde_json::from_str::<Value>(&first)
+            .ok()
+            .and_then(|v| v["ready"].as_bool())
+            != Some(true)
+        {
+            let _ = child.kill();
+            let _ = child.wait();
             return Err("无法启动同步服务。请退出旧助手，并检查书库权限和接收端口。".into());
         }
         *self.input.lock().unwrap() = child.stdin.take();
         let service = self.clone();
         thread::spawn(move || {
             for line in reader.lines().map_while(Result::ok) {
-                let Ok(msg) = serde_json::from_str::<Value>(&line) else {break};
-                let Some(id) = msg["id"].as_u64() else {continue};
+                let Ok(msg) = serde_json::from_str::<Value>(&line) else {
+                    break;
+                };
+                let Some(id) = msg["id"].as_u64() else {
+                    continue;
+                };
                 if msg["native"].is_string() {
                     let app = app.clone();
                     let service = service.clone();
@@ -75,13 +100,14 @@ impl Service {
                         let result = native(&app, &msg);
                         let response = match result {
                             Ok(value) => json!({"reply":id,"value":value}),
-                            Err(e) => json!({"reply":id,"error":e})
+                            Err(e) => json!({"reply":id,"error":e}),
                         };
                         let _ = service.send(response);
                     });
                 } else if let Some(tx) = service.requests.lock().unwrap().remove(&id) {
                     let result = match msg["error"].as_str() {
-                        Some(e) => Err(e.to_string()), None => Ok(msg["value"].clone())
+                        Some(e) => Err(e.to_string()),
+                        None => Ok(msg["value"].clone()),
                     };
                     let _ = tx.send(result);
                 }
@@ -94,23 +120,43 @@ impl Service {
 }
 fn native(app: &AppHandle, msg: &Value) -> Reply {
     match msg["native"].as_str() {
-        Some("confirm") => {
+        Some(method @ ("confirm" | "confirm-source")) => {
             super::show(app);
-            let ok = app.dialog().message(msg["value"].as_str().ok_or("invalid")?)
+            let ok = app
+                .dialog()
+                .message(msg["value"].as_str().ok_or("invalid")?)
                 .title("书跃本地同步助手")
-                .buttons(MessageDialogButtons::OkCancelCustom("确认".into(), "取消".into()))
+                .buttons(MessageDialogButtons::OkCancelCustom(
+                    if method == "confirm-source" {
+                        "允许此来源"
+                    } else {
+                        "确认"
+                    }
+                    .into(),
+                    "取消".into(),
+                ))
                 .blocking_show();
             Ok(json!(ok))
         }
-        Some("folder") => Ok(json!(app.dialog().file().blocking_pick_folder()
+        Some("folder") => Ok(json!(app
+            .dialog()
+            .file()
+            .blocking_pick_folder()
             .and_then(|f| f.into_path().ok()))),
         Some("autostart") => {
             let manager = app.autolaunch();
-            if msg["value"].as_bool().ok_or("invalid")? { manager.enable() } else { manager.disable() }
-                .map_err(|e| e.to_string())?;
+            if msg["value"].as_bool().ok_or("invalid")? {
+                manager.enable()
+            } else {
+                manager.disable()
+            }
+            .map_err(|e| e.to_string())?;
             Ok(Value::Null)
         }
-        Some("quit") => {app.exit(0); Ok(Value::Null)}
-        _ => Err("unknown native request".into())
+        Some("quit") => {
+            app.exit(0);
+            Ok(Value::Null)
+        }
+        _ => Err("unknown native request".into()),
     }
 }

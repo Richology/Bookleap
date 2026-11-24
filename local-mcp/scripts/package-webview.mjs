@@ -29,6 +29,7 @@ if (mac) {
     run('codesign',['--force','--sign','-',path.join(app,'Contents/Resources/runtime/node')]);
     run('codesign',['--force','--sign','-',app]);
     run('codesign',['--verify','--strict','--deep',app]);
+    fs.copyFileSync(path.join(root, 'mac-install.zh-CN.txt'), path.join(stage, '首次打开说明.txt'));
     fs.symlinkSync('/Applications',path.join(stage,'Applications'));
     run('hdiutil',['create','-volname',config.productName,'-srcfolder',stage,'-format','UDZO','-ov',prefix+'-mac-arm64.dmg']);
   } finally {fs.rmSync(stage,{recursive:true,force:true});}

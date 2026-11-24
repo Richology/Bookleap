@@ -35,7 +35,7 @@ async function start() {
   bridge = new Bridge(store, {
     port: process.env.BOOKLEAP_TEST_HOME ? Number(process.env.BOOKLEAP_TEST_PORT || 48724) : 48720,
     origins: ['https://www.bookleap.cn', ...(settings.preview ? ['http://localhost:3000'] : [])],
-    onPair: binding => native('confirm', `允许「${binding.sourceName}」自动同步？\n网页来源：${binding.origin}\n默认仅分析与已有证据；个人内容需网页另行勾选。使用云模型时查询片段可能进入模型上下文。`)
+    onPair: binding => native('confirm-source', `允许「${binding.sourceName}」自动同步？\n网页来源：${binding.origin}\n默认仅分析与已有证据；个人内容需网页另行勾选。使用云模型时查询片段可能进入模型上下文。`)
   });
   bridge.paused = Boolean(settings.paused);
   await bridge.listen();
