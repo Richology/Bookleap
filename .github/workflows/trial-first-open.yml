@@ -70,7 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           open "/Applications/书跃本地同步助手.app" >"$RUNNER_TEMP/evidence/open.log" 2>&1 &
-          sleep 6
+          sleep 24
           screencapture -x "$RUNNER_TEMP/evidence/open.png"
           lsof -nP -iTCP:48720 -sTCP:LISTEN || true
           spctl --status | tee "$RUNNER_TEMP/evidence/policy.txt"
@@ -79,10 +79,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension' > /dev/null 2>&1 &
+          cat > "$RUNNER_TEMP/interact.swift" <<'SWIFT'
+          import CoreGraphics
+          import Foundation
+          let click = CommandLine.arguments.contains("dismiss")
+          let p = click ? CGPoint(x: 452,y: 339) : CGPoint(x: 764,y: 594)
+          let src = CGEventSource(stateID: .hidSystemState)
+          CGEvent(mouseEventSource: src, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: .left)?.post(tap: .cghidEventTap)
+          if click {
+            for type in [CGEventType.leftMouseDown, .leftMouseUp] {
+              CGEvent(mouseEventSource: src, mouseType: type, mouseCursorPosition: p, mouseButton: .left)?.post(tap: .cghidEventTap)
+              Thread.sleep(forTimeInterval: 0.12)
+            }
+          } else {
+            for _ in 0..<12 {
+              CGEvent(scrollWheelEvent2Source: src, units: .pixel, wheelCount: 1, wheel1: -140, wheel2: 0, wheel3: 0)?.post(tap: .cghidEventTap)
+              Thread.sleep(forTimeInterval: 0.10)
+            }
+          }
+          SWIFT
+          swiftc "$RUNNER_TEMP/interact.swift" -o "$RUNNER_TEMP/interact"
+          "$RUNNER_TEMP/interact" dismiss
+          sleep 2
+          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension' >/dev/null 2>&1 &
           sleep 6
+          "$RUNNER_TEMP/interact" scroll
+          sleep 2
           screencapture -x "$RUNNER_TEMP/evidence/settings.png"
-          osascript -e 'with timeout of 10 seconds' -e 'tell application "System Events" to tell process "System Settings" to get description of entire contents of window 1' -e 'end timeout' > "$RUNNER_TEMP/evidence/settings.txt" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
