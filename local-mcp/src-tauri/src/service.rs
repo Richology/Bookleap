@@ -42,7 +42,7 @@ impl Service {
         rx.await.map_err(|_| "助手后台已退出".to_string())?
     }
     pub fn launch(self: &Arc<Self>, app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-        let runtime = app.path().resource_dir()?.join("runtime");
+        let runtime = dunce::canonicalize(app.path().resource_dir()?.join("runtime"))?;
         let mut data = app.path().data_dir()?.join("bookleap-local-mcp");
         let mut docs = app.path().document_dir()?;
         let testing = std::env::args().any(|arg| arg == "--bookleap-test");
@@ -64,10 +64,11 @@ impl Service {
             cmd.creation_flags(0x08000000);
         }
         let mut child = cmd
-            .arg(runtime.join("src/webview-service.mjs"))
+            .current_dir(&runtime)
+            .arg(std::path::Path::new("src").join("webview-service.mjs"))
             .arg(data)
             .arg(docs)
-            .arg(runtime.join("src/mcp.mjs"))
+            .arg(runtime.join("src").join("mcp.mjs"))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()?;

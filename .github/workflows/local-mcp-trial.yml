@@ -23,7 +23,8 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: local-mcp/package-lock.json
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: cargo-cache
         with:
           path: |
             ~/.cargo/registry
@@ -36,6 +37,16 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm test
       - run: node scripts/package-webview.mjs
+      - uses: actions/cache/save@v4
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            local-mcp/src-tauri/target/release/build
+            local-mcp/src-tauri/target/release/deps
+            local-mcp/src-tauri/target/release/.fingerprint
+          key: cargo-${{ runner.os }}-${{ hashFiles('local-mcp/src-tauri/Cargo.toml', 'local-mcp/src-tauri/Cargo.lock') }}
       - name: Install Mac DMG and start the WebView
         if: runner.os == 'macOS'
         run: |
@@ -54,6 +65,9 @@ jobs:
           curl -fsS -X OPTIONS -H 'Origin: https://www.bookleap.cn' http://127.0.0.1:48724/pair
           sleep 3
           screencapture -x "$RUNNER_TEMP/webview.png"
+          pid=$(pgrep -f "^$app/Contents/MacOS/bookleap-sync")
+          swift test/close-mac-window.swift "$pid"
+          curl -fsS -X OPTIONS -H 'Origin: https://www.bookleap.cn' http://127.0.0.1:48724/pair
       - name: Install Windows EXE and close the window to the tray
         if: runner.os == 'Windows'
         shell: pwsh
