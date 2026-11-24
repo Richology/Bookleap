@@ -11,6 +11,7 @@ try {
   assert.match(await page.locator('#pair').innerText(), /^[a-zA-Z0-9_-]{20,100}$/);
   await page.locator('#donePair').click();
   await page.locator('nav [data-pane="agent"]').click();
+  await page.locator('#connectionDetails > summary').click();
   await page.locator('#copyConnection').click();
   await page.getByText('MCP 配置已复制', {exact:false}).waitFor();
   const config = JSON.parse(await page.locator('#connectionConfig').textContent());
