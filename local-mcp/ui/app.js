@@ -1,3 +1,4 @@
+const copyText = text => window.bookleap.copyText ? window.bookleap.copyText(text) : navigator.clipboard.writeText(text);
 const el = id => document.getElementById(id);
 let toastTimer;
 function notify(message) { el('toast').textContent = message; el('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => {el('toast').hidden = true;}, 5000); }
@@ -23,7 +24,7 @@ async function refresh() {
   el('pauseButton').textContent = status.paused ? '恢复同步' : '暂停同步';
   el('version').textContent = `书跃本地同步助手 ${status.version}`;
   el('updates').disabled = Boolean(status.unsignedTrial);
-  if (status.unsignedTrial) el('updateStatus').textContent = '未签名测试版 · 请从官网下载新版，自动更新已停用。';
+  if (status.unsignedTrial) el('updateStatus').textContent = '测试版 · 请从官网下载新版，自动更新已停用。';
   for (const input of document.querySelectorAll('[data-setting]')) input.checked = Boolean(status[input.dataset.setting]);
 }
 async function showPane(name) {
@@ -54,7 +55,7 @@ for (const button of document.querySelectorAll('button[data-action]')) button.ad
 for (const input of document.querySelectorAll('[data-setting]')) input.addEventListener('change', async () => { input.disabled = true; try {await invoke(input.dataset.setting, input.checked); await refresh();} finally {input.disabled = false;} });
 el('closePair').addEventListener('click', () => el('pairDialog').close());
 el('donePair').addEventListener('click', () => {el('pairDialog').close(); void refresh();});
-el('copyPair').addEventListener('click', async () => {try {await navigator.clipboard.writeText(el('pair').textContent); el('copyPair').textContent = '已复制';} catch {notify('请选中配对码，按 ⌘C（Mac）或 Ctrl+C（Windows）复制。');}});
+el('copyPair').addEventListener('click', async () => {try {await copyText(el('pair').textContent); el('copyPair').textContent = '已复制';} catch {notify('请选中配对码，按 ⌘C（Mac）或 Ctrl+C（Windows）复制。');}});
 el('searchForm').addEventListener('submit', async event => {event.preventDefault(); const result = await invoke('search', el('query').value); if(result) renderLibrary(result, 'search');});
 void refresh(); setInterval(refresh, 5000);
 window.bookleap.onCitation(async id => {await showPane('library'); const result = await invoke('citation', id); if(result) renderLibrary({items:[result]}, 'citation'); else el('library').textContent = '引用已撤销或版本已更新。';});
@@ -92,12 +93,12 @@ el('copyConnection').addEventListener('click', async () => {
     if (!config?.mcpServers?.bookleap) return;
     const text = JSON.stringify(config, null, 2);
     el('connectionConfig').textContent = text;
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     notify('MCP 配置已复制，请到 Agent 的本地 MCP 设置中添加。');
   } catch {notify('无法自动复制，请选中上方配置手动复制。');}
   finally {button.disabled = false;}
 });
 el('copyPrompt').addEventListener('click', async () => {
-  try {await navigator.clipboard.writeText(el('agentPrompt').textContent); notify('问题已复制，回到 Agent 粘贴即可。');}
+  try {await copyText(el('agentPrompt').textContent); notify('问题已复制，回到 Agent 粘贴即可。');}
   catch {notify('请选中上方问题手动复制。');}
 });

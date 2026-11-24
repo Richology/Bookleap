@@ -8,7 +8,7 @@
     "test": "node --test test/*.test.mjs",
     "start": "tauri dev",
     "mcp": "node src/mcp.mjs",
-    "pack": "electron-builder --dir",
+    "pack": "tauri build --no-bundle",
     "dist": "node scripts/release-check.mjs && electron-builder --publish never",
     "trial:mac": "node scripts/package-webview.mjs",
     "trial:win": "node scripts/package-webview.mjs"

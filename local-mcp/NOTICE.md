@@ -4,4 +4,4 @@ Copyright (C) 2026 Bookleap contributors. Licensed under GNU AGPL version 3 only
 
 Source and build instructions: https://github.com/Richology/Bookleap/tree/main/local-mcp
 
-Electron and bundled npm dependencies retain their own licenses and copyright notices. Dependency license files are included with the runtime and node_modules.
+Tauri, Node.js and bundled dependencies retain their own licenses and copyright notices. The runtime directory includes Node.js and npm dependency license notices.

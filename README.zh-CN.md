@@ -164,7 +164,7 @@ npm test --prefix local-mcp
 
 </details>
 
-**技术栈：** Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · DeepSeek / Ollama · IndexedDB · Vercel Blob。可选桌面助手使用 Electron 与 MCP。
+**技术栈：** Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · DeepSeek / Ollama · IndexedDB · Vercel Blob。WebView 版桌面助手使用 Tauri、系统网页组件及随包附带的 MCP 运行时。
 
 ## 你的书库与数据
 

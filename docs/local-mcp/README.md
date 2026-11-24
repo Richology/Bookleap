@@ -6,12 +6,13 @@
 
 ## 可复现的测试包构建
 
-- `npm ci --prefix local-mcp`
-- Apple Silicon Mac：`npm run trial:mac --prefix local-mcp`。使用 ad hoc 本地签名构建应用，复制到暂存目录后执行严格的递归签名校验，校验通过再由系统 hdiutil 生成 DMG，无额外 DMG 工具下载依赖。
-- Windows x64：`npm run trial:win --prefix local-mcp`。原生 Windows CI 可手动运行 `.github/workflows/local-mcp-trial.yml`，先测试核心，再安装 EXE、测试实际已安装应用和独立 MCP，最后上传安装包。
-- 产物在 `local-mcp/dist-trial`（Git 忽略）；使用 Electron 44.9.3、版本 `0.1.0-trial.3`，无 Developer ID、公证、Authenticode，自动更新关闭。
-- 测试配置独立于 `electron-builder.cjs` 与正式发布预检；不能用测试版跳过正式发布的可信更新校验。
-- 原版配置参数和已存知识库保留；移动应用位置后需要重新确认 Agent 命令路径。
+开发机需安装 Rust stable、Node、平台编译工具（macOS 的 Xcode，Windows 的 Visual Studio C++ Build Tools）和系统 WebView。读者只安装助手即可。
+
+- 在仓库根执行 `npm ci --ignore-scripts --prefix local-mcp`。
+- Apple Silicon Mac 执行 `npm run trial:mac --prefix local-mcp`，产出使用本地签名的 DMG。打包前递归校验签名。未使用 Apple 公证，首次从浏览器下载仍可能触发系统安全提示。
+- Windows x64 执行 `npm run trial:win --prefix local-mcp`，生成按用户安装的 EXE。安装器复用系统 WebView2；缺失时联网安装微软运行时。
+- 安装包位于 `local-mcp/dist-trial`。版本来自 `local-mcp/src-tauri/tauri.conf.json`。应用附带 Node，书库接收服务和 Agent 的只读 MCP 各自运行；关闭窗口隐藏到托盘，退出助手后仍可查询已保存的书。
+- 原生安装验收使用 `.github/workflows/local-mcp-trial.yml`。正式签名分发和可信自动更新继续走独立发布流程。
 
 以下是此前实现和验证细节；“正式”安装分发指未来签名版，不是本轮未签名下载。
 
@@ -19,7 +20,7 @@
 
 1. 仓库根目录 `npm ci`；`local-mcp` 目录另行 `npm ci`。开发需要 Node；最终应用打包内置运行时，不要求终端用户预装 Node。
 2. 在仓库根运行 `npm run dev`，用 **http://localhost:3000/workspace** 打开本机页面。
-3. 在 `local-mcp` 运行 `npm start`，或打开已生成的 Apple Silicon 试用 `.app`。本机已验证的缓存运行时构建位于 `local-mcp/dist-desktop-ui/mac-arm64/书跃本地同步助手.app`，使用 Electron 44.9.3。标准依赖为 Electron 45.2.3；其首次下载在 600 秒超时，需重试构建后验证。不把未签名本机构建分发为正式安装包。
+3. 在 `local-mcp` 运行 `npm start` 启动 Tauri 开发窗口，或从为当前平台制作的安装包启动。
 4. 桌面组件勾选「允许本机试用网页」。这只新增准确的 `http://localhost:3000` 来源，仍须配对；默认生产来源仅 `https://www.bookleap.cn`。
 5. 在桌面组件首次配对前选知识库父目录。只管理其中 `BookLeapLibrary` 专用子目录；非空无标记目录、符号链接会被拒绝。已有配对时不静默迁移目录。
 6. 生成五分钟配对码。在网页左侧「本地 MCP」输入来源名称与配对码，了解授权说明并勾选同意；本地组件再次确认准确来源。
@@ -78,7 +79,7 @@ npm run build
 # 已启动 localhost:3000 后（使用隔离 Chrome 与合成数据）
 node local-mcp/test/browser-smoke.mjs
 # 用指定构建的独立运行时做隔离桌面、配置与 stdio 测试
-node local-mcp/test/desktop-smoke.mjs '/absolute/path/书跃本地同步助手.app'
+node local-mcp/test/webview-runtime-smoke.mjs '/absolute/path/书跃本地同步助手.app/Contents/Resources/runtime'
 ```
 
 所有测试仅使用合成内容。测试矩阵与未完成项见 [验证记录](bridge-validation.md)。

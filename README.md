@@ -164,7 +164,7 @@ See the [engineering guide](AGENTS.md) for architecture and development conventi
 
 </details>
 
-**Built with:** Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · DeepSeek / Ollama · IndexedDB · Vercel Blob. The optional desktop assistant uses Electron and MCP.
+**Built with:** Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · DeepSeek / Ollama · IndexedDB · Vercel Blob. The WebView desktop assistant uses Tauri, the operating system’s web renderer, and a bundled MCP runtime.
 
 ## Your library and your data
 
