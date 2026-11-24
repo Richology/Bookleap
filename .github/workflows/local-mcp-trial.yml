@@ -23,6 +23,15 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: local-mcp/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            local-mcp/src-tauri/target/release/build
+            local-mcp/src-tauri/target/release/deps
+            local-mcp/src-tauri/target/release/.fingerprint
+          key: cargo-${{ runner.os }}-${{ hashFiles('local-mcp/src-tauri/Cargo.toml', 'local-mcp/src-tauri/Cargo.lock') }}
       - run: rustup default stable
       - run: npm ci --ignore-scripts
       - run: npm test
