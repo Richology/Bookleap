@@ -20,8 +20,14 @@ jobs:
           test ! -e "/Applications/书跃本地同步助手.app"
           test ! -e "$HOME/Library/Application Support/bookleap-local-mcp"
           mkdir -p "$HOME/Downloads" "$RUNNER_TEMP/evidence"
+      - name: Visit the published release with desktop Chrome
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
           "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --no-first-run --no-default-browser-check --user-data-dir="$RUNNER_TEMP/chrome" --remote-debugging-port=9222 about:blank >"$RUNNER_TEMP/chrome.log" 2>&1 &
           for i in {1..30}; do curl -fsS localhost:9222/json/list > /dev/null && break; sleep 1; done
+          export NODE_NO_WARNINGS=1
           node --input-type=module <<'JS'
           const tab=(await (await fetch('http://localhost:9222/json/list')).json()).find(t=>t.type==='page');
           const ws=new WebSocket(tab.webSocketDebuggerUrl);
@@ -39,21 +45,41 @@ jobs:
           }
           ws.close(); if(!clicked)throw Error('Release asset link not found');
           JS
+      - name: Verify Chrome download and mount disk image
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
           dmg="$HOME/Downloads/bookleap-sync-0.1.0-trial.3-mac-arm64.dmg"
           for i in {1..120}; do test -f "$dmg" && break; sleep 1; done
           echo "8f439be50579ca965f735f1ade7969adcf26ad222aa2af995f52ea094544511e  $dmg" | shasum -a 256 -c -
           xattr -p com.apple.quarantine "$dmg" | tee "$RUNNER_TEMP/evidence/download.txt"
-          open "$dmg"
+          open "$dmg" >"$RUNNER_TEMP/disk-open.log" 2>&1 &
           for i in {1..30}; do test -d "/Volumes/书跃本地同步助手/书跃本地同步助手.app" && break; sleep 1; done
           mount | grep '书跃' | tee "$RUNNER_TEMP/evidence/mount.txt"
+      - name: Install into Applications using Finder
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
           osascript -e 'with timeout of 20 seconds' -e 'tell application "Finder" to duplicate (POSIX file "/Volumes/书跃本地同步助手/书跃本地同步助手.app" as alias) to (POSIX file "/Applications" as alias)' -e 'end timeout'
           codesign --verify --deep --strict "/Applications/书跃本地同步助手.app"
-          open "/Applications/书跃本地同步助手.app" || true
+      - name: Observe first launch
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          open "/Applications/书跃本地同步助手.app" >"$RUNNER_TEMP/evidence/open.log" 2>&1 &
           sleep 6
           screencapture -x "$RUNNER_TEMP/evidence/open.png"
           lsof -nP -iTCP:48720 -sTCP:LISTEN || true
           spctl --status | tee "$RUNNER_TEMP/evidence/policy.txt"
-          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension'
+      - name: Observe Privacy and Security
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension' > /dev/null 2>&1 &
           sleep 6
           screencapture -x "$RUNNER_TEMP/evidence/settings.png"
           osascript -e 'with timeout of 10 seconds' -e 'tell application "System Events" to tell process "System Settings" to get description of entire contents of window 1' -e 'end timeout' > "$RUNNER_TEMP/evidence/settings.txt" || true
