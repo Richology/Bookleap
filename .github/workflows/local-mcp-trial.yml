@@ -1,14 +1,21 @@
-name: Build unsigned sync assistant trial
+name: Build and verify WebView sync assistant
 on:
   workflow_dispatch:
+  push:
+    branches: [verify/webview-assistant]
 permissions:
   contents: read
 jobs:
-  windows:
-    runs-on: windows-latest
-    timeout-minutes: 25
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 55
+    defaults:
+      run:
+        working-directory: local-mcp
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,29 +23,60 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: local-mcp/package-lock.json
-      - run: npm ci
-        working-directory: local-mcp
+      - run: rustup default stable
+      - run: npm ci --ignore-scripts
       - run: npm test
-        working-directory: local-mcp
-      - run: npx electron-builder --config electron-builder.trial.cjs --win --x64 --publish never
-        working-directory: local-mcp
-      - name: Install and test actual installed app
+      - run: node scripts/package-webview.mjs
+      - name: Install Mac DMG and start the WebView
+        if: runner.os == 'macOS'
+        run: |
+          set -eu
+          mount="$RUNNER_TEMP/mount"
+          app="$RUNNER_TEMP/书跃本地同步助手.app"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mount" dist-trial/*-mac-arm64.dmg
+          ditto "$mount/书跃本地同步助手.app" "$app"
+          hdiutil detach "$mount"
+          codesign --verify --strict --deep "$app"
+          node test/webview-runtime-smoke.mjs "$app/Contents/Resources/runtime"
+          mkdir -p "$RUNNER_TEMP/library"
+          open -n "$app" --env BOOKLEAP_TEST_HOME="$RUNNER_TEMP/library" --args --bookleap-test
+          for i in {1..30}; do test -f "$RUNNER_TEMP/library/app/settings.json" && break; sleep 1; done
+          test -f "$RUNNER_TEMP/library/app/settings.json"
+          curl -fsS -X OPTIONS -H 'Origin: https://www.bookleap.cn' http://127.0.0.1:48724/pair
+          sleep 3
+          screencapture -x "$RUNNER_TEMP/webview.png"
+      - name: Install Windows EXE and close the window to the tray
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $installer = Get-ChildItem local-mcp/dist-trial/*.exe | Select-Object -First 1
-          $installDir = "$env:RUNNER_TEMP\BookLeap Installed"
-          $process = Start-Process -FilePath $installer.FullName -ArgumentList "/S /D=$installDir" -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
-          $app = Join-Path $installDir '书跃本地同步助手.exe'
-          if (!(Test-Path $app)) { throw 'Installed executable missing' }
-          node local-mcp/test/desktop-smoke.mjs "$app"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $uninstaller = Get-ChildItem $installDir -Filter '*Uninstall*.exe' | Select-Object -First 1
-          if (!$uninstaller) { throw 'Uninstaller missing' }
-          Start-Process -FilePath $uninstaller.FullName -ArgumentList '/S' -Wait
+          $installer = (Get-ChildItem dist-trial/*-win-x64.exe).FullName
+          $dir = "$env:RUNNER_TEMP\BookLeap Installed"
+          $install = Start-Process $installer -ArgumentList "/S /D=$dir" -PassThru -Wait
+          if ($install.ExitCode -ne 0) {throw "Installer failed"}
+          node test/webview-runtime-smoke.mjs "$dir/runtime"
+          if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+          $env:BOOKLEAP_TEST_HOME = (New-Item -Type Directory "$env:RUNNER_TEMP/library").FullName
+          $p = Start-Process "$dir/bookleap-sync.exe" -ArgumentList '--bookleap-test' -PassThru
+          for ($i=0; $i -lt 45; $i++) {
+            $p.Refresh()
+            if ($p.HasExited) {throw "WebView host exited"}
+            if ($p.MainWindowHandle -ne 0 -and (Test-Path "$env:BOOKLEAP_TEST_HOME/app/settings.json")) {break}
+            Start-Sleep 1
+          }
+          if (!$p.CloseMainWindow()) {throw "Expected a real desktop window"}
+          Start-Sleep 2
+          $p.Refresh()
+          if ($p.HasExited -or $p.MainWindowHandle -ne 0) {throw "Close did not hide the assistant"}
+          curl.exe --fail -X OPTIONS -H 'Origin: https://www.bookleap.cn' http://127.0.0.1:48724/pair
+          if ($LASTEXITCODE -ne 0) {throw "Background sync is unavailable"}
+          Stop-Process -Id $p.Id
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: bookleap-windows-unsigned-trial
-          path: local-mcp/dist-trial/*.exe
+          name: bookleap-webview-${{ runner.os }}
+          path: |
+            local-mcp/dist-trial/*-mac-arm64.dmg
+            local-mcp/dist-trial/*-win-x64.exe
+            ${{ runner.temp }}/webview.png
+            local-mcp/src-tauri/Cargo.lock
           if-no-files-found: error
-          retention-days: 14

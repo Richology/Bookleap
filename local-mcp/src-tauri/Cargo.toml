@@ -1,0 +1,21 @@
+[package]
+name = "bookleap-sync"
+version = "0.1.0-trial.4"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-deep-link = "2"
+serde_json = "1"
+percent-encoding = "2"
+tokio = { version = "1", features = ["sync"] }
+
+[profile.release]
+strip = true
+lto = "thin"

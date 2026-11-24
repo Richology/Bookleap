@@ -3,12 +3,12 @@ import path from 'node:path';
 import TOML from '@iarna/toml';
 import { atomicWrite, assertSafePath } from './store.mjs';
 import { hash, Fault } from './protocol.mjs';
-export function previewConfig(file, command, script, root, runtime) {
+export function previewConfig(file, command, script, root, runtime, electron = true) {
   assertSafePath(file);
   const original = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const parsed = TOML.parse(original);
   if (parsed.mcp_servers?.bookleap) throw new Fault('codex_name_conflict');
-  const addition = '\n# BookLeap local read-only MCP\n' + TOML.stringify({mcp_servers: {bookleap: {command, args: [script], env: {ELECTRON_RUN_AS_NODE: '1', BOOKLEAP_LIBRARY: root, ...(runtime ? {BOOKLEAP_RUNTIME: runtime} : {})}}}});
+  const addition = '\n# BookLeap local read-only MCP\n' + TOML.stringify({mcp_servers: {bookleap: {command, args: [script], env: {...(electron ? {ELECTRON_RUN_AS_NODE: '1'} : {}), BOOKLEAP_LIBRARY: root, ...(runtime ? {BOOKLEAP_RUNTIME: runtime} : {})}}}});
   TOML.parse(original + addition);
   return {file, originalHash: hash(original), addition};
 }

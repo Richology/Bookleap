@@ -6,12 +6,12 @@
   "main": "src/desktop.cjs",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "start": "electron .",
+    "start": "tauri dev",
     "mcp": "node src/mcp.mjs",
     "pack": "electron-builder --dir",
     "dist": "node scripts/release-check.mjs && electron-builder --publish never",
-    "trial:mac": "node scripts/package-mac-trial.mjs",
-    "trial:win": "electron-builder --config electron-builder.trial.cjs --win --x64 --publish never"
+    "trial:mac": "node scripts/package-webview.mjs",
+    "trial:win": "node scripts/package-webview.mjs"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
@@ -20,8 +20,10 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.6",
     "electron": "^45.2.3",
     "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
     "playwright-core": "^1.65.0"
   },
   "description": "BookLeap local library sync and read-only MCP",
@@ -32,5 +34,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Richology/Bookleap.git"
+  },
+  "optionalDependencies": {
+    "node-bin-darwin-arm64": "22.23.5",
+    "node-win-x64": "22.23.5"
   }
 }
