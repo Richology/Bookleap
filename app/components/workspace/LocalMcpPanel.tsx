@@ -24,7 +24,7 @@ export default function LocalMcpPanel({open, onClose, books}: {open: boolean; on
   return <dialog ref={dialog} onCancel={onClose} onClose={onClose} className="m-auto max-h-[85vh] w-[min(560px,92vw)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--paper)] p-6 text-[var(--ink)] shadow-xl backdrop:bg-black/30">
     <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">本地 MCP</h2><button onClick={onClose} className={button} aria-label="关闭本地 MCP">关闭</button></div>
     <p className="mt-2 text-sm opacity-70">拆书内容自动存到电脑，供你的 Agent 查询。</p>
-    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs"><span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 font-medium text-[var(--accent)]">Chrome 限定试用</span><span className="opacity-60">Mac / Windows · 未签名测试版</span></div>
+    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs"><span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 font-medium text-[var(--accent)]">Chrome 限定试用</span><span className="opacity-60">Mac / Windows · Trial 4</span></div>
     {!config?.token && <ol aria-label="配对步骤" className="my-5 grid grid-cols-3 gap-2 text-xs">
       {['下载安装', '配对书库', '连接 Agent'].map((label, index) => <li key={label} aria-current={index === (step === 'install' ? 0 : 1) ? 'step' : undefined} className="flex items-center gap-2"><span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--accent)]">{index + 1}</span>{label}</li>)}
     </ol>}
@@ -36,10 +36,10 @@ export default function LocalMcpPanel({open, onClose, books}: {open: boolean; on
       {step === 'install' ? <div className="rounded-xl border border-[var(--border)] p-3">
         <p className="font-medium">1. 下载并打开同步助手</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <a href="https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg" className={`${button} text-center`}>下载 Mac 版<span className="mt-0.5 block text-xs opacity-60">M 系列芯片</span></a>
-          <a href="https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe" className={`${button} text-center`}>下载 Windows 版<span className="mt-0.5 block text-xs opacity-60">x64</span></a>
+          <a href="https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.4/bookleap-sync-0.1.0-trial.4-mac-arm64.dmg" className={`${button} text-center`}>下载 Mac 版<span className="mt-0.5 block text-xs opacity-60">M 系列芯片</span></a>
+          <a href="https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.4/bookleap-sync-0.1.0-trial.4-win-x64.exe" className={`${button} text-center`}>下载 Windows 版<span className="mt-0.5 block text-xs opacity-60">x64</span></a>
         </div>
-        <details className="mt-3 text-xs leading-5"><summary className="cursor-pointer">下载后怎么安装？</summary><div className="mt-2 space-y-2 opacity-70"><p>Mac：打开 DMG，将助手拖到「应用程序」，再从「应用程序」打开。仅支持 M 系列芯片。</p><p>Windows：运行 EXE 完成安装，再从开始菜单打开助手。</p><p>此版本未签名。确认来自上述下载入口后，Mac 可在「系统设置 → 隐私与安全性」选择「仍要打开」；Windows 如提供此选项，可选「更多信息 → 仍要运行」。不需要关闭系统防护。</p></div></details>
+        <details className="mt-3 text-xs leading-5"><summary className="cursor-pointer">下载后怎么安装？</summary><div className="mt-2 space-y-2 opacity-70"><p>Mac：打开 DMG，将助手拖到「应用程序」，再从「应用程序」打开。仅支持 M 系列芯片。</p><p>Windows：运行 EXE 完成安装，再从开始菜单打开助手。</p><p>Mac 版采用本地签名，未经 Apple 公证；Windows 版无发行者签名。确认来自上述下载入口后，Mac 可在「系统设置 → 隐私与安全性」选择「仍要打开」；Windows 如提供此选项，可选「更多信息 → 仍要运行」。不需要关闭系统防护。</p></div></details>
         <p className="mt-3 text-xs leading-5 opacity-65">无需安装 Node 或其他开发工具。助手已准备默认保存目录，也可以在配对前更改。</p>
         <button className={`${button} mt-3 w-full bg-[var(--accent)] text-white`} onClick={() => setStep('pair')}>已打开助手，下一步</button>
       </div> : <>
@@ -73,7 +73,7 @@ export default function LocalMcpPanel({open, onClose, books}: {open: boolean; on
     <div className="mt-5 space-y-3 border-t border-[var(--border)] pt-4 text-xs leading-5">
       <details><summary className="cursor-pointer opacity-70">连接遇到问题？</summary><div className="mt-2 space-y-2 opacity-70"><p>Chrome 提示本地网络访问时，请允许书跃连接助手。曾拒绝可在网站权限中恢复。</p><p>线上与 localhost 需分别配对。配对码五分钟有效，过期后请重新生成；提交后需在助手中确认来源。</p><p>Agent 快捷配置目前仅支持 Codex；其他支持本地 MCP 的客户端需按各自方式配置。本地测试成功不代表 Agent 已连接。</p></div></details>
       <details><summary className="cursor-pointer opacity-70">如何打开助手与保持同步</summary><div className="mt-2 space-y-2 opacity-70"><p>安装后，Mac 从「应用程序」或 Spotlight 搜索「书跃本地同步助手」；Windows 从开始菜单打开。运行时也可点击菜单栏或系统托盘图标。</p><p>网页和助手同时运行即可自动同步，无需打开本面板。关闭助手窗口仍在后台运行；退出或暂停才停止接收。可在助手设置登录自启。</p><p>关闭网页后，Agent 仍能查询已存内容。网页和助手恢复运行后补同步；Agent 在下次查询时读取新内容。</p></div></details>
-      <details><summary className="cursor-pointer opacity-70">试用范围与数据说明</summary><div className="mt-2 space-y-2 opacity-70"><p>提供 Mac Apple Silicon 与 Windows x64 未签名测试安装包，仅限桌面 Chrome 试用。不要求预装开发工具，自动更新暂不启用。</p><p>Safari、Edge、Firefox 和 Intel Mac 尚未验收。真实用户书库、多 Agent 兼容、自启与完整卸载保留行为仍在验证；签名分发和自动更新回退不属于本轮。</p><p>本地检索不上传书库或查询。体验书默认排除，个人记录需单独授权；卡片高亮不是原书页码或原文证据。已进入 Agent 对话的内容无法通过清除本地副本撤回。</p></div></details>
+      <details><summary className="cursor-pointer opacity-70">试用范围与数据说明</summary><div className="mt-2 space-y-2 opacity-70"><p>提供 Mac Apple Silicon 与 Windows x64 测试安装包，仅限桌面 Chrome 试用。不要求预装开发工具，自动更新暂不启用。</p><p>Safari、Edge、Firefox 和 Intel Mac 尚未验收。真实用户书库、多 Agent 兼容、自启与完整卸载保留行为仍在验证；签名分发和自动更新回退不属于本轮。</p><p>本地检索不上传书库或查询。体验书默认排除，个人记录需单独授权；卡片高亮不是原书页码或原文证据。已进入 Agent 对话的内容无法通过清除本地副本撤回。</p></div></details>
     </div>
     {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
   </dialog>;

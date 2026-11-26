@@ -88,8 +88,8 @@ The optional **Bookleap Local Sync Assistant** (installed as **书跃本地同�
 
 | Trial download | Platform |
 | --- | --- |
-| [Download for Mac](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) | Apple Silicon / M-series |
-| [Download for Windows](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) | x64 |
+| [Download for Mac](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.4/bookleap-sync-0.1.0-trial.4-mac-arm64.dmg) | Apple Silicon / M-series |
+| [Download for Windows](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.4/bookleap-sync-0.1.0-trial.4-win-x64.exe) | x64 |
 
 1. Install the assistant and choose your local library folder.
 2. In **Chrome**, open **本地 MCP** in the workspace, enter the pairing code, and confirm the source in the assistant.
@@ -97,7 +97,7 @@ The optional **Bookleap Local Sync Assistant** (installed as **书跃本地同�
 
 Keep the webpage and assistant running to sync new content. **Closing the assistant window keeps it running in the background; quitting stops new syncs.** Previously saved content remains queryable through the independently launched MCP server. Reopen both to sync pending changes.
 
-> **Preview:** These are unsigned trial installers, with automatic updates disabled. Chrome is the current trial browser; Safari, other browsers, and Intel Mac are not validated for this release. End-to-end acceptance with real libraries and different agent clients is still in progress. Built-in configuration assistance is currently Codex-specific; other clients use manual MCP settings.
+> **Preview:** These trial installers have no publisher signature, with automatic updates disabled. Chrome is the current trial browser; Safari, other browsers, and Intel Mac are not validated for this release. End-to-end acceptance with real libraries and different agent clients is still in progress. Built-in configuration assistance is currently Codex-specific; other clients use manual MCP settings.
 
 See [installation and pairing instructions](docs/local-mcp/DOWNLOADS.md), [MCP tools and development notes](docs/local-mcp/README.md), and [validation status](docs/local-mcp/bridge-validation.md). These detailed guides are currently in Chinese.
 

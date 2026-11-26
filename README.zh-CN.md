@@ -88,8 +88,8 @@ EPUB、AZW3 更适合完整结构化分析；PDF、TXT 使用简化分析流程�
 
 | 试用版下载 | 适用平台 |
 | --- | --- |
-| [下载 Mac 版](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-mac-arm64.dmg) | Apple Silicon / M 系列芯片 |
-| [下载 Windows 版](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.2/bookleap-sync-0.1.0-trial.2-win-x64.exe) | x64 |
+| [下载 Mac 版](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.4/bookleap-sync-0.1.0-trial.4-mac-arm64.dmg) | Apple Silicon / M 系列芯片 |
+| [下载 Windows 版](https://github.com/Richology/Bookleap/releases/download/v0.1.0-trial.4/bookleap-sync-0.1.0-trial.4-win-x64.exe) | x64 |
 
 1. 安装助手，选择本地书库目录。
 2. 用 **Chrome** 打开工作台中的「本地 MCP」，填写配对码，并在助手中确认来源。
@@ -97,7 +97,7 @@ EPUB、AZW3 更适合完整结构化分析；PDF、TXT 使用简化分析流程�
 
 同步新内容时，网页和助手都需要运行。**关闭助手窗口会继续后台运行；退出助手会停止新内容同步。** 已保存内容仍可通过独立启动的 MCP 查询；重新打开网页与助手后，会补同步尚未送达的变化。
 
-> **试用范围：** 当前提供未签名安装包，自动更新已关闭。本轮以 Chrome 为试用浏览器，Safari、其他浏览器和 Intel Mac 尚未通过本轮验收。真实书库完整流程及不同 Agent 客户端的兼容性仍在验收中。现有自动配置入口针对 Codex，其他客户端需手动填写 MCP 参数。
+> **试用范围：** 当前安装包无发行者签名，自动更新已关闭。本轮以 Chrome 为试用浏览器，Safari、其他浏览器和 Intel Mac 尚未通过本轮验收。真实书库完整流程及不同 Agent 客户端的兼容性仍在验收中。现有自动配置入口针对 Codex，其他客户端需手动填写 MCP 参数。
 
 详细步骤见[下载与配对说明](docs/local-mcp/DOWNLOADS.md)、[MCP 工具与开发文档](docs/local-mcp/README.md)及[验证记录](docs/local-mcp/bridge-validation.md)。
 
