@@ -1,0 +1,113 @@
+name: Observe Chrome first open on a fresh Mac
+on:
+  push:
+    branches: [verify/trial-3-first-open]
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - name: Check environment and download from release page in desktop Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          test "$(uname -m)" = arm64
+          spctl --status
+          ls -l /dev/console
+          test ! -e "/Applications/书跃本地同步助手.app"
+          test ! -e "$HOME/Library/Application Support/bookleap-local-mcp"
+          mkdir -p "$HOME/Downloads" "$RUNNER_TEMP/evidence"
+      - name: Visit the published release with desktop Chrome
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --no-first-run --no-default-browser-check --user-data-dir="$RUNNER_TEMP/chrome" --remote-debugging-port=9222 about:blank >"$RUNNER_TEMP/chrome.log" 2>&1 &
+          for i in {1..30}; do curl -fsS localhost:9222/json/list > /dev/null && break; sleep 1; done
+          export NODE_NO_WARNINGS=1
+          node --input-type=module <<'JS'
+          const tab=(await (await fetch('http://localhost:9222/json/list')).json()).find(t=>t.type==='page');
+          const ws=new WebSocket(tab.webSocketDebuggerUrl);
+          await new Promise(r=>ws.onopen=r);
+          let n=0; const pending=new Map();
+          ws.onmessage=e=>{const m=JSON.parse(e.data);if(pending.has(m.id)){pending.get(m.id)(m);pending.delete(m.id)}};
+          function send(method,params){const id=++n;return new Promise(r=>{pending.set(id,r);ws.send(JSON.stringify({id,method,params}))})}
+          const tag='v0.1.0-trial.3';
+          await send('Page.navigate',{url:'https://github.com/Richology/Bookleap/releases/tag/'+tag});
+          let clicked=false;
+          for(let i=0;i<60;i++){
+            await new Promise(r=>setTimeout(r,1000));
+            const result=await send('Runtime.evaluate',{expression:`(()=>{const box=document.querySelector('details:has(include-fragment[src*="expanded_assets"])'); if(box&&!box.open)box.open=true;const link=document.querySelector('a[href$="0.1.0-trial.3-mac-arm64.dmg"]');if(link){link.click();return true}return false})()`});
+            if(result.result?.result?.value){clicked=true;break}
+          }
+          ws.close(); if(!clicked)throw Error('Release asset link not found');
+          JS
+      - name: Verify Chrome download and mount disk image
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="$HOME/Downloads/bookleap-sync-0.1.0-trial.3-mac-arm64.dmg"
+          for i in {1..120}; do test -f "$dmg" && break; sleep 1; done
+          echo "8f439be50579ca965f735f1ade7969adcf26ad222aa2af995f52ea094544511e  $dmg" | shasum -a 256 -c -
+          xattr -p com.apple.quarantine "$dmg" | tee "$RUNNER_TEMP/evidence/download.txt"
+          open "$dmg" >"$RUNNER_TEMP/disk-open.log" 2>&1 &
+          for i in {1..30}; do test -d "/Volumes/书跃本地同步助手/书跃本地同步助手.app" && break; sleep 1; done
+          mount | grep '书跃' | tee "$RUNNER_TEMP/evidence/mount.txt"
+      - name: Install into Applications using Finder
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          osascript -e 'with timeout of 20 seconds' -e 'tell application "Finder" to duplicate (POSIX file "/Volumes/书跃本地同步助手/书跃本地同步助手.app" as alias) to (POSIX file "/Applications" as alias)' -e 'end timeout'
+          codesign --verify --deep --strict "/Applications/书跃本地同步助手.app"
+      - name: Observe first launch
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          open "/Applications/书跃本地同步助手.app" >"$RUNNER_TEMP/evidence/open.log" 2>&1 &
+          sleep 24
+          screencapture -x "$RUNNER_TEMP/evidence/open.png"
+          lsof -nP -iTCP:48720 -sTCP:LISTEN || true
+          spctl --status | tee "$RUNNER_TEMP/evidence/policy.txt"
+      - name: Observe Privacy and Security
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/interact.swift" <<'SWIFT'
+          import CoreGraphics
+          import Foundation
+          let click = CommandLine.arguments.contains("dismiss")
+          let p = click ? CGPoint(x: 452,y: 339) : CGPoint(x: 764,y: 594)
+          let src = CGEventSource(stateID: .hidSystemState)
+          CGEvent(mouseEventSource: src, mouseType: .mouseMoved, mouseCursorPosition: p, mouseButton: .left)?.post(tap: .cghidEventTap)
+          if click {
+            for type in [CGEventType.leftMouseDown, .leftMouseUp] {
+              CGEvent(mouseEventSource: src, mouseType: type, mouseCursorPosition: p, mouseButton: .left)?.post(tap: .cghidEventTap)
+              Thread.sleep(forTimeInterval: 0.12)
+            }
+          } else {
+            for _ in 0..<12 {
+              CGEvent(scrollWheelEvent2Source: src, units: .pixel, wheelCount: 1, wheel1: -140, wheel2: 0, wheel3: 0)?.post(tap: .cghidEventTap)
+              Thread.sleep(forTimeInterval: 0.10)
+            }
+          }
+          SWIFT
+          swiftc "$RUNNER_TEMP/interact.swift" -o "$RUNNER_TEMP/interact"
+          "$RUNNER_TEMP/interact" dismiss
+          sleep 2
+          open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension' >/dev/null 2>&1 &
+          sleep 6
+          "$RUNNER_TEMP/interact" scroll
+          sleep 2
+          screencapture -x "$RUNNER_TEMP/evidence/settings.png"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: first-open-evidence
+          path: ${{ runner.temp }}/evidence
